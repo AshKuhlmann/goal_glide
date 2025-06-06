@@ -1,17 +1,17 @@
 from __future__ import annotations
 
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
-from tinydb import TinyDB, Query
+from tinydb import Query, TinyDB
 
-from .goal import Goal, Priority
 from ..exceptions import (
     GoalAlreadyArchivedError,
     GoalNotArchivedError,
     GoalNotFoundError,
 )
+from .goal import Goal, Priority
 
 
 class Storage:
@@ -99,3 +99,12 @@ class Storage:
                 continue
             results.append(g)
         return results
+
+    def remove_goal(self, goal_id: str) -> None:
+        if not self.table.contains(Query().id == goal_id):
+            raise GoalNotFoundError(f"Goal {goal_id} not found")
+        self.table.remove(Query().id == goal_id)
+
+    def find_by_title(self, title: str) -> Goal | None:
+        row = self.table.get(Query().title == title)
+        return self._row_to_goal(row) if row else None

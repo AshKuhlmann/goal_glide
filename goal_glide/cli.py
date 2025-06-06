@@ -1,20 +1,21 @@
 from __future__ import annotations
 
-import uuid
-from pathlib import Path
-from datetime import datetime
 import os
+import uuid
+from datetime import datetime
+from pathlib import Path
 
 import click
+
 from rich.console import Console
 
-from .models.goal import Goal, Priority
-from .models.storage import Storage
 from .exceptions import (
     GoalAlreadyArchivedError,
     GoalNotArchivedError,
     GoalNotFoundError,
 )
+from .models.goal import Goal, Priority
+from .models.storage import Storage
 from .services.render import render_goals
 
 
@@ -129,5 +130,8 @@ def list_goals(archived: bool, show_all: bool, priority: str | None) -> None:
     console.print(table)
 
 
+cli = goal
+
+
 if __name__ == "__main__":
-    goal()
+    cli()
