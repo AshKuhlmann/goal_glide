@@ -1,0 +1,11 @@
+Screen {
+    layout: horizontal;
+}
+#goal_table {
+    width: 40%;
+    border: tall $surface;
+}
+#detail_panel {
+    width: 60%;
+    padding: 1 2;
+}

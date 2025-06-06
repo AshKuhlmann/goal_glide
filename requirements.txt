@@ -4,3 +4,4 @@ tinydb
 pytest
 apscheduler
 notify2
+textual>=0.55
