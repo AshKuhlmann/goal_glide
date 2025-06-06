@@ -4,7 +4,12 @@ import tomllib
 from pathlib import Path
 from typing import Any, Dict
 
-DEFAULTS: Dict[str, Any] = {"quotes_enabled": True}
+DEFAULTS: Dict[str, Any] = {
+    "quotes_enabled": True,
+    "reminders_enabled": False,
+    "reminder_break_min": 5,
+    "reminder_interval_min": 30,
+}
 _CONFIG_CACHE: Dict[str, Any] | None = None
 _CONFIG_PATH = Path.home() / ".goal_glide" / "config.toml"
 
@@ -27,6 +32,18 @@ def _config() -> Dict[str, Any]:
 
 def quotes_enabled() -> bool:
     return bool(_config().get("quotes_enabled", True))
+
+
+def reminders_enabled() -> bool:
+    return bool(_config().get("reminders_enabled", False))
+
+
+def reminder_break() -> int:
+    return int(_config().get("reminder_break_min", 5))
+
+
+def reminder_interval() -> int:
+    return int(_config().get("reminder_interval_min", 30))
 
 
 def load_config() -> Dict[str, Any]:
