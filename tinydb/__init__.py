@@ -46,6 +46,18 @@ class Table:
     def contains(self, predicate: Callable[[dict[str, Any]], bool]) -> bool:
         return self.get(predicate) is not None
 
+    def search(
+        self, predicate: Callable[[dict[str, Any]], bool]
+    ) -> list[dict[str, Any]]:
+        return [row for row in self.db.data.get(self.name, []) if predicate(row)]
+
+    def remove(self, predicate: Callable[[dict[str, Any]], bool]) -> int:
+        rows = self.db.data.get(self.name, [])
+        before = len(rows)
+        self.db.data[self.name] = [row for row in rows if not predicate(row)]
+        self.db._save()
+        return before - len(self.db.data[self.name])
+
     def update(
         self, record: dict[str, Any], predicate: Callable[[dict[str, Any]], bool]
     ) -> None:
