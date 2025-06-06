@@ -2,3 +2,5 @@ click
 rich
 tinydb
 pytest
+apscheduler
+notify2

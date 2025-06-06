@@ -11,8 +11,8 @@ import pytest
 from click.testing import CliRunner
 
 from goal_glide.cli import goal
-from goal_glide.models.storage import Storage
 from goal_glide.models.goal import Priority
+from goal_glide.models.storage import Storage
 
 
 @pytest.fixture()

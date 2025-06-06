@@ -234,6 +234,57 @@ def stop_pomo() -> None:
 goal.add_command(pomo)
 
 
+@goal.group(name="reminder", help="Configure desktop break reminders.")
+def reminder_cli() -> None:
+    pass
+
+
+@reminder_cli.command("enable")
+def reminder_enable() -> None:
+    cfg = load_config()
+    cfg["reminders_enabled"] = True
+    save_config(cfg)
+    console.print("Reminders ON")
+
+
+@reminder_cli.command("disable")
+def reminder_disable() -> None:
+    cfg = load_config()
+    cfg["reminders_enabled"] = False
+    save_config(cfg)
+    console.print("Reminders OFF")
+
+
+@reminder_cli.command("config")
+@click.option("--break", "break_", type=int, help="Break length minutes (1-120)")
+@click.option("--interval", type=int, help="Interval minutes (1-120)")
+def reminder_config(break_: int | None, interval: int | None) -> None:
+    cfg = load_config()
+    if break_ is not None:
+        if not 1 <= break_ <= 120:
+            raise ValueError("break must be between 1 and 120")
+        cfg["reminder_break_min"] = break_
+    if interval is not None:
+        if not 1 <= interval <= 120:
+            raise ValueError("interval must be between 1 and 120")
+        cfg["reminder_interval_min"] = interval
+    save_config(cfg)
+    console.print(
+        f"Break {cfg['reminder_break_min']}m, Interval {cfg['reminder_interval_min']}m"
+    )
+
+
+@reminder_cli.command("status")
+def reminder_status() -> None:
+    cfg = load_config()
+    console.print(
+        f"Enabled: {cfg.get('reminders_enabled', False)} | Break: {cfg.get('reminder_break_min', 5)}m | Interval: {cfg.get('reminder_interval_min', 30)}m"
+    )
+
+
+goal.add_command(reminder_cli)
+
+
 @click.group()
 def config() -> None:
     """Configuration commands."""
