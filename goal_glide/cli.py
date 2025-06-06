@@ -10,6 +10,7 @@ import click
 from rich.console import Console
 from rich.table import Table
 
+from .config import load_config, quotes_enabled, save_config
 from .exceptions import (
     GoalAlreadyArchivedError,
     GoalNotArchivedError,
@@ -18,6 +19,8 @@ from .exceptions import (
 from .models.goal import Goal, Priority
 from .models.storage import Storage
 from .models.thought import Thought
+from .services.pomodoro import PomodoroSession, start_session, stop_session
+from .services.quotes import get_random_quote
 from .services.render import render_goals
 from .utils.timefmt import natural_delta
 
@@ -28,6 +31,20 @@ def get_storage() -> Storage:
 
 
 console = Console()
+
+
+def _fmt(seconds: int) -> str:
+    mins = int(seconds // 60)
+    return f"{mins}m"
+
+
+def _print_completion(session: PomodoroSession) -> None:
+    console.print(f"Pomodoro complete ✅ ({_fmt(session.duration_sec)})")
+    if quotes_enabled():
+        quote, author = get_random_quote()
+        console.print(
+            f"[cyan italic]“{quote}”[/]\n— [bold]{author}[/]", justify="center"
+        )
 
 
 @click.group()
@@ -134,6 +151,49 @@ def list_goals(archived: bool, show_all: bool, priority: str | None) -> None:
 
 
 cli = goal
+
+
+@click.group(help="Manage pomodoro sessions.")
+def pomo() -> None:
+    pass
+
+
+@pomo.command("start")
+@click.option("--duration", type=int, default=25, show_default=True, help="Minutes")
+def start_pomo(duration: int) -> None:
+    start_session(duration)
+    console.print(f"Started pomodoro for {duration}m")
+
+
+@pomo.command("stop")
+def stop_pomo() -> None:
+    try:
+        session = stop_session()
+    except RuntimeError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise SystemExit(1)
+    _print_completion(session)
+
+
+goal.add_command(pomo)
+
+
+@click.group()
+def config() -> None:
+    """Configuration commands."""
+
+
+@config.command("quotes")
+@click.option("--enable/--disable", default=None, help="Toggle motivational quotes")
+def cfg_quotes(enable: bool | None) -> None:
+    cfg = load_config()
+    if enable is not None:
+        cfg["quotes_enabled"] = enable
+        save_config(cfg)
+    console.print(f"Quotes are {'ON' if cfg.get('quotes_enabled', True) else 'OFF'}")
+
+
+goal.add_command(config)
 
 
 @click.group(help="Capture and review quick reflections.")
