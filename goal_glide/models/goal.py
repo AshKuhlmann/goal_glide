@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 
@@ -18,3 +18,4 @@ class Goal:
     created: datetime
     priority: Priority = Priority.medium
     archived: bool = False
+    tags: list[str] = field(default_factory=list)

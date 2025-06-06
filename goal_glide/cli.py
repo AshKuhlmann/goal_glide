@@ -16,6 +16,7 @@ from .exceptions import (
     GoalAlreadyArchivedError,
     GoalNotArchivedError,
     GoalNotFoundError,
+    InvalidTagError,
 )
 from .models.goal import Goal, Priority
 from .models.storage import Storage
@@ -25,6 +26,7 @@ from .services.pomodoro import PomodoroSession, start_session, stop_session
 from .services.quotes import get_random_quote
 from .services.render import render_goals
 from .utils.format import format_duration
+from .utils.tag import validate_tag
 from .utils.timefmt import natural_delta
 
 
@@ -127,6 +129,53 @@ def restore_goal_cmd(goal_id: str) -> None:
         raise SystemExit(1)
 
 
+@goal.group("tag")
+def tag() -> None:
+    """Tag management."""
+    pass
+
+
+@tag.command("add")
+@click.argument("goal_id")
+@click.argument("tags", nargs=-1, required=True)
+def tag_add(goal_id: str, tags: tuple[str, ...]) -> None:
+    """Add one or more tags to a goal."""
+    storage = get_storage()
+    try:
+        validated = [validate_tag(t) for t in tags]
+    except InvalidTagError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise SystemExit(1)
+    try:
+        goal = storage.add_tags(goal_id, validated)
+    except GoalNotFoundError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise SystemExit(1)
+    console.print(f"Tags for {goal.id}: {', '.join(goal.tags)}")
+
+
+@tag.command("rm")
+@click.argument("goal_id")
+@click.argument("tag")
+def tag_rm(goal_id: str, tag: str) -> None:
+    """Remove a tag from a goal."""
+    storage = get_storage()
+    try:
+        validated = validate_tag(tag)
+    except InvalidTagError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise SystemExit(1)
+    try:
+        before = storage.get_goal(goal_id)
+    except GoalNotFoundError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise SystemExit(1)
+    updated = storage.remove_tag(goal_id, validated)
+    if validated not in before.tags:
+        console.print(f"[yellow]Tag '{validated}' not present[/yellow]")
+    console.print(f"Tags for {updated.id}: {', '.join(updated.tags)}")
+
+
 @goal.command("list")
 @click.option("--archived", is_flag=True, help="Show only archived goals")
 @click.option(
@@ -137,13 +186,17 @@ def restore_goal_cmd(goal_id: str) -> None:
     type=click.Choice([e.value for e in Priority]),
     help="Filter by priority",
 )
-def list_goals(archived: bool, show_all: bool, priority: str | None) -> None:
+@click.option("--tag", "tags", multiple=True, help="Filter goals by tag (AND logic)")
+def list_goals(
+    archived: bool, show_all: bool, priority: str | None, tags: tuple[str, ...]
+) -> None:
     """List goals with optional filtering."""
     storage = get_storage()
     goals = storage.list_goals(
         include_archived=show_all,
         only_archived=archived,
         priority=Priority(priority) if priority else None,
+        tags=list(tags) if tags else None,
     )
 
     prio_order = {Priority.high: 0, Priority.medium: 1, Priority.low: 2}

@@ -12,6 +12,7 @@ def render_goals(goals: list[Goal]) -> Table:
     table.add_column("Priority")
     table.add_column("Created")
     table.add_column("Archived")
+    table.add_column("Tags")
     for g in goals:
         table.add_row(
             g.id,
@@ -19,5 +20,6 @@ def render_goals(goals: list[Goal]) -> Table:
             g.priority.value,
             g.created.isoformat(timespec="seconds"),
             "yes" if g.archived else "",
+            ", ".join(g.tags),
         )
     return table
