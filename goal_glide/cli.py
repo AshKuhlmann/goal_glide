@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import functools
 import os
 import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import cast
+from typing import Any, Callable, ParamSpec, TypeVar, cast
 
 import click
 
@@ -14,14 +15,17 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
 from .config import load_config, quotes_enabled, save_config
-from .exceptions import (GoalAlreadyArchivedError, GoalNotArchivedError,
-                         GoalNotFoundError, InvalidTagError)
+from .exceptions import (
+    GoalAlreadyArchivedError,
+    GoalNotArchivedError,
+    GoalNotFoundError,
+    InvalidTagError,
+)
 from .models.goal import Goal, Priority
 from .models.storage import Storage
 from .models.thought import Thought
 from .services import report
-from .services.analytics import (current_streak, total_time_by_goal,
-                                 weekly_histogram)
+from .services.analytics import current_streak, total_time_by_goal, weekly_histogram
 from .services.pomodoro import PomodoroSession, start_session, stop_session
 from .services.quotes import get_random_quote
 from .services.render import render_goals
@@ -36,6 +40,32 @@ def get_storage() -> Storage:
 
 
 console = Console()
+
+P = ParamSpec("P")
+R = TypeVar("R")
+
+
+def handle_exceptions(func: Callable[P, R]) -> Callable[P, R]:
+    """Uniformly catch domain-level errors and exit with status 1."""
+
+    @functools.wraps(func)
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+        try:
+            return func(*args, **kwargs)
+        except (
+            GoalNotFoundError,
+            GoalAlreadyArchivedError,
+            GoalNotArchivedError,
+            InvalidTagError,
+            RuntimeError,
+        ) as exc:
+            console.print(f"[bold red]Error:[/bold red] {exc}")
+            raise SystemExit(1)
+        except Exception as exc:  # pragma: no cover - unexpected
+            console.print(f"[bold red]An unexpected error occurred:[/bold red] {exc}")
+            raise SystemExit(1)
+
+    return wrapper
 
 
 def _fmt(seconds: int) -> str:
@@ -91,42 +121,33 @@ def add_goal(title: str, priority: str) -> None:
 
 @goal.command("remove")
 @click.argument("goal_id")
+@handle_exceptions
 def remove_goal_cmd(goal_id: str) -> None:
     """Permanently remove a goal."""
     storage = get_storage()
     if click.confirm(f"Remove goal {goal_id}?"):
-        try:
-            storage.remove_goal(goal_id)
-            console.print(f"[green]Removed[/green] {goal_id}")
-        except GoalNotFoundError as exc:
-            console.print(f"[red]{exc}[/red]")
-            raise SystemExit(1)
+        storage.remove_goal(goal_id)
+        console.print(f"[green]Removed[/green] {goal_id}")
 
 
 @goal.command("archive")
 @click.argument("goal_id")
+@handle_exceptions
 def archive_goal_cmd(goal_id: str) -> None:
     """Hide a goal from normal listings."""
     storage = get_storage()
-    try:
-        storage.archive_goal(goal_id)
-        console.print(f":package: Goal {goal_id} archived")
-    except (GoalNotFoundError, GoalAlreadyArchivedError) as exc:
-        console.print(f"[red]{exc}[/red]")
-        raise SystemExit(1)
+    storage.archive_goal(goal_id)
+    console.print(f":package: Goal {goal_id} archived")
 
 
 @goal.command("restore")
 @click.argument("goal_id")
+@handle_exceptions
 def restore_goal_cmd(goal_id: str) -> None:
     """Bring a goal back into the active list."""
     storage = get_storage()
-    try:
-        storage.restore_goal(goal_id)
-        console.print(f":package: Goal {goal_id} restored")
-    except (GoalNotFoundError, GoalNotArchivedError) as exc:
-        console.print(f"[red]{exc}[/red]")
-        raise SystemExit(1)
+    storage.restore_goal(goal_id)
+    console.print(f":package: Goal {goal_id} restored")
 
 
 @goal.group("tag")
@@ -138,38 +159,24 @@ def tag() -> None:
 @tag.command("add")
 @click.argument("goal_id")
 @click.argument("tags", nargs=-1, required=True)
+@handle_exceptions
 def tag_add(goal_id: str, tags: tuple[str, ...]) -> None:
     """Add one or more tags to a goal."""
     storage = get_storage()
-    try:
-        validated = [validate_tag(t) for t in tags]
-    except InvalidTagError as exc:
-        console.print(f"[red]{exc}[/red]")
-        raise SystemExit(1)
-    try:
-        goal = storage.add_tags(goal_id, validated)
-    except GoalNotFoundError as exc:
-        console.print(f"[red]{exc}[/red]")
-        raise SystemExit(1)
+    validated = [validate_tag(t) for t in tags]
+    goal = storage.add_tags(goal_id, validated)
     console.print(f"Tags for {goal.id}: {', '.join(goal.tags)}")
 
 
 @tag.command("rm")
 @click.argument("goal_id")
 @click.argument("tag")
+@handle_exceptions
 def tag_rm(goal_id: str, tag: str) -> None:
     """Remove a tag from a goal."""
     storage = get_storage()
-    try:
-        validated = validate_tag(tag)
-    except InvalidTagError as exc:
-        console.print(f"[red]{exc}[/red]")
-        raise SystemExit(1)
-    try:
-        before = storage.get_goal(goal_id)
-    except GoalNotFoundError as exc:
-        console.print(f"[red]{exc}[/red]")
-        raise SystemExit(1)
+    validated = validate_tag(tag)
+    before = storage.get_goal(goal_id)
     updated = storage.remove_tag(goal_id, validated)
     if validated not in before.tags:
         console.print(f"[yellow]Tag '{validated}' not present[/yellow]")
@@ -216,18 +223,16 @@ def pomo() -> None:
 
 @pomo.command("start")
 @click.option("--duration", type=int, default=25, show_default=True, help="Minutes")
+@handle_exceptions
 def start_pomo(duration: int) -> None:
     start_session(duration)
     console.print(f"Started pomodoro for {duration}m")
 
 
 @pomo.command("stop")
+@handle_exceptions
 def stop_pomo() -> None:
-    try:
-        session = stop_session()
-    except RuntimeError as exc:
-        console.print(f"[red]{exc}[/red]")
-        raise SystemExit(1)
+    session = stop_session()
     _print_completion(session)
 
 
@@ -240,6 +245,7 @@ def reminder_cli() -> None:
 
 
 @reminder_cli.command("enable")
+@handle_exceptions
 def reminder_enable() -> None:
     cfg = load_config()
     cfg["reminders_enabled"] = True
@@ -248,6 +254,7 @@ def reminder_enable() -> None:
 
 
 @reminder_cli.command("disable")
+@handle_exceptions
 def reminder_disable() -> None:
     cfg = load_config()
     cfg["reminders_enabled"] = False
@@ -258,6 +265,7 @@ def reminder_disable() -> None:
 @reminder_cli.command("config")
 @click.option("--break", "break_", type=int, help="Break length minutes (1-120)")
 @click.option("--interval", type=int, help="Interval minutes (1-120)")
+@handle_exceptions
 def reminder_config(break_: int | None, interval: int | None) -> None:
     cfg = load_config()
     if break_ is not None:
@@ -314,6 +322,7 @@ goal.add_command(thought)
 @thought.command("jot")
 @click.argument("message", required=False)
 @click.option("-g", "--goal", "goal_id", help="Attach note to a goal ID")
+@handle_exceptions
 def jot_thought(message: str | None, goal_id: str | None) -> None:
     """Record a short thought or reflection."""
     storage = get_storage()
@@ -330,10 +339,7 @@ def jot_thought(message: str | None, goal_id: str | None) -> None:
         raise click.ClickException("Thought must be 500 characters or less")
 
     if goal_id:
-        try:
-            goal_obj = storage.get_goal(goal_id)
-        except GoalNotFoundError as exc:
-            raise click.ClickException(str(exc)) from exc
+        goal_obj = storage.get_goal(goal_id)
         if goal_obj.archived:
             raise click.ClickException("Goal is archived")
 
@@ -345,6 +351,7 @@ def jot_thought(message: str | None, goal_id: str | None) -> None:
 @thought.command("list")
 @click.option("-g", "--goal", "goal_id", help="Filter by goal ID")
 @click.option("--limit", type=int, default=10, show_default=True, help="Max rows")
+@handle_exceptions
 def list_thoughts_cmd(goal_id: str | None, limit: int) -> None:
     """Display recent thoughts."""
     storage = get_storage()
