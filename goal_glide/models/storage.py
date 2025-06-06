@@ -1,0 +1,101 @@
+from __future__ import annotations
+
+from pathlib import Path
+from datetime import datetime
+from typing import Any
+
+from tinydb import TinyDB, Query
+
+from .goal import Goal, Priority
+from ..exceptions import (
+    GoalAlreadyArchivedError,
+    GoalNotArchivedError,
+    GoalNotFoundError,
+)
+
+
+class Storage:
+    def __init__(self, db_dir: Path | None = None) -> None:
+        base = db_dir or Path.home() / ".goal_glide"
+        db_path = Path(base) / "db.json"
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+        self.db = TinyDB(db_path)
+        self.table = self.db.table("goals")
+
+    def _row_to_goal(self, row: dict[str, Any]) -> Goal:
+        created = row["created"]
+        if isinstance(created, str):
+            created_dt = datetime.fromisoformat(created)
+        else:
+            created_dt = created
+        return Goal(
+            id=row["id"],
+            title=row["title"],
+            created=created_dt,
+            priority=Priority(row.get("priority", Priority.medium.value)),
+            archived=row.get("archived", False),
+        )
+
+    def add_goal(self, goal: Goal) -> None:
+        from dataclasses import asdict
+
+        self.table.insert(asdict(goal))
+
+    def get_goal(self, goal_id: str) -> Goal:
+        row = self.table.get(Query().id == goal_id)
+        if not row:
+            raise GoalNotFoundError(f"Goal {goal_id} not found")
+        return self._row_to_goal(row)
+
+    def update_goal(self, goal: Goal) -> None:
+        from dataclasses import asdict
+
+        if not self.table.contains(Query().id == goal.id):
+            raise GoalNotFoundError(f"Goal {goal.id} not found")
+        self.table.update(asdict(goal), Query().id == goal.id)
+
+    def archive_goal(self, goal_id: str) -> Goal:
+        goal = self.get_goal(goal_id)
+        if goal.archived:
+            raise GoalAlreadyArchivedError(f"Goal {goal_id} already archived")
+        updated = Goal(
+            id=goal.id,
+            title=goal.title,
+            created=goal.created,
+            priority=goal.priority,
+            archived=True,
+        )
+        self.update_goal(updated)
+        return updated
+
+    def restore_goal(self, goal_id: str) -> Goal:
+        goal = self.get_goal(goal_id)
+        if not goal.archived:
+            raise GoalNotArchivedError(f"Goal {goal_id} is not archived")
+        updated = Goal(
+            id=goal.id,
+            title=goal.title,
+            created=goal.created,
+            priority=goal.priority,
+            archived=False,
+        )
+        self.update_goal(updated)
+        return updated
+
+    def list_goals(
+        self,
+        include_archived: bool = False,
+        only_archived: bool = False,
+        priority: Priority | None = None,
+    ) -> list[Goal]:
+        results = []
+        for row in self.table.all():
+            g = self._row_to_goal(row)
+            if only_archived and not g.archived:
+                continue
+            if not include_archived and not only_archived and g.archived:
+                continue
+            if priority and g.priority != priority:
+                continue
+            results.append(g)
+        return results

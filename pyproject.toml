@@ -1,0 +1,13 @@
+[tool.black]
+target-version = ['py311']
+
+[tool.ruff]
+
+[tool.mypy]
+python_version = '3.11'
+strict = true
+ignore_missing_imports = true
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
