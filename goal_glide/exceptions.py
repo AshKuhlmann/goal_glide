@@ -16,3 +16,7 @@ class EmptyThoughtError(ValueError):
 
 class GoalDoesNotExistError(ValueError):
     pass
+
+
+class InvalidTagError(ValueError):
+    pass

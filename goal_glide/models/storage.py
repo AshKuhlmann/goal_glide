@@ -27,6 +27,13 @@ class Storage:
         self.thought_table = self.db.table(THOUGHTS_TABLE)
         self.session_table = self.db.table("sessions")
 
+        # migrate existing rows to include tags field
+        for row in self.table.all():
+            if "tags" not in row:
+                new_row = dict(row)
+                new_row["tags"] = []
+                self.table.update(new_row, Query().id == row["id"])
+
     def _row_to_goal(self, row: dict[str, Any]) -> Goal:
         created = row["created"]
         if isinstance(created, str):
@@ -39,6 +46,7 @@ class Storage:
             created=created_dt,
             priority=Priority(row.get("priority", Priority.medium.value)),
             archived=row.get("archived", False),
+            tags=row.get("tags", []),
         )
 
     def _row_to_thought(self, row: dict[str, Any]) -> Thought:
@@ -77,6 +85,36 @@ class Storage:
         if not row:
             raise GoalNotFoundError(f"Goal {goal_id} not found")
         return self._row_to_goal(row)
+
+    def add_tags(self, goal_id: str, tags: list[str]) -> Goal:
+        goal = self.get_goal(goal_id)
+        updated_tags = list({*goal.tags, *tags})
+        updated = Goal(
+            id=goal.id,
+            title=goal.title,
+            created=goal.created,
+            priority=goal.priority,
+            archived=goal.archived,
+            tags=sorted(updated_tags),
+        )
+        self.update_goal(updated)
+        return updated
+
+    def remove_tag(self, goal_id: str, tag: str) -> Goal:
+        goal = self.get_goal(goal_id)
+        if tag not in goal.tags:
+            return goal
+        new_tags = [t for t in goal.tags if t != tag]
+        updated = Goal(
+            id=goal.id,
+            title=goal.title,
+            created=goal.created,
+            priority=goal.priority,
+            archived=goal.archived,
+            tags=new_tags,
+        )
+        self.update_goal(updated)
+        return updated
 
     def update_goal(self, goal: Goal) -> None:
         from dataclasses import asdict
@@ -118,6 +156,7 @@ class Storage:
         include_archived: bool = False,
         only_archived: bool = False,
         priority: Priority | None = None,
+        tags: list[str] | None = None,
     ) -> list[Goal]:
         results = []
         for row in self.table.all():
@@ -127,6 +166,8 @@ class Storage:
             if not include_archived and not only_archived and g.archived:
                 continue
             if priority and g.priority != priority:
+                continue
+            if tags and not set(tags).issubset(g.tags):
                 continue
             results.append(g)
         return results
