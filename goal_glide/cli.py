@@ -42,13 +42,39 @@ def goal() -> None:
     help="Goal priority (low, medium, high)",
 )
 def add_goal(title: str, priority: str) -> None:
+    """Add a new goal."""
+    title = title.strip()
+    if not title:
+        console.print("[red]Title cannot be empty.[/red]")
+        raise SystemExit(1)
+
     storage = get_storage()
+    if storage.find_by_title(title):
+        console.print("[yellow]Warning: goal with this title already exists.[/yellow]")
+
     prio = Priority(priority)
     g = Goal(
-        id=str(uuid.uuid4()), title=title, created=datetime.utcnow(), priority=prio
+        id=str(uuid.uuid4()),
+        title=title,
+        created=datetime.utcnow(),
+        priority=prio,
     )
     storage.add_goal(g)
-    console.print(f":check_mark: Added goal {g.id}")
+    console.print(f":check_mark: Added goal {g.title} ({g.id})")
+
+
+@goal.command("remove")
+@click.argument("goal_id")
+def remove_goal_cmd(goal_id: str) -> None:
+    """Permanently remove a goal."""
+    storage = get_storage()
+    if click.confirm(f"Remove goal {goal_id}?"):
+        try:
+            storage.remove_goal(goal_id)
+            console.print(f"[green]Removed[/green] {goal_id}")
+        except GoalNotFoundError as exc:
+            console.print(f"[red]{exc}[/red]")
+            raise SystemExit(1)
 
 
 @goal.command("archive")
@@ -60,7 +86,7 @@ def archive_goal_cmd(goal_id: str) -> None:
         storage.archive_goal(goal_id)
         console.print(f":package: Goal {goal_id} archived")
     except (GoalNotFoundError, GoalAlreadyArchivedError) as exc:
-        console.print(f"[red]{exc}")
+        console.print(f"[red]{exc}[/red]")
         raise SystemExit(1)
 
 
@@ -73,7 +99,7 @@ def restore_goal_cmd(goal_id: str) -> None:
         storage.restore_goal(goal_id)
         console.print(f":package: Goal {goal_id} restored")
     except (GoalNotFoundError, GoalNotArchivedError) as exc:
-        console.print(f"[red]{exc}")
+        console.print(f"[red]{exc}[/red]")
         raise SystemExit(1)
 
 
@@ -88,14 +114,17 @@ def restore_goal_cmd(goal_id: str) -> None:
     help="Filter by priority",
 )
 def list_goals(archived: bool, show_all: bool, priority: str | None) -> None:
+    """List goals with optional filtering."""
     storage = get_storage()
     goals = storage.list_goals(
         include_archived=show_all,
         only_archived=archived,
         priority=Priority(priority) if priority else None,
     )
+
     prio_order = {Priority.high: 0, Priority.medium: 1, Priority.low: 2}
     goals.sort(key=lambda g: (g.archived, prio_order[g.priority], g.created))
+
     table = render_goals(goals)
     console.print(table)
 
