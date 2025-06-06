@@ -5,7 +5,7 @@ import os
 import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Callable, ParamSpec, TypeVar, cast
+from typing import Callable, ParamSpec, TypeVar, cast
 
 import click
 
@@ -13,6 +13,7 @@ from rich.bar import Bar
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
+from tinydb import Query
 
 from .config import load_config, quotes_enabled, save_config
 from .exceptions import (
@@ -33,20 +34,15 @@ from .utils.format import format_duration
 from .utils.tag import validate_tag
 from .utils.timefmt import natural_delta
 
-
-def get_storage() -> Storage:
-    db_dir = os.environ.get("GOAL_GLIDE_DB_DIR")
-    return Storage(Path(db_dir) if db_dir else None)
-
-
 console = Console()
 
 P = ParamSpec("P")
 R = TypeVar("R")
 
 
+# ── Centralised exception handler ────────────────────────────────────────────
 def handle_exceptions(func: Callable[P, R]) -> Callable[P, R]:
-    """Uniformly catch domain-level errors and exit with status 1."""
+    """Catch domain errors uniformly and exit status 1."""
 
     @functools.wraps(func)
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
@@ -57,15 +53,22 @@ def handle_exceptions(func: Callable[P, R]) -> Callable[P, R]:
             GoalAlreadyArchivedError,
             GoalNotArchivedError,
             InvalidTagError,
-            RuntimeError,
+            click.ClickException,
+            RuntimeError,  # e.g. stop_pomo with no session
+            ValueError,  # e.g. reminder_config validation
         ) as exc:
             console.print(f"[bold red]Error:[/bold red] {exc}")
             raise SystemExit(1)
-        except Exception as exc:  # pragma: no cover - unexpected
+        except Exception as exc:
             console.print(f"[bold red]An unexpected error occurred:[/bold red] {exc}")
             raise SystemExit(1)
 
     return wrapper
+
+
+def get_storage() -> Storage:
+    db_dir = os.environ.get("GOAL_GLIDE_DB_DIR")
+    return Storage(Path(db_dir) if db_dir else None)
 
 
 def _fmt(seconds: int) -> str:
@@ -366,9 +369,9 @@ def list_thoughts_cmd(goal_id: str | None, limit: int) -> None:
         when = natural_delta(th.timestamp)
         goal_title = ""
         if th.goal_id:
-            try:
+            if storage.table.contains(Query().id == th.goal_id):
                 goal_title = storage.get_goal(th.goal_id).title
-            except GoalNotFoundError:
+            else:
                 goal_title = th.goal_id
         table.add_row(when, goal_title, th.text)
 
@@ -427,9 +430,9 @@ def stats_cmd(month: bool, show_goals: bool) -> None:
         table.add_column("Time")
         ranked = sorted(totals.items(), key=lambda t: t[1], reverse=True)[:5]
         for gid, sec in ranked:
-            try:
+            if storage.table.contains(Query().id == gid):
                 title = storage.get_goal(gid).title
-            except GoalNotFoundError:
+            else:
                 title = gid
             table.add_row(title, format_duration(sec))
         console.print(table)
