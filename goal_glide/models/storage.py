@@ -12,6 +12,8 @@ from ..exceptions import (
     GoalNotFoundError,
 )
 from .goal import Goal, Priority
+from .thought import TABLE_NAME as THOUGHTS_TABLE
+from .thought import Thought
 
 
 class Storage:
@@ -21,6 +23,7 @@ class Storage:
         db_path.parent.mkdir(parents=True, exist_ok=True)
         self.db = TinyDB(db_path)
         self.table = self.db.table("goals")
+        self.thought_table = self.db.table(THOUGHTS_TABLE)
 
     def _row_to_goal(self, row: dict[str, Any]) -> Goal:
         created = row["created"]
@@ -34,6 +37,19 @@ class Storage:
             created=created_dt,
             priority=Priority(row.get("priority", Priority.medium.value)),
             archived=row.get("archived", False),
+        )
+
+    def _row_to_thought(self, row: dict[str, Any]) -> Thought:
+        ts = row["timestamp"]
+        if isinstance(ts, str):
+            ts_dt = datetime.fromisoformat(ts)
+        else:
+            ts_dt = ts
+        return Thought(
+            id=row["id"],
+            text=row["text"],
+            timestamp=ts_dt,
+            goal_id=row.get("goal_id"),
         )
 
     def add_goal(self, goal: Goal) -> None:
@@ -108,3 +124,22 @@ class Storage:
     def find_by_title(self, title: str) -> Goal | None:
         row = self.table.get(Query().title == title)
         return self._row_to_goal(row) if row else None
+
+    def add_thought(self, thought: Thought) -> None:
+        from dataclasses import asdict
+
+        self.thought_table.insert(asdict(thought))
+
+    def list_thoughts(
+        self,
+        goal_id: str | None = None,
+        limit: int | None = 10,
+        newest_first: bool = True,
+    ) -> list[Thought]:
+        rows = [self._row_to_thought(r) for r in self.thought_table.all()]
+        if goal_id is not None:
+            rows = [t for t in rows if t.goal_id == goal_id]
+        rows.sort(key=lambda t: t.timestamp, reverse=newest_first)
+        if limit is not None:
+            rows = rows[:limit]
+        return rows
