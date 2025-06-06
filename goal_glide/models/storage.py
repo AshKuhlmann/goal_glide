@@ -12,6 +12,7 @@ from ..exceptions import (
     GoalNotFoundError,
 )
 from .goal import Goal, Priority
+from .session import PomodoroSession
 from .thought import TABLE_NAME as THOUGHTS_TABLE
 from .thought import Thought
 
@@ -24,6 +25,7 @@ class Storage:
         self.db = TinyDB(db_path)
         self.table = self.db.table("goals")
         self.thought_table = self.db.table(THOUGHTS_TABLE)
+        self.session_table = self.db.table("sessions")
 
     def _row_to_goal(self, row: dict[str, Any]) -> Goal:
         created = row["created"]
@@ -50,6 +52,19 @@ class Storage:
             text=row["text"],
             timestamp=ts_dt,
             goal_id=row.get("goal_id"),
+        )
+
+    def _row_to_session(self, row: dict[str, Any]) -> PomodoroSession:
+        st = row["start"]
+        if isinstance(st, str):
+            st_dt = datetime.fromisoformat(st)
+        else:
+            st_dt = st
+        return PomodoroSession(
+            id=row["id"],
+            goal_id=row["goal_id"],
+            start=st_dt,
+            duration_sec=row["duration_sec"],
         )
 
     def add_goal(self, goal: Goal) -> None:
@@ -124,6 +139,14 @@ class Storage:
     def find_by_title(self, title: str) -> Goal | None:
         row = self.table.get(Query().title == title)
         return self._row_to_goal(row) if row else None
+
+    def add_session(self, session: PomodoroSession) -> None:
+        from dataclasses import asdict
+
+        self.session_table.insert(asdict(session))
+
+    def list_sessions(self) -> list[PomodoroSession]:
+        return [self._row_to_session(r) for r in self.session_table.all()]
 
     def add_thought(self, thought: Thought) -> None:
         from dataclasses import asdict
