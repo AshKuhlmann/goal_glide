@@ -6,7 +6,7 @@ import random
 from pathlib import Path
 from typing import List, Tuple, cast
 
-import requests  # type: ignore
+import requests
 
 __all__ = ["get_random_quote"]
 

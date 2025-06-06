@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import os
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import click
 
+from rich.bar import Bar
 from rich.console import Console
 from rich.table import Table
 
@@ -19,9 +20,11 @@ from .exceptions import (
 from .models.goal import Goal, Priority
 from .models.storage import Storage
 from .models.thought import Thought
+from .services.analytics import current_streak, total_time_by_goal, weekly_histogram
 from .services.pomodoro import PomodoroSession, start_session, stop_session
 from .services.quotes import get_random_quote
 from .services.render import render_goals
+from .utils.format import format_duration
 from .utils.timefmt import natural_delta
 
 
@@ -259,6 +262,66 @@ def list_thoughts_cmd(goal_id: str | None, limit: int) -> None:
         table.add_row(when, goal_title, th.text)
 
     console.print(table)
+
+
+@goal.command("stats")
+@click.option("--month", is_flag=True, help="Show last calendar month")
+@click.option("--goals", "show_goals", is_flag=True, help="Breakdown by top goals")
+def stats_cmd(month: bool, show_goals: bool) -> None:
+    """Visualise focus stats and streaks."""
+    storage = get_storage()
+    today = datetime.now().date()
+
+    def _color(seconds: int) -> str:
+        if seconds >= 7200:
+            return "green"
+        if seconds >= 3600:
+            return "yellow"
+        return "red"
+
+    bars: list[Bar] = []
+    if month:
+        first = today.replace(day=1)
+        last_month_end = first - timedelta(days=1)
+        start = last_month_end.replace(day=1)
+        for i in range(4):
+            week_start = start + timedelta(days=i * 7)
+            hist = weekly_histogram(storage, week_start)
+            total = sum(hist.values())
+            bars.append(Bar(total, label=f"W{i+1}", max=7 * 7200, color=_color(total)))
+    else:
+        start = today - timedelta(days=today.weekday())
+        hist = weekly_histogram(storage, start)
+        for day, total in sorted(hist.items()):
+            label = day.strftime("%a")
+            bars.append(Bar(total, label=label, max=7200, color=_color(total)))
+
+    if not any(b.value for b in bars):
+        console.print("No session data yet.")
+        raise SystemExit(0)
+
+    for bar in bars:
+        console.print(bar)
+
+    streak = current_streak(storage, today)
+    console.print(f"\N{FIRE}  Current streak: {streak} days")
+
+    if show_goals:
+        totals = total_time_by_goal(storage)
+        if not totals:
+            console.print("No session data yet.")
+            return
+        table = Table(title="Top Goals")
+        table.add_column("Goal")
+        table.add_column("Time")
+        ranked = sorted(totals.items(), key=lambda t: t[1], reverse=True)[:5]
+        for gid, sec in ranked:
+            try:
+                title = storage.get_goal(gid).title
+            except GoalNotFoundError:
+                title = gid
+            table.add_row(title, format_duration(sec))
+        console.print(table)
 
 
 if __name__ == "__main__":
