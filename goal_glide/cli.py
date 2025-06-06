@@ -4,24 +4,24 @@ import os
 import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import cast
 
 import click
 
 from rich.bar import Bar
 from rich.console import Console
+from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
 from .config import load_config, quotes_enabled, save_config
-from .exceptions import (
-    GoalAlreadyArchivedError,
-    GoalNotArchivedError,
-    GoalNotFoundError,
-    InvalidTagError,
-)
+from .exceptions import (GoalAlreadyArchivedError, GoalNotArchivedError,
+                         GoalNotFoundError, InvalidTagError)
 from .models.goal import Goal, Priority
 from .models.storage import Storage
 from .models.thought import Thought
-from .services.analytics import current_streak, total_time_by_goal, weekly_histogram
+from .services import report
+from .services.analytics import (current_streak, total_time_by_goal,
+                                 weekly_histogram)
 from .services.pomodoro import PomodoroSession, start_session, stop_session
 from .services.quotes import get_random_quote
 from .services.render import render_goals
@@ -426,6 +426,54 @@ def stats_cmd(month: bool, show_goals: bool) -> None:
                 title = gid
             table.add_row(title, format_duration(sec))
         console.print(table)
+
+
+@goal.group(name="report")
+def report_group() -> None:
+    """Generate progress reports."""
+    pass
+
+
+@report_group.command("make")
+@click.option("--week", "range_week", is_flag=True, help="Last week")
+@click.option("--month", "range_month", is_flag=True, help="Last month")
+@click.option("--all", "range_all", is_flag=True, help="All time")
+@click.option(
+    "--format",
+    "fmt",
+    type=click.Choice(["html", "md", "csv"]),
+    default="html",
+    show_default=True,
+)
+@click.option("--out", "out_path", type=Path, help="Output file path")
+def report_make(
+    range_week: bool,
+    range_month: bool,
+    range_all: bool,
+    fmt: str,
+    out_path: Path | None,
+) -> None:
+    """Create a report."""
+    flags = [range_week, range_month, range_all]
+    if sum(flags) > 1:
+        raise click.UsageError("Choose only one of --week/--month/--all")
+    range_ = (
+        "week"
+        if range_week
+        else "month" if range_month else "all" if range_all else "week"
+    )
+    storage = get_storage()
+    with Progress(
+        SpinnerColumn(), TextColumn("[progress.description]{task.description}")
+    ) as prog:
+        prog.add_task(description="Building report…", total=None)
+        path = report.build_report(
+            storage,
+            cast(report.Range, range_),
+            cast(report.Fmt, fmt),
+            out_path,
+        )
+    console.print(f":page_facing_up:  Report saved to [bold]{path}[/]")
 
 
 if __name__ == "__main__":
