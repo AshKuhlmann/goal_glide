@@ -8,6 +8,7 @@ from pathlib import Path
 import click
 
 from rich.console import Console
+from rich.table import Table
 
 from .exceptions import (
     GoalAlreadyArchivedError,
@@ -16,7 +17,9 @@ from .exceptions import (
 )
 from .models.goal import Goal, Priority
 from .models.storage import Storage
+from .models.thought import Thought
 from .services.render import render_goals
+from .utils.timefmt import natural_delta
 
 
 def get_storage() -> Storage:
@@ -131,6 +134,71 @@ def list_goals(archived: bool, show_all: bool, priority: str | None) -> None:
 
 
 cli = goal
+
+
+@click.group(help="Capture and review quick reflections.")
+def thought() -> None:
+    pass
+
+
+goal.add_command(thought)
+
+
+@thought.command("jot")
+@click.argument("message", required=False)
+@click.option("-g", "--goal", "goal_id", help="Attach note to a goal ID")
+def jot_thought(message: str | None, goal_id: str | None) -> None:
+    """Record a short thought or reflection."""
+    storage = get_storage()
+
+    if message is None:
+        message = click.edit()
+        if message is not None:
+            message = message.rstrip()
+
+    text = message.strip() if message else ""
+    if not text:
+        raise click.ClickException("Thought cannot be empty")
+    if len(text) > 500:
+        raise click.ClickException("Thought must be 500 characters or less")
+
+    if goal_id:
+        try:
+            goal_obj = storage.get_goal(goal_id)
+        except GoalNotFoundError as exc:
+            raise click.ClickException(str(exc)) from exc
+        if goal_obj.archived:
+            raise click.ClickException("Goal is archived")
+
+    thought_obj = Thought.new(text, goal_id)
+    storage.add_thought(thought_obj)
+    console.print(":thought_balloon: noted")
+
+
+@thought.command("list")
+@click.option("-g", "--goal", "goal_id", help="Filter by goal ID")
+@click.option("--limit", type=int, default=10, show_default=True, help="Max rows")
+def list_thoughts_cmd(goal_id: str | None, limit: int) -> None:
+    """Display recent thoughts."""
+    storage = get_storage()
+    thoughts = storage.list_thoughts(goal_id=goal_id, limit=limit, newest_first=True)
+
+    table = Table(title="Thoughts")
+    table.add_column("When")
+    table.add_column("Goal")
+    table.add_column("Thought")
+
+    for th in thoughts:
+        when = natural_delta(th.timestamp)
+        goal_title = ""
+        if th.goal_id:
+            try:
+                goal_title = storage.get_goal(th.goal_id).title
+            except GoalNotFoundError:
+                goal_title = th.goal_id
+        table.add_row(when, goal_title, th.text)
+
+    console.print(table)
 
 
 if __name__ == "__main__":
