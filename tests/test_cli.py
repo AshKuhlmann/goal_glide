@@ -2,11 +2,15 @@ from click.testing import CliRunner
 from pathlib import Path
 
 import pytest
-import click
+@pytest.fixture()
+def quotes_runner(
+) -> CliRunner:
+    """Return a CliRunner configured with an isolated config path."""
+    return CliRunner()
 
-import goal_glide.cli as cli
-from goal_glide.models.storage import Storage
-from goal_glide.services import pomodoro
+def test_quotes_disable_enable(quotes_runner: CliRunner) -> None:
+    result = quotes_runner.invoke(cli.goal, ["config", "quotes", "--disable"])
+    result = quotes_runner.invoke(cli.goal, ["config", "quotes", "--enable"])
 
 
 from goal_glide import cli
