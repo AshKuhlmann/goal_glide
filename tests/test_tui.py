@@ -64,3 +64,27 @@ def test_toggle_pomo(app_env, tmp_path):
             assert pilot.app.active_session is None
 
     asyncio.run(run())
+
+
+def test_add_and_archive_goal(app_env, tmp_path, monkeypatch):
+    Pilot = _setup_textual()
+    if Pilot is None:
+        pytest.skip("textual not available")
+    from textual.widgets import DataTable
+    from goal_glide.tui import GoalGlideApp
+
+    monkeypatch.setattr("builtins.input", lambda *args: "new goal")
+
+    async def run() -> None:
+        async with Pilot(GoalGlideApp) as pilot:
+            await pilot.pause()
+            await pilot.press("a")
+            table = pilot.app.query_one(DataTable)
+            goals = Storage(tmp_path).list_goals()
+            assert table.row_count == 1
+            gid = goals[0].id
+            await pilot.press("delete")
+            assert table.row_count == 0
+            assert Storage(tmp_path).get_goal(gid).archived is True
+
+    asyncio.run(run())
