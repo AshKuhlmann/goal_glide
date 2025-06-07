@@ -7,7 +7,7 @@ from click.testing import CliRunner
 
 from goal_glide import cli
 from goal_glide import config as cfg
-from goal_glide.services import notify
+from goal_glide.services import notify, reminder
 
 
 @pytest.fixture()
@@ -55,3 +55,10 @@ def test_notification_backend_selection(monkeypatch: pytest.MonkeyPatch) -> None
         monkeypatch.setattr(notify.platform, "system", lambda: osname)
         notify.push("hi")
         assert captured == ["hi"]
+
+
+def test_schedule_after_stop_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(reminder, "_sched", None)
+    monkeypatch.setattr(cfg, "reminders_enabled", lambda: False)
+    reminder.schedule_after_stop()
+    assert reminder._sched is None
