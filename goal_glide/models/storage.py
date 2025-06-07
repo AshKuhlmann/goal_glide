@@ -70,7 +70,7 @@ class Storage:
             st_dt = st
         return PomodoroSession(
             id=row["id"],
-            goal_id=row["goal_id"],
+            goal_id=row.get("goal_id"),
             start=st_dt,
             duration_sec=row["duration_sec"],
         )

@@ -10,13 +10,5 @@ class GoalNotArchivedError(ValueError):
     pass
 
 
-class EmptyThoughtError(ValueError):
-    pass
-
-
-class GoalDoesNotExistError(ValueError):
-    pass
-
-
 class InvalidTagError(ValueError):
     pass
