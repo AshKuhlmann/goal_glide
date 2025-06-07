@@ -1,6 +1,20 @@
 from click.testing import CliRunner
+from pathlib import Path
+
+import pytest
+
+from goal_glide import config as cfg
 
 from goal_glide.cli import cli
+
+
+@pytest.fixture()
+def quotes_runner(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> CliRunner:
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
+    cfg._CONFIG_PATH = tmp_path / ".goal_glide" / "config.toml"
+    cfg._CONFIG_CACHE = None
+    return CliRunner()
 
 
 def test_add_list_remove(tmp_path):
@@ -27,3 +41,15 @@ def test_add_list_remove(tmp_path):
         env={"GOAL_GLIDE_DB_DIR": str(tmp_path)},
     )
     assert result.exit_code == 0
+
+
+def test_quotes_disable_enable(quotes_runner: CliRunner) -> None:
+    result = quotes_runner.invoke(cli, ["config", "quotes", "--disable"])
+    assert result.exit_code == 0
+    assert "Quotes are OFF" in result.output
+    assert cfg.quotes_enabled() is False
+
+    result = quotes_runner.invoke(cli, ["config", "quotes", "--enable"])
+    assert result.exit_code == 0
+    assert "Quotes are ON" in result.output
+    assert cfg.quotes_enabled() is True
