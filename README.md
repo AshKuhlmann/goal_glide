@@ -137,6 +137,7 @@ Configuration is kept in `~/.goal_glide/config.toml` and controls:
 - `reminder_interval_min` – how often to prompt for another session
 
 Run `python -m goal_glide config quotes --enable/--disable` or the reminder commands shown above to modify these settings.
+Run `python -m goal_glide config show` to view the current configuration.
 
 ## Troubleshooting
 

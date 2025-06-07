@@ -2,7 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from goal_glide import config
+from goal_glide import cli, config
+from click.testing import CliRunner
 
 
 @pytest.fixture()
@@ -36,3 +37,20 @@ def test_save_and_load_roundtrip(cfg_path: Path) -> None:
     text = cfg_path.read_text()
     assert "quotes_enabled = false" in text
     assert "reminders_enabled = true" in text
+
+
+def test_show_command_outputs_all_settings(cfg_path: Path) -> None:
+    cfg = {
+        "quotes_enabled": False,
+        "reminders_enabled": True,
+        "reminder_break_min": 10,
+        "reminder_interval_min": 20,
+    }
+    config.save_config(cfg)
+    config._CONFIG_CACHE = None
+    runner = CliRunner()
+    result = runner.invoke(cli.goal, ["config", "show"])
+    assert result.exit_code == 0
+    for k, v in cfg.items():
+        assert k in result.output
+        assert str(v) in result.output
