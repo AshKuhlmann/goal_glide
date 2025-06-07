@@ -77,3 +77,16 @@ def test_list_filter_multiple_tags_and_logic(tmp_path: Path, runner: CliRunner) 
     runner.invoke(goal, ["tag", "add", gid2, "a"])
     result = runner.invoke(goal, ["list", "--tag", "a", "--tag", "b"])
     assert "g1" in result.output and "g2" not in result.output
+
+
+def test_tag_list_counts(tmp_path: Path, runner: CliRunner) -> None:
+    runner.invoke(goal, ["add", "g1"])
+    runner.invoke(goal, ["add", "g2"])
+    goals = Storage(tmp_path).list_goals()
+    runner.invoke(goal, ["tag", "add", goals[0].id, "work", "fun"])
+    runner.invoke(goal, ["tag", "add", goals[1].id, "work"])
+    result = runner.invoke(goal, ["tag", "list"])
+    assert result.exit_code == 0
+    rows = [line for line in result.output.splitlines() if "|" in line][1:]
+    assert any("work" in r and "2" in r for r in rows)
+    assert any("fun" in r and "1" in r for r in rows)

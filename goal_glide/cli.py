@@ -191,6 +191,22 @@ def tag_rm(goal_id: str, tag: str) -> None:
     console.print(f"Tags for {updated.id}: {', '.join(updated.tags)}")
 
 
+@tag.command("list")
+def tag_list() -> None:
+    """List all tags with goal counts."""
+    storage = get_storage()
+    tags = storage.list_all_tags()
+    if not tags:
+        console.print("No tags.")
+        return
+    table = Table(title="Tags")
+    table.add_column("Tag")
+    table.add_column("Goals")
+    for name, count in sorted(tags.items()):
+        table.add_row(name, str(count))
+    console.print(table)
+
+
 @goal.command("list")
 @click.option("--archived", is_flag=True, help="Show only archived goals")
 @click.option(
@@ -327,6 +343,18 @@ def cfg_quotes(enable: bool | None) -> None:
         cfg["quotes_enabled"] = enable
         save_config(cfg)
     console.print(f"Quotes are {'ON' if cfg.get('quotes_enabled', True) else 'OFF'}")
+
+
+@config.command("show")
+def cfg_show() -> None:
+    """Show current configuration."""
+    cfg = load_config()
+    table = Table(title="Config")
+    table.add_column("Key")
+    table.add_column("Value")
+    for key, value in cfg.items():
+        table.add_row(key, str(value))
+    console.print(table)
 
 
 goal.add_command(config)
