@@ -15,7 +15,9 @@ def test_format_duration_basic() -> None:
 
 def test_natural_delta_formats(monkeypatch: pytest.MonkeyPatch) -> None:
     fixed_now = datetime(2023, 1, 2, 12, 0, 0)
-    monkeypatch.setattr(timefmt, "datetime", type("D", (), {"now": staticmethod(lambda: fixed_now)})())
+    monkeypatch.setattr(
+        timefmt, "datetime", type("D", (), {"now": staticmethod(lambda: fixed_now)})()
+    )
     assert timefmt.natural_delta(fixed_now - timedelta(seconds=30)) == "<1m ago"
     assert timefmt.natural_delta(fixed_now - timedelta(minutes=5)) == "5m ago"
     assert timefmt.natural_delta(fixed_now - timedelta(hours=2)) == "2h ago"

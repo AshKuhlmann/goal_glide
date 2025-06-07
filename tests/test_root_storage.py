@@ -17,7 +17,9 @@ class FakeGoal:
 
 def test_crud_operations(tmp_path):
     store = Storage(tmp_path / "db.json")
-    g1 = FakeGoal(id="1", title="A", created=datetime.utcnow(), priority=Priority.high.value)
+    g1 = FakeGoal(
+        id="1", title="A", created=datetime.utcnow(), priority=Priority.high.value
+    )
     store.add_goal(g1)
     assert [g.id for g in store.list_goals()] == ["1"]
     assert store.find_by_title("A").id == "1"
@@ -27,8 +29,16 @@ def test_crud_operations(tmp_path):
 
 def test_list_filters(tmp_path):
     store = Storage(tmp_path / "db.json")
-    g1 = FakeGoal(id="1", title="a", created=datetime.utcnow(), priority=Priority.low.value)
-    g2 = FakeGoal(id="2", title="b", created=datetime.utcnow(), archived=True, priority=Priority.high.value)
+    g1 = FakeGoal(
+        id="1", title="a", created=datetime.utcnow(), priority=Priority.low.value
+    )
+    g2 = FakeGoal(
+        id="2",
+        title="b",
+        created=datetime.utcnow(),
+        archived=True,
+        priority=Priority.high.value,
+    )
     store.add_goal(g1)
     store.add_goal(g2)
     assert len(list(store.list_goals())) == 1
