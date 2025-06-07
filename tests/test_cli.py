@@ -6,7 +6,9 @@ import pytest
 from goal_glide import cli
 from goal_glide import config as cfg
 
-def test_quotes_disable_enable(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_quotes_disable_enable(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     runner = CliRunner()
 
     result = runner.invoke(cli.goal, ["config", "quotes", "--disable"])
@@ -22,7 +24,9 @@ def test_quotes_disable_enable(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) 
     result = runner.invoke(
         cli.goal, ["list"], env={"GOAL_GLIDE_DB_DIR": str(tmp_path)}
     )
-        cli.goal,
+    lines = [
+        line for line in result.output.splitlines() if "Test Goal" in line
+    ]
     result = runner.invoke(
         cli, ["add", "Test Goal"], env={"GOAL_GLIDE_DB_DIR": str(tmp_path)}
     )
