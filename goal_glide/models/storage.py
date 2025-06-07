@@ -174,6 +174,14 @@ class Storage:
             results.append(g)
         return results
 
+    def list_all_tags(self) -> dict[str, int]:
+        """Return mapping of tag name to count of goals containing it."""
+        counts: dict[str, int] = {}
+        for row in self.table.all():
+            for tag in row.get("tags", []):
+                counts[tag] = counts.get(tag, 0) + 1
+        return counts
+
     def remove_goal(self, goal_id: str) -> None:
         if not self.table.contains(Query().id == goal_id):
             raise GoalNotFoundError(f"Goal {goal_id} not found")

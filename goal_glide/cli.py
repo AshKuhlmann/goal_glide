@@ -186,6 +186,22 @@ def tag_rm(goal_id: str, tag: str) -> None:
     console.print(f"Tags for {updated.id}: {', '.join(updated.tags)}")
 
 
+@tag.command("list")
+def tag_list() -> None:
+    """List all tags with goal counts."""
+    storage = get_storage()
+    tags = storage.list_all_tags()
+    if not tags:
+        console.print("No tags.")
+        return
+    table = Table(title="Tags")
+    table.add_column("Tag")
+    table.add_column("Goals")
+    for name, count in sorted(tags.items()):
+        table.add_row(name, str(count))
+    console.print(table)
+
+
 @goal.command("list")
 @click.option("--archived", is_flag=True, help="Show only archived goals")
 @click.option(
