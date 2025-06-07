@@ -13,7 +13,8 @@ class Query:
         self._attr = item
         return self
 
-    def __eq__(self, other: Any) -> Callable[[dict[str, Any]], bool]:  # type: ignore[override]
+    def __eq__(self, other: Any) -> Callable[[dict[str, Any]], bool]:
+        # type: ignore[override]
         attr = self._attr
 
         def test(row: dict[str, Any]) -> bool:

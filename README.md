@@ -155,5 +155,28 @@ To execute the unit tests run:
 pytest
 ```
 
+To run the test suite automatically before each push, configure Git to use the
+included hooks directory:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+With this option enabled, `pytest` and `mypy` will run whenever `git push`
+is invoked and the push will abort if either the tests or type checks fail.
+
+## Pre-commit Hooks
+
+Run style and type checks automatically on each commit by installing
+[pre-commit](https://pre-commit.com/) and enabling the hooks:
+
+```bash
+pip install pre-commit
+pre-commit install
+```
+
+The configured hook runs `black`, `flake8` and `mypy` on staged files so
+issues are caught early.
+
 ---
 Goal Glide is distributed under the terms of the GNU General Public License v3.
