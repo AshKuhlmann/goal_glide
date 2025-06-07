@@ -289,7 +289,10 @@ def reminder_config(break_: int | None, interval: int | None) -> None:
 def reminder_status() -> None:
     cfg = load_config()
     console.print(
-        f"Enabled: {cfg.get('reminders_enabled', False)} | Break: {cfg.get('reminder_break_min', 5)}m | Interval: {cfg.get('reminder_interval_min', 30)}m"
+        "Enabled: "
+        f"{cfg.get('reminders_enabled', False)} | "
+        f"Break: {cfg.get('reminder_break_min', 5)}m | "
+        f"Interval: {cfg.get('reminder_interval_min', 30)}m"
     )
 
 
