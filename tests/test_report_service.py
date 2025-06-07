@@ -94,3 +94,22 @@ def test_markdown_formatting(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) ->
     text = out.read_text()
     assert "  \n" in text
     assert "<br>" not in text
+
+
+def test_empty_storage_outputs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(report, "date", FakeDate)
+    storage = Storage(tmp_path)
+    html = report.build_report(storage, "week", "html", tmp_path / "e.html")
+    csv = report.build_report(storage, "week", "csv", tmp_path / "e.csv")
+    md = report.build_report(storage, "week", "md", tmp_path / "e.md")
+    assert html.exists()
+    assert csv.exists()
+    assert md.exists()
+    html_text = html.read_text()
+    md_text = md.read_text()
+    csv_text = csv.read_text()
+    assert "0:00" in html_text
+    assert "0:00" in md_text
+    assert "0" in html_text
+    assert "0" in md_text
+    assert csv_text.strip() == ""
