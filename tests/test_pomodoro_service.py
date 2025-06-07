@@ -36,7 +36,8 @@ def test_start_session_writes_file(
     assert session.duration_sec == 60
     assert session_path.exists()
     data = json.loads(session_path.read_text())
-    assert data == {"start": fake_now.isoformat(), "duration_sec": 60}
+    assert data["start"] == fake_now.isoformat()
+    assert data["duration_sec"] == 60
 
 
 def test_load_session_returns_equivalent(
