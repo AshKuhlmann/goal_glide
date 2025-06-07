@@ -31,8 +31,8 @@ def test_save_and_load_roundtrip(cfg_path: Path) -> None:
     config.save_config(new_cfg)
     config._CONFIG_CACHE = None
     loaded = config.load_config()
-    assert loaded["quotes_enabled"] == "false"
-    assert loaded["reminders_enabled"] == "true"
+    assert loaded["quotes_enabled"] is False
+    assert loaded["reminders_enabled"] is True
     text = cfg_path.read_text()
-    assert "quotes_enabled = 'false'" in text
-    assert "reminders_enabled = 'true'" in text
+    assert "quotes_enabled = false" in text
+    assert "reminders_enabled = true" in text

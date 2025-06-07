@@ -54,7 +54,10 @@ def save_config(cfg: Dict[str, Any]) -> None:
     _CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
     items = []
     for k, v in cfg.items():
-        items.append(f"{k} = {str(v).lower() if isinstance(v, bool) else v!r}")
+        if isinstance(v, bool):
+            items.append(f"{k} = {str(v).lower()}")
+        else:
+            items.append(f"{k} = {v!r}")
     content = "\n".join(items)
     with _CONFIG_PATH.open("w", encoding="utf-8") as f:
         f.write(content)
