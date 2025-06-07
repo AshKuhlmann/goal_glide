@@ -17,7 +17,7 @@ def _all_sessions(storage: Storage) -> list[PomodoroSession]:
 def total_time_by_goal(storage: Storage) -> Dict[str, int]:
     acc: Dict[str, int] = defaultdict(int)
     for s in _all_sessions(storage):
-        if s.duration_sec:
+        if s.duration_sec and s.goal_id is not None:
             acc[s.goal_id] += s.duration_sec
     return dict(acc)
 
