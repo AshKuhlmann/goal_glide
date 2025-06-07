@@ -6,26 +6,23 @@ import pytest
 from goal_glide import cli
 from goal_glide import config as cfg
 
-        cli.goal,
-        ["add", "Test Goal"],
-        env={"GOAL_GLIDE_DB_DIR": str(tmp_path)},
+def test_quotes_disable_enable(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    runner = CliRunner()
+
+    result = runner.invoke(cli.goal, ["config", "quotes", "--disable"])
+    assert result.exit_code == 0
+    assert "Quotes are OFF" in result.output
+    assert cfg.quotes_enabled() is False
+
+    result = runner.invoke(cli.goal, ["config", "quotes", "--enable"])
+    assert result.exit_code == 0
+    assert "Quotes are ON" in result.output
+    assert cfg.quotes_enabled() is True
 
     result = runner.invoke(
         cli.goal, ["list"], env={"GOAL_GLIDE_DB_DIR": str(tmp_path)}
     )
         cli.goal,
-    result = quotes_runner.invoke(cli.goal, ["config", "quotes", "--disable"])
-    result = quotes_runner.invoke(cli.goal, ["config", "quotes", "--enable"])
-    monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
-    cfg._CONFIG_PATH = tmp_path / ".goal_glide" / "config.toml"
-    cfg._CONFIG_CACHE = None
-    return CliRunner()
-
-
-def test_add_list_remove(tmp_path):
-    runner = CliRunner()
-
-    # add goal
     result = runner.invoke(
         cli, ["add", "Test Goal"], env={"GOAL_GLIDE_DB_DIR": str(tmp_path)}
     )
