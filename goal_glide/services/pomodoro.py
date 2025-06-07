@@ -25,8 +25,15 @@ class PomodoroSession:
     goal_id: str | None = None
 
 
-def start_session(duration_min: int = 25, goal_id: str | None = None) -> PomodoroSession:
-    session = PomodoroSession(start=datetime.now(), duration_sec=duration_min * 60, goal_id=goal_id)
+def start_session(
+    duration_min: int = 25,
+    goal_id: str | None = None,
+) -> PomodoroSession:
+    session = PomodoroSession(
+        start=datetime.now(),
+        duration_sec=duration_min * 60,
+        goal_id=goal_id,
+    )
     POMO_PATH.parent.mkdir(parents=True, exist_ok=True)
     with POMO_PATH.open("w", encoding="utf-8") as fp:
         json.dump(

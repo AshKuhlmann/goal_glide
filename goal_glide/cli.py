@@ -27,7 +27,11 @@ from .models.storage import Storage
 from .models.thought import Thought
 from .services import report
 from .services.analytics import current_streak, total_time_by_goal, weekly_histogram
-from .services.pomodoro import PomodoroSession as SvcSession, start_session, stop_session
+from .services.pomodoro import (
+    PomodoroSession as SvcSession,
+    start_session,
+    stop_session,
+)
 from .models.session import PomodoroSession as ModelSession
 from .services.quotes import get_random_quote
 from .services.render import render_goals
@@ -294,8 +298,11 @@ def reminder_config(break_: int | None, interval: int | None) -> None:
 @reminder_cli.command("status")
 def reminder_status() -> None:
     cfg = load_config()
+    enabled = cfg.get('reminders_enabled', False)
+    break_min = cfg.get('reminder_break_min', 5)
+    interval_min = cfg.get('reminder_interval_min', 30)
     console.print(
-        f"Enabled: {cfg.get('reminders_enabled', False)} | Break: {cfg.get('reminder_break_min', 5)}m | Interval: {cfg.get('reminder_interval_min', 30)}m"
+        f"Enabled: {enabled} | Break: {break_min}m | Interval: {interval_min}m"
     )
 
 
