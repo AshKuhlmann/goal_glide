@@ -3,16 +3,19 @@ from pathlib import Path
 
 import pytest
 
+from goal_glide import cli
 from goal_glide import config as cfg
 
-from goal_glide.cli import cli
-from goal_glide.models.storage import Storage
-from goal_glide.services import pomodoro
+        cli.goal,
+        ["add", "Test Goal"],
+        env={"GOAL_GLIDE_DB_DIR": str(tmp_path)},
 
-
-@pytest.fixture()
-def quotes_runner(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> CliRunner:
-    monkeypatch.setenv("HOME", str(tmp_path))
+    result = runner.invoke(
+        cli.goal, ["list"], env={"GOAL_GLIDE_DB_DIR": str(tmp_path)}
+    )
+        cli.goal,
+    result = quotes_runner.invoke(cli.goal, ["config", "quotes", "--disable"])
+    result = quotes_runner.invoke(cli.goal, ["config", "quotes", "--enable"])
     monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
     cfg._CONFIG_PATH = tmp_path / ".goal_glide" / "config.toml"
     cfg._CONFIG_CACHE = None
