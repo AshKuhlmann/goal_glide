@@ -329,6 +329,18 @@ def cfg_quotes(enable: bool | None) -> None:
     console.print(f"Quotes are {'ON' if cfg.get('quotes_enabled', True) else 'OFF'}")
 
 
+@config.command("show")
+def cfg_show() -> None:
+    """Show current configuration."""
+    cfg = load_config()
+    table = Table(title="Config")
+    table.add_column("Key")
+    table.add_column("Value")
+    for key, value in cfg.items():
+        table.add_row(key, str(value))
+    console.print(table)
+
+
 goal.add_command(config)
 
 
