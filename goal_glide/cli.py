@@ -27,7 +27,8 @@ from .models.storage import Storage
 from .models.thought import Thought
 from .services import report
 from .services.analytics import current_streak, total_time_by_goal, weekly_histogram
-from .services.pomodoro import PomodoroSession, start_session, stop_session
+from .services.pomodoro import PomodoroSession as SvcSession, start_session, stop_session
+from .models.session import PomodoroSession as ModelSession
 from .services.quotes import get_random_quote
 from .services.render import render_goals
 from .utils.format import format_duration
@@ -76,7 +77,7 @@ def _fmt(seconds: int) -> str:
     return f"{mins}m"
 
 
-def _print_completion(session: PomodoroSession) -> None:
+def _print_completion(session: SvcSession) -> None:
     console.print(f"Pomodoro complete ✅ ({_fmt(session.duration_sec)})")
     if quotes_enabled():
         quote, author = get_random_quote()
@@ -226,9 +227,10 @@ def pomo() -> None:
 
 @pomo.command("start")
 @click.option("--duration", type=int, default=25, show_default=True, help="Minutes")
+@click.option("-g", "--goal", "goal_id", help="Associate with goal ID")
 @handle_exceptions
-def start_pomo(duration: int) -> None:
-    start_session(duration)
+def start_pomo(duration: int, goal_id: str | None) -> None:
+    start_session(duration, goal_id)
     console.print(f"Started pomodoro for {duration}m")
 
 
@@ -236,6 +238,10 @@ def start_pomo(duration: int) -> None:
 @handle_exceptions
 def stop_pomo() -> None:
     session = stop_session()
+    storage = get_storage()
+    storage.add_session(
+        ModelSession.new(session.goal_id, session.start, session.duration_sec)
+    )
     _print_completion(session)
 
 

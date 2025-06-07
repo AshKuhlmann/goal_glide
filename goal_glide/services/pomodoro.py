@@ -22,14 +22,19 @@ POMO_PATH = Path.home() / ".goal_glide" / "session.json"
 class PomodoroSession:
     start: datetime
     duration_sec: int
+    goal_id: str | None = None
 
 
-def start_session(duration_min: int = 25) -> PomodoroSession:
-    session = PomodoroSession(start=datetime.now(), duration_sec=duration_min * 60)
+def start_session(duration_min: int = 25, goal_id: str | None = None) -> PomodoroSession:
+    session = PomodoroSession(start=datetime.now(), duration_sec=duration_min * 60, goal_id=goal_id)
     POMO_PATH.parent.mkdir(parents=True, exist_ok=True)
     with POMO_PATH.open("w", encoding="utf-8") as fp:
         json.dump(
-            {"start": session.start.isoformat(), "duration_sec": session.duration_sec},
+            {
+                "start": session.start.isoformat(),
+                "duration_sec": session.duration_sec,
+                "goal_id": session.goal_id,
+            },
             fp,
         )
     for cb in on_new_session:
@@ -43,7 +48,9 @@ def load_session() -> Optional[PomodoroSession]:
     with POMO_PATH.open(encoding="utf-8") as fp:
         data = json.load(fp)
     return PomodoroSession(
-        start=datetime.fromisoformat(data["start"]), duration_sec=data["duration_sec"]
+        start=datetime.fromisoformat(data["start"]),
+        duration_sec=data["duration_sec"],
+        goal_id=data.get("goal_id"),
     )
 
 
