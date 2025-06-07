@@ -133,6 +133,7 @@ class Storage:
             created=goal.created,
             priority=goal.priority,
             archived=True,
+            tags=goal.tags,
         )
         self.update_goal(updated)
         return updated
@@ -147,6 +148,7 @@ class Storage:
             created=goal.created,
             priority=goal.priority,
             archived=False,
+            tags=goal.tags,
         )
         self.update_goal(updated)
         return updated
