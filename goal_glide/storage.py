@@ -11,9 +11,16 @@ TABLE_NAME = "goals"
 
 
 class Storage:
+    """TinyDB wrapper used by CLI tests."""
+
     def __init__(self, path: Optional[Path] = None):
-        env_path = os.environ.get("GOAL_GLIDE_DB")
-        self.path = Path(path or env_path or DB_NAME)
+        env_dir = os.environ.get("GOAL_GLIDE_DB_DIR")
+        if path is not None:
+            self.path = Path(path)
+        else:
+            base = Path(env_dir) if env_dir else Path(".")
+            base.mkdir(parents=True, exist_ok=True)
+            self.path = base / DB_NAME
         self.db: TinyDB = TinyDB(self.path)
         self.table: Table = self.db.table(TABLE_NAME)
 
