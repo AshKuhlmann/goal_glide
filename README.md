@@ -160,8 +160,8 @@ included hooks directory:
 git config core.hooksPath .githooks
 ```
 
-With this option enabled, `pytest` will run whenever `git push` is invoked and
-the push will abort if any tests fail.
+With this option enabled, `pytest` and `mypy` will run whenever `git push`
+is invoked and the push will abort if either the tests or type checks fail.
 
 ---
 Goal Glide is distributed under the terms of the GNU General Public License v3.

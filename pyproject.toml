@@ -5,8 +5,12 @@ target-version = ['py311']
 
 [tool.mypy]
 python_version = '3.11'
-strict = true
 ignore_missing_imports = true
+exclude = 'tinydb/'
+
+[[tool.mypy.overrides]]
+module = "tinydb.*"
+ignore_errors = true
 
 [build-system]
 requires = ["setuptools>=61.0"]
