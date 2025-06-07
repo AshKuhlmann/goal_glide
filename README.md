@@ -153,5 +153,15 @@ To execute the unit tests run:
 pytest
 ```
 
+To run the test suite automatically before each push, configure Git to use the
+included hooks directory:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+With this option enabled, `pytest` will run whenever `git push` is invoked and
+the push will abort if any tests fail.
+
 ---
 Goal Glide is distributed under the terms of the GNU General Public License v3.

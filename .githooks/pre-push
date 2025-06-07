@@ -1,0 +1,8 @@
+#!/bin/sh
+# Run tests before pushing
+pytest
+status=$?
+if [ $status -ne 0 ]; then
+  echo "\nTests failed. Aborting push." >&2
+  exit $status
+fi
