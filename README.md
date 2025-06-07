@@ -72,12 +72,14 @@ python -m goal_glide list --tag writing
 
 ### Pomodoro Sessions
 
-Start and stop a session:
+Start and stop a session (optionally linking it to a goal):
 
 ```bash
-python -m goal_glide pomo start --duration 25
+python -m goal_glide pomo start --duration 25 --goal <goal-id>
 python -m goal_glide pomo stop
 ```
+The `--goal` flag records the session against the specified goal for
+later statistics and reporting.
 
 Motivational quotes are shown on completion when enabled (default). Use `goal config quotes --disable` to turn them off.
 
