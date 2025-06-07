@@ -1,0 +1,15 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+venv/
+
+# pytest cache
+.pytest_cache/
+
+# Editors
+*.swp
+*.swo
+
