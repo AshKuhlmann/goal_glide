@@ -79,3 +79,43 @@ def test_cli_custom_range(
     )
     assert result.exit_code == 0
     assert out.exists()
+
+
+@pytest.mark.parametrize(
+    "flag, expected",
+    [
+        ("--week", "week"),
+        ("--month", "month"),
+        ("--all", "all"),
+    ],
+)
+def test_cli_range_flags(
+    tmp_path: Path,
+    runner: CliRunner,
+    monkeypatch: pytest.MonkeyPatch,
+    flag: str,
+    expected: str,
+) -> None:
+    captured: list[str] = []
+
+    def fake_build_report(
+        storage: Storage,
+        range_: str,
+        fmt: str,
+        out_path: Path | None,
+        start: date | None = None,
+        end: date | None = None,
+    ) -> Path:
+        captured.append(range_)
+        out = tmp_path / "dummy.html"
+        out.write_text("", encoding="utf-8")
+        return out
+
+    monkeypatch.setattr(report, "build_report", fake_build_report)
+    result = runner.invoke(
+        cli.goal,
+        ["report", "make", flag],
+        env={"GOAL_GLIDE_DB_DIR": str(tmp_path)},
+    )
+    assert result.exit_code == 0
+    assert captured == [expected]
