@@ -112,6 +112,7 @@ python -m goal_glide stats
 ```
 
 Use `--month` for the last month and `--goals` to show totals for top goals.
+Custom ranges can be specified with `--from` and `--to` using `YYYY-MM-DD` dates.
 
 ### TUI
 
@@ -184,7 +185,8 @@ Quick examples of common commands:
   ```bash
   python -m goal_glide reminder status
   ```
-- **stats** – view weekly or monthly focus history.
+- **stats** – view focus history. Use `--month` for the last month or specify
+  a custom range with `--from` and `--to`.
   ```bash
   python -m goal_glide stats --month
   ```
@@ -192,6 +194,7 @@ Quick examples of common commands:
   ```bash
   python -m goal_glide report make --week
   ```
+  Use `--from` and `--to` to generate a report for a custom date range.
 
 ## Reports
 
@@ -199,6 +202,8 @@ Generate a summary of your sessions and goals with:
 
 ```bash
 python -m goal_glide report make --week|--month|--all --format [html|md|csv] --out ~/reports/progress.html
+# or specify a custom range
+python -m goal_glide report make --from 2023-01-01 --to 2023-01-31 --format html --out ~/reports/january.html
 ```
 
 The HTML and Markdown templates used for report generation live in `goal_glide/templates/`.
