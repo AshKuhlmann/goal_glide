@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import date, datetime
 from pathlib import Path
 
+import pandas as pd
+
 import pytest
 from click.testing import CliRunner
 
@@ -152,3 +154,59 @@ def test_cli_default_output_path(
     )
     assert result.exit_code == 0
     assert list(tmp_path.glob("GoalGlide_week_*"))
+
+
+def test_cli_md_and_csv(
+    tmp_path: Path,
+    runner: CliRunner,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(report, "date", FakeDate)
+    storage = Storage(tmp_path)
+    seed(storage)
+    md_out = tmp_path / "rep.md"
+    csv_out = tmp_path / "rep.csv"
+    result_md = runner.invoke(
+        cli.goal,
+        ["report", "make", "--format", "md", "--out", str(md_out)],
+        env={"GOAL_GLIDE_DB_DIR": str(tmp_path)},
+    )
+    result_csv = runner.invoke(
+        cli.goal,
+        ["report", "make", "--format", "csv", "--out", str(csv_out)],
+        env={"GOAL_GLIDE_DB_DIR": str(tmp_path)},
+    )
+    assert result_md.exit_code == 0
+    assert result_csv.exit_code == 0
+    md_text = md_out.read_text()
+    assert "  \n" in md_text
+    assert "<br>" not in md_text
+    df = pd.read_csv(csv_out)
+    assert list(df.columns) == ["goal_id", "title", "total_sec", "tags"]
+
+
+def test_cli_empty_storage_reports(
+    tmp_path: Path,
+    runner: CliRunner,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(report, "date", FakeDate)
+    Storage(tmp_path)  # initialize empty storage
+    md_out = tmp_path / "empty.md"
+    csv_out = tmp_path / "empty.csv"
+    result_md = runner.invoke(
+        cli.goal,
+        ["report", "make", "--format", "md", "--out", str(md_out)],
+        env={"GOAL_GLIDE_DB_DIR": str(tmp_path)},
+    )
+    result_csv = runner.invoke(
+        cli.goal,
+        ["report", "make", "--format", "csv", "--out", str(csv_out)],
+        env={"GOAL_GLIDE_DB_DIR": str(tmp_path)},
+    )
+    assert result_md.exit_code == 0
+    assert result_csv.exit_code == 0
+    assert md_out.exists()
+    assert csv_out.exists()
+    assert "0:00" in md_out.read_text()
+    assert csv_out.read_text().strip() == ""
