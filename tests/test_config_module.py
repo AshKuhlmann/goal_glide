@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pytest
 from pytest import MonkeyPatch
+import tomllib
 
 from goal_glide import cli, config
 from click.testing import CliRunner
@@ -121,3 +122,10 @@ def test_mutating_loaded_config_does_not_affect_cache(cfg_path: Path) -> None:
 
     cfg2 = config.load_config()
     assert cfg2["quotes_enabled"] is True
+
+
+def test_invalid_toml_raises_decode_error(cfg_path: Path) -> None:
+    cfg_path.write_text("foo = bar", encoding="utf-8")
+    config._CONFIG_CACHE = None
+    with pytest.raises(tomllib.TOMLDecodeError):
+        config.load_config()
