@@ -136,3 +136,19 @@ def test_report_make_usage_errors(runner: CliRunner, args: list[str], msg: str) 
     result = runner.invoke(cli.goal, ["report", "make", *args])
     assert result.exit_code != 0
     assert msg in result.output
+
+
+def test_cli_default_output_path(
+    tmp_path: Path, runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(Path, "home", lambda: tmp_path)
+    monkeypatch.setattr(report, "date", FakeDate)
+    storage = Storage(tmp_path)
+    seed(storage)
+    result = runner.invoke(
+        cli.goal,
+        ["report", "make", "--week"],
+        env={"GOAL_GLIDE_DB_DIR": str(tmp_path)},
+    )
+    assert result.exit_code == 0
+    assert list(tmp_path.glob("GoalGlide_week_*"))
