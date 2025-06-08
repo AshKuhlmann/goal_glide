@@ -180,6 +180,16 @@ Quick examples of common commands:
   python -m goal_glide report make --week
   ```
 
+## Reports
+
+Generate a summary of your sessions and goals with:
+
+```bash
+python -m goal_glide report make --week|--month|--all --format [html|md|csv] --out ~/reports/progress.html
+```
+
+The HTML and Markdown templates used for report generation live in `goal_glide/templates/`.
+
 ## Configuration and Data Files
 
 Data is stored by default in `~/.goal_glide/db.json`. To use a different location set the `GOAL_GLIDE_DB_DIR` environment variable.
