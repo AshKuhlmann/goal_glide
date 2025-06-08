@@ -8,7 +8,7 @@ from click.testing import CliRunner
 
 from goal_glide import cli
 from goal_glide import config as cfg
-from goal_glide.services import notify, reminder
+from goal_glide.services import notify, reminder, pomodoro
 
 FIXED_NOW = datetime(2024, 1, 1, 12, 0, 0)
 
@@ -76,3 +76,18 @@ def test_flow_uses_config_and_clears_existing_jobs(runner) -> None:
     second_kwargs = sched.jobs[1][2]
     assert first_kwargs["run_date"] == FIXED_NOW + timedelta(minutes=2)
     assert second_kwargs["minutes"] == 7
+
+
+def test_cancel_all_runs_on_new_session(runner, monkeypatch, tmp_path) -> None:
+    cli_runner, _ = runner
+    sched = reminder._sched
+    # pre-populate fake scheduler with dummy jobs
+    sched.add_job(lambda: None, "interval")
+    sched.add_job(lambda: None, "interval")
+    assert len(sched.jobs) == 2
+
+    monkeypatch.setattr(pomodoro, "POMO_PATH", tmp_path / "session.json")
+
+    pomodoro.start_session(1)
+
+    assert sched.jobs == []
