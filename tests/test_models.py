@@ -12,6 +12,20 @@ def test_goal_defaults() -> None:
     assert g.tags == []
 
 
+def test_goal_nondefaults() -> None:
+    g = Goal(
+        id="1",
+        title="t",
+        created=datetime.utcnow(),
+        priority=Priority.high,
+        archived=True,
+        tags=["a"],
+    )
+    assert g.priority == Priority.high
+    assert g.archived is True
+    assert "a" in g.tags
+
+
 def test_session_new_generates_id() -> None:
     s = PomodoroSession.new("g", datetime.utcnow(), 60)
     assert s.goal_id == "g"
