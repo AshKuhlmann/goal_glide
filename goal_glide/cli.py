@@ -31,6 +31,8 @@ from .services.analytics import (
     current_streak,
     total_time_by_goal,
     date_histogram,
+    most_productive_day,
+    longest_streak,
 )
 from .services.pomodoro import (
     load_active_session,
@@ -42,7 +44,7 @@ from .services.pomodoro import (
 from .models.session import PomodoroSession
 from .services.quotes import get_random_quote
 from .services.render import render_goals
-from .utils.format import format_duration
+from .utils.format import format_duration, format_duration_long
 from .utils.tag import validate_tag
 from .utils.timefmt import natural_delta
 
@@ -131,9 +133,7 @@ def add_goal(
     obj = cast(dict, ctx.obj)
     storage: Storage = obj["storage"]
     if storage.find_by_title(title):
-        console.print(
-            "[yellow]Warning: goal with this title already exists.[/yellow]"
-        )
+        console.print("[yellow]Warning: goal with this title already exists.[/yellow]")
 
     if parent_id is not None:
         storage.get_goal(parent_id)  # validate exists
@@ -681,6 +681,24 @@ def stats_cmd(
 
     streak = current_streak(storage, end)
     console.print(f"\N{FIRE}  Current streak: {streak} days")
+
+    longest = longest_streak(storage)
+    console.print(f"\N{HIGH VOLTAGE SIGN}  Longest streak: {longest} days")
+
+    full_hist = date_histogram(storage, start, end)
+    mpd = most_productive_day(storage, start, end)
+    if mpd:
+        totals: dict[str, int] = {}
+        counts: dict[str, int] = {}
+        for d, sec in full_hist.items():
+            name = d.strftime("%A")
+            totals[name] = totals.get(name, 0) + sec
+            counts[name] = counts.get(name, 0) + 1
+        avg = totals[mpd] // counts[mpd] if counts[mpd] else 0
+        avg_fmt = format_duration_long(avg)
+        console.print(
+            f"\N{CALENDAR}  Most productive day: {mpd} (avg. {avg_fmt})"
+        )
 
     if show_goals:
         totals = total_time_by_goal(storage, start, end)

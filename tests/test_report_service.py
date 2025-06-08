@@ -84,6 +84,7 @@ def test_html_contains_sections(
     assert "Total Focus Time" in text
     assert "Top Goals" in text
     assert "Histogram" in text
+    assert "Most Productive Day" in text
 
 
 def test_markdown_formatting(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

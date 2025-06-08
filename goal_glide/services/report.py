@@ -8,11 +8,13 @@ import pandas as pd
 from jinja2 import Environment, PackageLoader, select_autoescape
 
 from ..models.storage import Storage
-from ..utils.format import format_duration
+from ..utils.format import format_duration, format_duration_long
 from .analytics import (
     current_streak,
     total_time_by_goal,
     date_histogram,
+    most_productive_day,
+    longest_streak,
 )
 
 Range = Literal["week", "month", "all"]
@@ -57,6 +59,17 @@ def build_report(
 
     hist = date_histogram(storage, start, end)
     streak = current_streak(storage, end)
+    longest = longest_streak(storage)
+    mpd = most_productive_day(storage, start, end)
+    avg_mpd = 0
+    if mpd:
+        totals: dict[str, int] = {}
+        counts: dict[str, int] = {}
+        for d, sec in hist.items():
+            name = d.strftime("%A")
+            totals[name] = totals.get(name, 0) + sec
+            counts[name] = counts.get(name, 0) + 1
+        avg_mpd = totals[mpd] // counts[mpd] if counts[mpd] else 0
 
     if fmt == "csv":
         df = pd.DataFrame(
@@ -86,9 +99,13 @@ def build_report(
         top_goals=sorted(goals_sec.items(), key=lambda x: x[1], reverse=True)[:5],
         tag_totals=sorted(tag_totals.items(), key=lambda x: x[1], reverse=True),
         streak=streak,
+        longest=longest,
+        most_productive=mpd,
+        avg_mpd=avg_mpd,
         hist=hist,
         fmt=fmt,
         format_duration=format_duration,
+        format_duration_long=format_duration_long,
     )
     out = out_path or Path.home() / f"GoalGlide_{range_}_{start}_{end}.{fmt}"
     out.write_text(
