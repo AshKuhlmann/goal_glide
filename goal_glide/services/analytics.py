@@ -12,6 +12,9 @@ __all__ = [
     "weekly_histogram",
     "current_streak",
     "date_histogram",
+    "average_focus_per_day",
+    "most_productive_day",
+    "longest_streak",
 ]
 
 
@@ -60,3 +63,64 @@ def current_streak(storage: Storage, today: date | None = None) -> int:
         streak += 1
         cursor -= timedelta(days=1)
     return streak
+
+
+def average_focus_per_day(
+    storage: Storage, start: date | None = None, end: date | None = None
+) -> float:
+    """Return the average focused seconds per day in the given date range."""
+    sessions = _all_sessions(storage)
+    if not sessions:
+        return 0.0
+
+    all_days = [s.start.date() for s in sessions]
+    start = start or min(all_days)
+    end = end or max(all_days)
+    if start > end:
+        return 0.0
+
+    hist = date_histogram(storage, start, end)
+    total = sum(hist.values())
+    return total / len(hist) if hist else 0.0
+
+
+def most_productive_day(
+    storage: Storage, start: date | None = None, end: date | None = None
+) -> str | None:
+    """Return the weekday name with the highest focus time."""
+    sessions = _all_sessions(storage)
+    if not sessions:
+        return None
+
+    all_days = [s.start.date() for s in sessions]
+    start = start or min(all_days)
+    end = end or max(all_days)
+
+    totals: dict[str, int] = defaultdict(int)
+    for s in sessions:
+        if not s.duration_sec:
+            continue
+        day = s.start.date()
+        if start <= day <= end:
+            totals[day.strftime("%A")] += s.duration_sec
+    if not totals:
+        return None
+    return max(totals.items(), key=lambda t: t[1])[0]
+
+
+def longest_streak(storage: Storage) -> int:
+    """Return the longest streak of consecutive days with at least one session."""
+    days = sorted({s.start.date() for s in _all_sessions(storage)})
+    if not days:
+        return 0
+
+    longest = 1
+    current = 1
+    for prev, curr in zip(days, days[1:]):
+        if (curr - prev).days == 1:
+            current += 1
+        else:
+            longest = max(longest, current)
+            current = 1
+    longest = max(longest, current)
+    return longest
