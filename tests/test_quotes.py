@@ -95,3 +95,23 @@ def test_get_random_quote_bad_response(
     else:
         q, a = quotes.get_random_quote()
         assert (q, a) == ("F", "B")
+
+
+def test_load_local_quotes_invalid_json(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    bad = tmp_path / "bad.json"
+    bad.write_text("{invalid", encoding="utf-8")
+    monkeypatch.setattr(quotes, "DATA_PATH", bad)
+    with pytest.raises(json.JSONDecodeError):
+        quotes._load_local_quotes()
+
+
+def test_load_local_quotes_not_list(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    bad = tmp_path / "obj.json"
+    bad.write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(quotes, "DATA_PATH", bad)
+    with pytest.raises(AssertionError):
+        quotes._load_local_quotes()
