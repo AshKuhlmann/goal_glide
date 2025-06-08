@@ -4,6 +4,8 @@ import pytest
 
 from goal_glide.models.goal import Goal, Priority
 from goal_glide.models.session import PomodoroSession
+from goal_glide.models import session as session_module
+from uuid import UUID
 from goal_glide.models.thought import Thought
 
 
@@ -33,6 +35,19 @@ def test_session_new_generates_id() -> None:
     assert s.goal_id == "g"
     assert s.duration_sec == 60
     assert isinstance(s.id, str) and len(s.id) > 0
+
+
+def test_session_new_unique_ids(monkeypatch: pytest.MonkeyPatch) -> None:
+    seq = iter(
+        [
+            UUID("11111111-1111-1111-1111-111111111111"),
+            UUID("22222222-2222-2222-2222-222222222222"),
+        ]
+    )
+    monkeypatch.setattr(session_module, "uuid4", lambda: next(seq))
+    s1 = PomodoroSession.new("g", datetime.utcnow(), 60)
+    s2 = PomodoroSession.new("g", datetime.utcnow(), 60)
+    assert s1.id != s2.id
 
 
 def test_thought_new_trims() -> None:
