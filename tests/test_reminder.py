@@ -165,6 +165,34 @@ def test_linux_notify_uses_notify_send(monkeypatch: pytest.MonkeyPatch) -> None:
     assert calls == [["notify-send", "Goal Glide", "hey"]]
 
 
+def test_mac_notify_invokes_terminal_notifier(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[list[str]] = []
+
+    def fake_run(cmd: list[str], check: bool = False) -> None:
+        calls.append(cmd)
+
+    monkeypatch.setattr(notify.subprocess, "run", fake_run)
+
+    notify._mac_notify("yo")
+
+    assert calls == [["terminal-notifier", "-message", "yo"]]
+
+
+def test_win_notify_invokes_toast(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[tuple[str, str, bool]] = []
+
+    class FakeToastNotifier:
+        def show_toast(self, title: str, message: str, threaded: bool = False) -> None:
+            calls.append((title, message, threaded))
+
+    fake_win10toast = types.SimpleNamespace(ToastNotifier=FakeToastNotifier)
+    monkeypatch.setitem(sys.modules, "win10toast", fake_win10toast)
+
+    notify._win_notify("hi")
+
+    assert calls == [("Goal Glide", "hi", True)]
+
+
 def test_scheduler_singleton(monkeypatch: pytest.MonkeyPatch) -> None:
     start_calls: list[str] = []
 
