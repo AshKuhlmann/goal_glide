@@ -166,3 +166,24 @@ def test_empty_storage_outputs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) 
     assert "0" in html_text
     assert "0" in md_text
     assert csv_text.strip() == ""
+
+
+def test_custom_range_skips_date_window(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(report, "date", FakeDate)
+    storage = Storage(tmp_path)
+    seed(storage)
+
+    def boom(*args: object, **kwargs: object) -> None:
+        raise AssertionError("_date_window should not be called")
+
+    monkeypatch.setattr(report, "_date_window", boom)
+
+    start = date(2023, 6, 12)
+    end = date(2023, 6, 14)
+    out = report.build_report(
+        storage, "week", "html", tmp_path / "out.html", start=start, end=end
+    )
+    text = out.read_text()
+    assert f"Period: {start} - {end}" in text
