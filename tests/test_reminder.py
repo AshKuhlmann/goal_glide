@@ -76,6 +76,42 @@ def test_schedule_after_stop_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
     assert reminder._sched is None
 
 
+def test_schedule_after_stop_creates_scheduler(monkeypatch: pytest.MonkeyPatch) -> None:
+    created: list[reminder.BackgroundScheduler] = []
+    started: list[bool] = []
+
+    class FakeScheduler:
+        def __init__(self, daemon: bool = False) -> None:
+            created.append(self)  # type: ignore[arg-type]
+            self.jobs: list[dict] = []
+
+        def start(self) -> None:
+            started.append(True)
+
+        def remove_all_jobs(self, jobstore: str | None = None) -> None:
+            self.jobs.clear()
+
+        def add_job(
+            self,
+            func,
+            _trigger,
+            **kwargs,
+        ) -> None:  # type: ignore[no-untyped-def]
+            self.jobs.append(kwargs)
+
+    monkeypatch.setattr(reminder, "BackgroundScheduler", FakeScheduler)
+    monkeypatch.setattr(reminder, "_sched", None)
+    monkeypatch.setattr(reminder, "reminders_enabled", lambda: True)
+
+    reminder.schedule_after_stop()
+
+    assert len(created) == 1
+    assert started == [True]
+    sched = reminder._sched
+    assert sched is not None
+    assert [job["id"] for job in sched.jobs] == ["break_end", "next_pomo"]
+
+
 def test_reminder_status_output(runner: CliRunner) -> None:
     result = runner.invoke(cli.goal, ["reminder", "status"])
     assert result.exit_code == 0
