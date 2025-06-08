@@ -25,6 +25,19 @@ def _all_sessions(storage: Storage) -> list[PomodoroSession]:
 def total_time_by_goal(
     storage: Storage, start: date | None = None, end: date | None = None
 ) -> Dict[str, int]:
+    """Calculates total focused time for each goal within a date range.
+
+    Time spent on sub-goals is aggregated up to their parent goals.
+
+    Args:
+        storage: The ``Storage`` object for accessing session data.
+        start: The start date of the period to analyse.
+        end: The end date of the period to analyse.
+
+    Returns:
+        A mapping of goal IDs to total focused time in seconds.
+    """
+
     acc: Dict[str, int] = defaultdict(int)
     for s in _all_sessions(storage):
         if s.duration_sec and s.goal_id is not None:
@@ -63,6 +76,18 @@ def weekly_histogram(storage: Storage, start: date) -> Dict[date, int]:
 
 
 def current_streak(storage: Storage, today: date | None = None) -> int:
+    """Determines the current consecutive-day streak of activity.
+
+    A day counts toward the streak if it has at least one pomodoro session.
+
+    Args:
+        storage: The ``Storage`` object for accessing session data.
+        today: The date to calculate the streak up to. Defaults to today.
+
+    Returns:
+        The length of the current streak in days.
+    """
+
     today = today or date.today()
     days = {s.start.date() for s in _all_sessions(storage)}
     streak = 0

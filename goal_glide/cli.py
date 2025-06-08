@@ -133,7 +133,15 @@ def add_goal(
     deadline: datetime | None,
     parent_id: str | None,
 ) -> None:
-    """Add a new goal."""
+    """Adds a new goal to the database.
+
+    Args:
+        ctx: The click context object.
+        title: The title of the new goal.
+        priority: The priority level for the goal (e.g., "high", "medium", "low").
+        deadline: Optional deadline for completing the goal.
+        parent_id: The ID of a parent goal, if this is a sub-goal.
+    """
     title = title.strip()
     if not title:
         console.print("[red]Title cannot be empty.[/red]")
@@ -219,7 +227,18 @@ def update_goal_cmd(
     priority: str | None,
     deadline: datetime | None,
 ) -> None:
-    """Modify goal attributes."""
+    """Modifies the attributes of an existing goal.
+
+    Allows for updating the title, priority and deadline of a goal, identified
+    by its unique ID.
+
+    Args:
+        ctx: The click context object.
+        goal_id: The ID of the goal to be updated.
+        title: The new title for the goal.
+        priority: The new priority for the goal.
+        deadline: The new deadline for the goal.
+    """
     obj = cast(dict, ctx.obj)
     storage: Storage = obj["storage"]
     goal = storage.get_goal(goal_id)
@@ -323,7 +342,18 @@ def list_goals(
     priority: str | None,
     tags: tuple[str, ...],
 ) -> None:
-    """List goals with optional filtering."""
+    """Lists goals with optional filtering and sorting.
+
+    By default, it shows only active goals, sorted by priority and creation
+    date.
+
+    Args:
+        ctx: The click context object.
+        archived: If ``True``, shows only archived goals.
+        show_all: If ``True``, shows both active and archived goals.
+        priority: Filters the list to goals of a specific priority.
+        tags: Filters the list to goals that have all the specified tags.
+    """
     obj = cast(dict, ctx.obj)
     storage: Storage = obj["storage"]
     goals = storage.list_goals(
@@ -717,9 +747,7 @@ def stats_cmd(
             counts[name] = counts.get(name, 0) + 1
         avg = totals[mpd] // counts[mpd] if counts[mpd] else 0
         avg_fmt = format_duration_long(avg)
-        console.print(
-            f"\N{CALENDAR}  Most productive day: {mpd} (avg. {avg_fmt})"
-        )
+        console.print(f"\N{CALENDAR}  Most productive day: {mpd} (avg. {avg_fmt})")
 
     if show_goals:
         totals = total_time_by_goal(storage, start, end)
@@ -791,7 +819,11 @@ def report_make(
     range_ = (
         "week"
         if range_week
-        else "month" if range_month else "all" if range_all else "week"
+        else "month"
+        if range_month
+        else "all"
+        if range_all
+        else "week"
     )
     obj = cast(dict, ctx.obj)
     storage: Storage = obj["storage"]
