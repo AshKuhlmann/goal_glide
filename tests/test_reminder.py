@@ -204,6 +204,33 @@ def test_linux_notify_uses_notify_send(monkeypatch: pytest.MonkeyPatch) -> None:
     assert calls == [["notify-send", "Goal Glide", "hey"]]
 
 
+def test_linux_notify_fallback_on_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    class FakeNotification:
+        def __init__(self, title: str, message: str) -> None:
+            pass
+
+        def show(self) -> None:
+            raise RuntimeError("boom")
+
+    fake_notify2 = types.SimpleNamespace(
+        init=lambda name: None,
+        Notification=FakeNotification,
+    )
+
+    monkeypatch.setitem(sys.modules, "notify2", fake_notify2)
+
+    calls: list[list[str]] = []
+
+    def fake_run(cmd: list[str], check: bool = False) -> None:
+        calls.append(cmd)
+
+    monkeypatch.setattr(notify.subprocess, "run", fake_run)
+
+    notify._linux_notify("msg")
+
+    assert calls == [["notify-send", "Goal Glide", "msg"]]
+
+
 def test_mac_notify_invokes_terminal_notifier(monkeypatch: pytest.MonkeyPatch) -> None:
     calls: list[list[str]] = []
 
