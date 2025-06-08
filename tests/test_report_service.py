@@ -222,3 +222,51 @@ def test_html_top_goals_limit_and_order(
     assert len(rows) == 5
     secs = [int(r.find_all("td")[1].text) for r in rows]
     assert secs == sorted(secs, reverse=True)
+
+
+def test_tag_totals_with_overlapping_tags(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(report, "date", FakeDate)
+    storage = Storage(tmp_path)
+
+    week_start = FakeDate.today() - timedelta(days=FakeDate.today().weekday())
+
+    g1 = Goal(id="g1", title="A", created=datetime(2023, 6, 1), tags=["x", "y"])
+    g2 = Goal(id="g2", title="B", created=datetime(2023, 6, 1), tags=["y", "z"])
+    g3 = Goal(id="g3", title="C", created=datetime(2023, 6, 1), tags=["x"])
+    for g in (g1, g2, g3):
+        storage.add_goal(g)
+
+    storage.add_session(
+        PomodoroSession(
+            id="s1",
+            goal_id="g1",
+            start=datetime.combine(week_start, datetime.min.time()),
+            duration_sec=60,
+        )
+    )
+    storage.add_session(
+        PomodoroSession(
+            id="s2",
+            goal_id="g2",
+            start=datetime.combine(week_start + timedelta(days=1), datetime.min.time()),
+            duration_sec=120,
+        )
+    )
+    storage.add_session(
+        PomodoroSession(
+            id="s3",
+            goal_id="g3",
+            start=datetime.combine(week_start + timedelta(days=2), datetime.min.time()),
+            duration_sec=180,
+        )
+    )
+
+    out = report.build_report(storage, "week", "html", tmp_path / "tags.html")
+    soup = BeautifulSoup(out.read_text(), "html.parser")
+    table = soup.find("h2", string="Tags").find_next("table")
+    rows = table.find_all("tr")[1:]
+    totals = {r.find_all("td")[0].text: int(r.find_all("td")[1].text) for r in rows}
+
+    assert totals == {"x": 240, "y": 180, "z": 120}
