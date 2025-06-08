@@ -39,3 +39,16 @@ def test_get_random_quote_online(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(quotes.requests, "get", lambda *a, **k: Resp())
     q, a = quotes.get_random_quote()
     assert (q, a) == ("Net", "B")
+
+
+def test_get_random_quote_offline_no_network(monkeypatch: pytest.MonkeyPatch) -> None:
+    sample = [{"quote": "L", "author": "A"}]
+    monkeypatch.setattr(quotes, "_LOCAL_CACHE", sample)
+
+    def fail(*args: Any, **kwargs: Any) -> None:  # pragma: no cover
+        raise AssertionError("network call attempted")
+
+    monkeypatch.setattr(quotes.requests, "get", fail)
+    monkeypatch.setattr(quotes.random, "choice", lambda seq: seq[0])
+    q, a = quotes.get_random_quote(use_online=False)
+    assert (q, a) == ("L", "A")
