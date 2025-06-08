@@ -88,3 +88,16 @@ def test_unknown_os_logs_info(
     caplog.set_level(logging.INFO)
     notify.push("msg")
     assert any("No notifier for OS" in rec.message for rec in caplog.records)
+
+
+def test_notifier_failure_logs_warning(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    def fail(_: str) -> None:
+        raise RuntimeError("nope")
+
+    monkeypatch.setitem(notify._OS_NOTIFIERS, "Darwin", fail)
+    monkeypatch.setattr(notify.platform, "system", lambda: "Darwin")
+    caplog.set_level(logging.WARNING)
+    notify.push("boom")
+    assert any("Notification failed" in rec.message for rec in caplog.records)
