@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -64,3 +64,26 @@ def test_stop_session_deletes_file(
 def test_stop_session_no_file_raises(session_path: Path) -> None:
     with pytest.raises(RuntimeError):
         pomodoro.stop_session()
+
+
+def test_pause_resume_flow(monkeypatch: pytest.MonkeyPatch, session_path: Path) -> None:
+    start = datetime(2023, 1, 2, 9, 0, 0)
+    _patch_now(monkeypatch, start)
+    pomodoro.start_session(10)
+
+    five = start + timedelta(minutes=5)
+    _patch_now(monkeypatch, five)
+    paused = pomodoro.pause_session()
+    assert paused.paused is True
+    data = json.loads(session_path.read_text())
+    assert data["elapsed_sec"] == 300
+
+    seven = start + timedelta(minutes=7)
+    _patch_now(monkeypatch, seven)
+    resumed = pomodoro.resume_session()
+    assert resumed.paused is False
+    assert json.loads(session_path.read_text())["elapsed_sec"] == 300
+
+    twelve = start + timedelta(minutes=12)
+    _patch_now(monkeypatch, twelve)
+    pomodoro.stop_session()

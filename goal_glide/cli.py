@@ -31,7 +31,13 @@ from .services.analytics import (
     total_time_by_goal,
     date_histogram,
 )
-from .services.pomodoro import load_session, start_session, stop_session
+from .services.pomodoro import (
+    load_active_session,
+    pause_session,
+    resume_session,
+    start_session,
+    stop_session,
+)
 from .models.session import PomodoroSession
 from .services.quotes import get_random_quote
 from .services.render import render_goals
@@ -320,15 +326,31 @@ def stop_pomo(ctx: click.Context) -> None:
     _print_completion(session)
 
 
+@pomo.command("pause")
+@handle_exceptions
+def pause_pomo() -> None:
+    pause_session()
+    console.print("Session paused")
+
+
+@pomo.command("resume")
+@handle_exceptions
+def resume_pomo() -> None:
+    resume_session()
+    console.print("Session resumed")
+
+
 @pomo.command("status")
 @handle_exceptions
 def status_pomo() -> None:
     """Show the remaining time for the current session."""
-    session = load_session()
+    session = load_active_session()
     if session is None:
         console.print("No active session")
         return
-    elapsed = int((datetime.now() - session.start).total_seconds())
+    elapsed = session.elapsed_sec
+    if not session.paused and session.last_start is not None:
+        elapsed += int((datetime.now() - session.last_start).total_seconds())
     remaining = max(session.duration_sec - elapsed, 0)
     console.print(f"Elapsed {_fmt(elapsed)} | Remaining {_fmt(remaining)}")
 

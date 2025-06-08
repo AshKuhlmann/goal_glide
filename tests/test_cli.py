@@ -54,6 +54,20 @@ def test_pomo_session_persisted(tmp_path, monkeypatch):
     assert sessions[0].goal_id == gid
 
 
+def test_pomo_pause_resume(tmp_path, monkeypatch):
+    monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
+    monkeypatch.setenv("HOME", str(tmp_path))
+    pomodoro.POMO_PATH = tmp_path / "session.json"
+    runner = CliRunner()
+    runner.invoke(cli.goal, ["pomo", "start", "--duration", "1"])
+    res = runner.invoke(cli.goal, ["pomo", "pause"])
+    assert res.exit_code == 0
+    assert "paused" in res.output.lower()
+    res = runner.invoke(cli.goal, ["pomo", "resume"])
+    assert res.exit_code == 0
+    assert "resumed" in res.output.lower()
+
+
 def test_jot_from_editor(tmp_path, monkeypatch):
     monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
     monkeypatch.setattr(click, "edit", lambda *a, **k: "note from editor\n")
