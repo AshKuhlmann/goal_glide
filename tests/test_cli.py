@@ -2,6 +2,7 @@ from click.testing import CliRunner
 import click
 
 import goal_glide.cli as cli
+from goal_glide import config
 from goal_glide.models.storage import Storage
 from goal_glide.services import pomodoro
 
@@ -61,3 +62,24 @@ def test_jot_from_editor(tmp_path, monkeypatch):
     assert result.exit_code == 0
     thought_text = Storage(tmp_path).list_thoughts()[0].text
     assert thought_text == "note from editor"
+
+
+def test_config_quotes_disable(tmp_path, monkeypatch):
+    monkeypatch.setattr(config, "_CONFIG_PATH", tmp_path / "config.toml")
+    config._CONFIG_CACHE = None
+    runner = CliRunner()
+    result = runner.invoke(cli.goal, ["config", "quotes", "--disable"])
+    assert result.exit_code == 0
+    assert "Quotes are OFF" in result.output
+    assert config.quotes_enabled() is False
+
+
+def test_config_quotes_enable(tmp_path, monkeypatch):
+    monkeypatch.setattr(config, "_CONFIG_PATH", tmp_path / "config.toml")
+    config._CONFIG_CACHE = None
+    runner = CliRunner()
+    runner.invoke(cli.goal, ["config", "quotes", "--disable"])
+    result = runner.invoke(cli.goal, ["config", "quotes", "--enable"])
+    assert result.exit_code == 0
+    assert "Quotes are ON" in result.output
+    assert config.quotes_enabled() is True
