@@ -33,6 +33,7 @@ def runner(
     cfg._CONFIG_PATH = tmp_path / ".goal_glide" / "config.toml"
     cfg._CONFIG_CACHE = None
     monkeypatch.setattr(reminder, "_sched", FakeScheduler())
+
     class FakeDT(datetime):
         @classmethod
         def now(cls) -> datetime:  # type: ignore[override]
