@@ -35,8 +35,12 @@ def test_unexpected_error():
     assert "Error:" in r.output
 
 
-def test_really_unexpected_error():
-    r = CliRunner().invoke(_fake_cmd(ZeroDivisionError("oops")))
+@pytest.mark.parametrize(
+    "exc",
+    [ZeroDivisionError("oops"), MemoryError("oom")],
+)
+def test_really_unexpected_error(exc):
+    r = CliRunner().invoke(_fake_cmd(exc))
     assert r.exit_code == 1
     assert "unexpected" in r.output.lower()
 
@@ -110,7 +114,8 @@ def test_click_bad_parameter_error():
     assert "Error:" in r.output
 
 
-def test_keyboard_interrupt_unexpected():
-    r = CliRunner().invoke(_fake_cmd(KeyboardInterrupt()))
+@pytest.mark.parametrize("exc", [KeyboardInterrupt()])
+def test_keyboard_interrupt_unexpected(exc):
+    r = CliRunner().invoke(_fake_cmd(exc))
     assert r.exit_code == 1
     assert "aborted" in r.output.lower()
