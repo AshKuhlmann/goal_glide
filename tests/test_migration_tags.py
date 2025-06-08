@@ -12,7 +12,14 @@ def test_tags_migration(tmp_path: Path) -> None:
     db = TinyDB(db_path)
     goals = db.table("goals")
     goals.insert({"id": "g1", "title": "t1", "created": datetime.now().isoformat()})
-    goals.insert({"id": "g2", "title": "t2", "created": datetime.now().isoformat(), "tags": ["t"]})
+    goals.insert(
+        {
+            "id": "g2",
+            "title": "t2",
+            "created": datetime.now().isoformat(),
+            "tags": ["t"],
+        }
+    )
 
     storage = Storage(tmp_path)
     goal1 = storage.get_goal("g1")
@@ -20,4 +27,3 @@ def test_tags_migration(tmp_path: Path) -> None:
 
     assert goal1.tags == []
     assert goal2.tags == ["t"]
-
