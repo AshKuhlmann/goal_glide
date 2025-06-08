@@ -695,8 +695,9 @@ def stats_cmd(
             totals[name] = totals.get(name, 0) + sec
             counts[name] = counts.get(name, 0) + 1
         avg = totals[mpd] // counts[mpd] if counts[mpd] else 0
+        avg_fmt = format_duration_long(avg)
         console.print(
-            f"\N{CALENDAR}  Most productive day: {mpd} (avg. {format_duration_long(avg)})"
+            f"\N{CALENDAR}  Most productive day: {mpd} (avg. {avg_fmt})"
         )
 
     if show_goals:
