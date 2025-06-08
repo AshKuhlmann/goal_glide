@@ -271,3 +271,29 @@ Sphinx configuration files live in the `docs` directory. Run `make html` inside 
 
 ---
 Goal Glide is distributed under the terms of the GNU General Public License v3.
+
+## Contributing
+
+To run the test suite with coverage use:
+
+```bash
+pytest --cov=goal_glide
+```
+
+Enable the provided Git hooks so tests and type checks run automatically before each push:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+This activates `.githooks/pre-push` which runs the same `pytest --cov=goal_glide` command along with `mypy`.
+
+Install [pre-commit](https://pre-commit.com/) to check formatting and types on every commit:
+
+```bash
+pip install pre-commit
+pre-commit install
+```
+
+The hooks defined in `.pre-commit-config.yaml` enforce coding standards using Black, Flake8 and Mypy.
+
