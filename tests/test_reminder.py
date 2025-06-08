@@ -62,3 +62,14 @@ def test_schedule_after_stop_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(cfg, "reminders_enabled", lambda: False)
     reminder.schedule_after_stop()
     assert reminder._sched is None
+
+
+def test_reminder_status_output(runner: CliRunner) -> None:
+    runner.invoke(cli.goal, ["reminder", "enable"])
+    runner.invoke(
+        cli.goal,
+        ["reminder", "config", "--break", "11", "--interval", "22"],
+    )
+    result = runner.invoke(cli.goal, ["reminder", "status"])
+    assert result.exit_code == 0
+    assert "Enabled: True | Break: 11m | Interval: 22m" in result.output
