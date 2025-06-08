@@ -102,3 +102,9 @@ def test_random_expected_error():
     r = CliRunner().invoke(_fake_cmd(exc_cls("x")))
     assert r.exit_code == 1
     assert "Error:" in r.output
+
+
+def test_click_bad_parameter_error():
+    r = CliRunner().invoke(_fake_cmd(click.BadParameter("oops")))
+    assert r.exit_code == 1
+    assert "Error:" in r.output

@@ -1,5 +1,6 @@
 from click.testing import CliRunner
 import click
+import pytest
 
 import goal_glide.cli as cli
 from goal_glide import config
@@ -76,6 +77,40 @@ def test_jot_from_editor(tmp_path, monkeypatch):
     assert result.exit_code == 0
     thought_text = Storage(tmp_path).list_thoughts()[0].text
     assert thought_text == "note from editor"
+
+
+@pytest.mark.parametrize("cmd", ["remove", "archive", "update"])
+@pytest.mark.parametrize("goal_id", ["", "!!!", "x" * 100])
+def test_goal_commands_invalid_id(cmd, goal_id, tmp_path):
+    env = {"GOAL_GLIDE_DB_DIR": str(tmp_path)}
+    runner = CliRunner()
+    args = [cmd, goal_id]
+    if cmd == "remove":
+        result = runner.invoke(cli.goal, args, input="y\n", env=env)
+    else:
+        result = runner.invoke(cli.goal, args, env=env)
+    assert result.exit_code == 1
+    assert "Error:" in result.output
+
+
+def test_jot_from_editor_unicode(tmp_path, monkeypatch):
+    monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
+    monkeypatch.setattr(click, "edit", lambda *a, **k: "Привет мир\n")
+    runner = CliRunner()
+    result = runner.invoke(cli.thought, ["jot"])
+    assert result.exit_code == 0
+    stored = Storage(tmp_path).list_thoughts()[0].text
+    assert stored == "Привет мир"
+
+
+def test_jot_from_editor_empty(tmp_path, monkeypatch):
+    monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
+    monkeypatch.setattr(click, "edit", lambda *a, **k: "")
+    runner = CliRunner()
+    result = runner.invoke(cli.thought, ["jot"])
+    assert result.exit_code == 1
+    assert "Error:" in result.output
+    assert Storage(tmp_path).list_thoughts() == []
 
 
 def test_config_quotes_disable(tmp_path, monkeypatch):
