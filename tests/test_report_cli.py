@@ -119,3 +119,20 @@ def test_cli_range_flags(
     )
     assert result.exit_code == 0
     assert captured == [expected]
+
+
+@pytest.mark.parametrize(
+    "args, msg",
+    [
+        (["--from", "2023-01-01"], "Specify both --from and --to"),
+        (["--to", "2023-01-01"], "Specify both --from and --to"),
+        (
+            ["--week", "--from", "2023-01-01", "--to", "2023-01-07"],
+            "--from/--to cannot be combined with range flags",
+        ),
+    ],
+)
+def test_report_make_usage_errors(runner: CliRunner, args: list[str], msg: str) -> None:
+    result = runner.invoke(cli.goal, ["report", "make", *args])
+    assert result.exit_code != 0
+    assert msg in result.output
