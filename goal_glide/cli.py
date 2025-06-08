@@ -27,7 +27,7 @@ from .models.storage import Storage
 from .models.thought import Thought
 from .services import report
 from .services.analytics import current_streak, total_time_by_goal, weekly_histogram
-from .services.pomodoro import start_session, stop_session
+from .services.pomodoro import load_session, start_session, stop_session
 from .models.session import PomodoroSession
 from .services.quotes import get_random_quote
 from .services.render import render_goals
@@ -295,6 +295,19 @@ def stop_pomo() -> None:
         PomodoroSession.new(session.goal_id, session.start, session.duration_sec)
     )
     _print_completion(session)
+
+
+@pomo.command("status")
+@handle_exceptions
+def status_pomo() -> None:
+    """Show the remaining time for the current session."""
+    session = load_session()
+    if session is None:
+        console.print("No active session")
+        return
+    elapsed = int((datetime.now() - session.start).total_seconds())
+    remaining = max(session.duration_sec - elapsed, 0)
+    console.print(f"Elapsed {_fmt(elapsed)} | Remaining {_fmt(remaining)}")
 
 
 goal.add_command(pomo)
