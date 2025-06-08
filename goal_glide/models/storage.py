@@ -217,3 +217,10 @@ class Storage:
         if limit is not None:
             rows = rows[:limit]
         return rows
+
+    def remove_thought(self, thought_id: str) -> bool:
+        """Delete a thought. Returns True if removed."""
+        if not self.thought_table.contains(Query().id == thought_id):
+            return False
+        self.thought_table.remove(Query().id == thought_id)
+        return True

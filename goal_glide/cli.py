@@ -439,6 +439,7 @@ def list_thoughts_cmd(goal_id: str | None, limit: int) -> None:
     thoughts = storage.list_thoughts(goal_id=goal_id, limit=limit, newest_first=True)
 
     table = Table(title="Thoughts")
+    table.add_column("ID")
     table.add_column("When")
     table.add_column("Goal")
     table.add_column("Thought")
@@ -451,9 +452,21 @@ def list_thoughts_cmd(goal_id: str | None, limit: int) -> None:
                 goal_title = storage.get_goal(th.goal_id).title
             else:
                 goal_title = th.goal_id
-        table.add_row(when, goal_title, th.text)
+        table.add_row(th.id, when, goal_title, th.text)
 
     console.print(table)
+
+
+@thought.command("rm")
+@click.argument("thought_id")
+@handle_exceptions
+def remove_thought_cmd(thought_id: str) -> None:
+    """Delete a thought."""
+    storage = get_storage()
+    if storage.remove_thought(thought_id):
+        console.print(f"[green]Removed[/green] {thought_id}")
+    else:
+        console.print(f"[yellow]Thought {thought_id} not found[/yellow]")
 
 
 @goal.command("stats")
