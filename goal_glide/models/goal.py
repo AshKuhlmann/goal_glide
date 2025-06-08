@@ -19,3 +19,4 @@ class Goal:
     priority: Priority = Priority.medium
     archived: bool = False
     tags: list[str] = field(default_factory=list)
+    parent_id: str | None = None

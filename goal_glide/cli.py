@@ -194,6 +194,7 @@ def update_goal_cmd(
         priority=new_priority,
         archived=goal.archived,
         tags=goal.tags,
+        parent_id=goal.parent_id,
     )
     storage.update_goal(updated)
     console.print(f":pencil: Updated goal {updated.id}")
