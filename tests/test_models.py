@@ -37,3 +37,13 @@ def test_thought_new_trims() -> None:
     t = Thought.new(" text ", None)
     assert t.text == "text"
     assert t.goal_id is None
+
+
+def test_goal_tags_are_isolated() -> None:
+    g1 = Goal(id="1", title="t1", created=datetime.utcnow())
+    g2 = Goal(id="2", title="t2", created=datetime.utcnow())
+
+    g1.tags.append("a")
+
+    assert g1.tags == ["a"]
+    assert g2.tags == []
