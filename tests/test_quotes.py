@@ -52,3 +52,16 @@ def test_get_random_quote_offline_no_network(monkeypatch: pytest.MonkeyPatch) ->
     monkeypatch.setattr(quotes.random, "choice", lambda seq: seq[0])
     q, a = quotes.get_random_quote(use_online=False)
     assert (q, a) == ("L", "A")
+
+
+def test_get_random_quote_uses_cache(monkeypatch: pytest.MonkeyPatch) -> None:
+    sample = [{"quote": "C", "author": "B"}]
+    monkeypatch.setattr(quotes, "_LOCAL_CACHE", sample)
+
+    def fail() -> list[dict[str, str]]:  # pragma: no cover
+        raise AssertionError("_load_local_quotes should not be called")
+
+    monkeypatch.setattr(quotes, "_load_local_quotes", fail)
+    monkeypatch.setattr(quotes.random, "choice", lambda seq: seq[0])
+    q, a = quotes.get_random_quote(use_online=False)
+    assert (q, a) == ("C", "B")
