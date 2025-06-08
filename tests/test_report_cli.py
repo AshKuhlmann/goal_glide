@@ -156,7 +156,11 @@ def test_cli_default_output_path(
     assert list(tmp_path.glob("GoalGlide_week_*"))
 
 
-def test_cli_md_and_csv(tmp_path: Path, runner: CliRunner, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_cli_md_and_csv(
+    tmp_path: Path,
+    runner: CliRunner,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setattr(report, "date", FakeDate)
     storage = Storage(tmp_path)
     seed(storage)
@@ -181,7 +185,11 @@ def test_cli_md_and_csv(tmp_path: Path, runner: CliRunner, monkeypatch: pytest.M
     assert list(df.columns) == ["goal_id", "title", "total_sec", "tags"]
 
 
-def test_cli_empty_storage_reports(tmp_path: Path, runner: CliRunner, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_cli_empty_storage_reports(
+    tmp_path: Path,
+    runner: CliRunner,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setattr(report, "date", FakeDate)
     Storage(tmp_path)  # initialize empty storage
     md_out = tmp_path / "empty.md"
