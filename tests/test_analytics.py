@@ -346,8 +346,14 @@ def test_property_current_streak(sessions: list[PomodoroSession], today: date) -
             PomodoroSession,
             id=st.text(min_size=1, max_size=3),
             goal_id=st.text(min_size=1, max_size=2),
-            start=st.datetimes(min_value=datetime(2023, 1, 1), max_value=datetime(2023, 12, 31)),
-            duration_sec=st.one_of(st.integers(min_value=0, max_value=3600), st.just(None)),
+            start=st.datetimes(
+                min_value=datetime(2023, 1, 1),
+                max_value=datetime(2023, 12, 31),
+            ),
+            duration_sec=st.one_of(
+                st.integers(min_value=0, max_value=3600),
+                st.just(None),
+            ),
         )
     )
 )
@@ -367,8 +373,14 @@ def test_property_average_focus_per_day(sessions: list[PomodoroSession]) -> None
             PomodoroSession,
             id=st.text(min_size=1, max_size=3),
             goal_id=st.text(min_size=1, max_size=2),
-            start=st.datetimes(min_value=datetime(2023, 1, 1), max_value=datetime(2023, 12, 31)),
-            duration_sec=st.one_of(st.integers(min_value=0, max_value=3600), st.just(None)),
+            start=st.datetimes(
+                min_value=datetime(2023, 1, 1),
+                max_value=datetime(2023, 12, 31),
+            ),
+            duration_sec=st.one_of(
+                st.integers(min_value=0, max_value=3600),
+                st.just(None),
+            ),
         )
     )
 )
@@ -388,8 +400,14 @@ def test_property_most_productive_day(sessions: list[PomodoroSession]) -> None:
             PomodoroSession,
             id=st.text(min_size=1, max_size=3),
             goal_id=st.text(min_size=1, max_size=2),
-            start=st.datetimes(min_value=datetime(2023, 1, 1), max_value=datetime(2023, 12, 31)),
-            duration_sec=st.one_of(st.integers(min_value=0, max_value=3600), st.just(None)),
+            start=st.datetimes(
+                min_value=datetime(2023, 1, 1),
+                max_value=datetime(2023, 12, 31),
+            ),
+            duration_sec=st.one_of(
+                st.integers(min_value=0, max_value=3600),
+                st.just(None),
+            ),
         )
     )
 )
