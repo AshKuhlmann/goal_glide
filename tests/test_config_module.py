@@ -1,13 +1,14 @@
 from pathlib import Path
 
 import pytest
+from pytest import MonkeyPatch
 
 from goal_glide import cli, config
 from click.testing import CliRunner
 
 
 @pytest.fixture()
-def cfg_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+def cfg_path(tmp_path: Path, monkeypatch: MonkeyPatch) -> Path:
     path = tmp_path / "config.toml"
     monkeypatch.setattr(config, "_CONFIG_PATH", path)
     config._CONFIG_CACHE = None
@@ -84,7 +85,9 @@ def test_cache_prevents_reload_without_clear(cfg_path: Path) -> None:
     assert third is True
 
 
-def test_save_creates_parent_dirs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_save_creates_parent_dirs(
+    tmp_path: Path, monkeypatch: MonkeyPatch
+) -> None:
     nested = tmp_path / "a" / "b" / "config.toml"
     monkeypatch.setattr(config, "_CONFIG_PATH", nested)
     config._CONFIG_CACHE = None
