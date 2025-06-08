@@ -172,21 +172,29 @@ class Storage:
         tags: list[str] | None = None,
         parent_id: str | None = None,
     ) -> list[Goal]:
-        results = []
-        for row in self.table.all():
-            g = self._row_to_goal(row)
-            if only_archived and not g.archived:
-                continue
-            if not include_archived and not only_archived and g.archived:
-                continue
-            if priority and g.priority != priority:
-                continue
-            if tags and not set(tags).issubset(g.tags):
-                continue
-            if parent_id is not None and g.parent_id != parent_id:
-                continue
-            results.append(g)
-        return results
+        GoalQuery = Query()
+
+        predicates = []
+
+        if only_archived:
+            predicates.append(GoalQuery.archived == True)
+        elif not include_archived:
+            predicates.append(lambda r: not r.get("archived", False))
+
+        if priority:
+            predicates.append(GoalQuery.priority == priority.value)
+
+        if tags:
+            predicates.append(lambda r: set(tags).issubset(r.get("tags", [])))
+
+        if parent_id is not None:
+            predicates.append(GoalQuery.parent_id == parent_id)
+
+        def predicate(row: dict[str, Any]) -> bool:
+            return all(p(row) for p in predicates)
+
+        rows = self.table.search(predicate) if predicates else self.table.all()
+        return [self._row_to_goal(r) for r in rows]
 
     def list_all_tags(self) -> dict[str, int]:
         """Return mapping of tag name to count of goals containing it."""
@@ -224,9 +232,14 @@ class Storage:
         limit: int | None = 10,
         newest_first: bool = True,
     ) -> list[Thought]:
-        rows = [self._row_to_thought(r) for r in self.thought_table.all()]
+        ThoughtQuery = Query()
+
         if goal_id is not None:
-            rows = [t for t in rows if t.goal_id == goal_id]
+            db_rows = self.thought_table.search(ThoughtQuery.goal_id == goal_id)
+        else:
+            db_rows = self.thought_table.all()
+
+        rows = [self._row_to_thought(r) for r in db_rows]
         rows.sort(key=lambda t: t.timestamp, reverse=newest_first)
         if limit is not None:
             rows = rows[:limit]
