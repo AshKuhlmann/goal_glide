@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import logging
 
 import pytest
 from click.testing import CliRunner
@@ -37,9 +38,7 @@ def test_invalid_break_value_errors(runner: CliRunner) -> None:
 
 
 def test_invalid_interval_value_errors(runner: CliRunner) -> None:
-    result = CliRunner().invoke(
-        cli.goal, ["reminder", "config", "--interval", "200"]
-    )
+    result = CliRunner().invoke(cli.goal, ["reminder", "config", "--interval", "200"])
     assert result.exit_code != 0
     assert "interval must be" in result.output
 
@@ -80,3 +79,12 @@ def test_reminder_status_output(runner: CliRunner) -> None:
     result = runner.invoke(cli.goal, ["reminder", "status"])
     assert result.exit_code == 0
     assert "Enabled: True | Break: 11m | Interval: 22m" in result.output
+
+
+def test_unknown_os_logs_info(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    monkeypatch.setattr(notify.platform, "system", lambda: "UnknownOS")
+    caplog.set_level(logging.INFO)
+    notify.push("msg")
+    assert any("No notifier for OS" in rec.message for rec in caplog.records)
