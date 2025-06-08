@@ -33,6 +33,23 @@ def test_add_list_remove(tmp_path):
     assert result.exit_code == 0
 
 
+def test_remove_cancel_keeps_goal(tmp_path):
+    runner = CliRunner()
+
+    runner.invoke(cli.goal, ["add", "Stay"], env={"GOAL_GLIDE_DB_DIR": str(tmp_path)})
+
+    goal_id = Storage(tmp_path).list_goals()[0].id
+
+    result = runner.invoke(
+        cli.goal,
+        ["remove", goal_id],
+        input="n\n",
+        env={"GOAL_GLIDE_DB_DIR": str(tmp_path)},
+    )
+    assert result.exit_code == 0
+    assert [g.id for g in Storage(tmp_path).list_goals()] == [goal_id]
+
+
 def test_pomo_session_persisted(tmp_path, monkeypatch):
     monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
     monkeypatch.setenv("HOME", str(tmp_path))
