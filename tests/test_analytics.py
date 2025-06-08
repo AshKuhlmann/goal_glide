@@ -8,6 +8,7 @@ from hypothesis import given, settings, strategies as st
 import pytest
 
 from goal_glide.models.session import PomodoroSession
+from goal_glide.models.goal import Goal
 from goal_glide.models.storage import Storage
 from goal_glide.services import analytics
 
@@ -36,6 +37,18 @@ def test_total_time_by_goal_simple(tmp_path: Path) -> None:
     totals = analytics.total_time_by_goal(storage)
     assert totals["g1"] == 90
     assert totals["g2"] == 20
+
+
+def test_total_time_by_goal_parent_accum(tmp_path: Path) -> None:
+    storage = Storage(tmp_path)
+    parent = Goal(id="p", title="p", created=datetime.now())
+    child = Goal(id="c", title="c", created=datetime.now(), parent_id="p")
+    storage.add_goal(parent)
+    storage.add_goal(child)
+    storage.add_session(make_session("c", datetime.now(), 30))
+    totals = analytics.total_time_by_goal(storage)
+    assert totals["c"] == 30
+    assert totals["p"] == 30
 
 
 def test_weekly_histogram_exact_bounds(tmp_path: Path) -> None:

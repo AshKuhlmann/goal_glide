@@ -2,6 +2,9 @@ from datetime import datetime
 from pathlib import Path
 import tempfile
 
+from click.testing import CliRunner
+
+from goal_glide.cli import goal
 from goal_glide.models.goal import Goal
 from goal_glide.models.storage import Storage
 
@@ -115,3 +118,24 @@ def test_list_goals_parent_property(mapping: dict[str, list[str]]) -> None:
         for pid, cids in mapping.items():
             listed = storage.list_goals(parent_id=pid)
             assert {g.id for g in listed} == set(cids)
+
+
+def test_cli_add_with_parent(tmp_path: Path) -> None:
+    runner = CliRunner()
+    env = {"GOAL_GLIDE_DB_DIR": str(tmp_path)}
+    runner.invoke(goal, ["add", "parent"], env=env)
+    pid = Storage(tmp_path).list_goals()[0].id
+    runner.invoke(goal, ["add", "child", "--parent", pid], env=env)
+    children = Storage(tmp_path).list_goals(parent_id=pid)
+    assert len(children) == 1 and children[0].title == "child"
+
+
+def test_goal_tree_output(tmp_path: Path) -> None:
+    runner = CliRunner()
+    env = {"GOAL_GLIDE_DB_DIR": str(tmp_path)}
+    runner.invoke(goal, ["add", "parent"], env=env)
+    pid = Storage(tmp_path).list_goals()[0].id
+    runner.invoke(goal, ["add", "child", "--parent", pid], env=env)
+    result = runner.invoke(goal, ["tree"], env=env)
+    assert "child" in result.output
+    assert result.output.find("child") > result.output.find("parent")

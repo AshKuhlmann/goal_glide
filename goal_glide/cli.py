@@ -13,6 +13,7 @@ from rich.bar import Bar
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
+from rich.tree import Tree
 from tinydb import Query
 
 from .config import load_config, save_config
@@ -116,8 +117,11 @@ def goal(ctx: click.Context) -> None:
     show_default=True,
     help="Goal priority (low, medium, high)",
 )
+@click.option("--parent", "parent_id", help="Parent goal ID")
 @click.pass_context
-def add_goal(ctx: click.Context, title: str, priority: str) -> None:
+def add_goal(
+    ctx: click.Context, title: str, priority: str, parent_id: str | None
+) -> None:
     """Add a new goal."""
     title = title.strip()
     if not title:
@@ -127,7 +131,12 @@ def add_goal(ctx: click.Context, title: str, priority: str) -> None:
     obj = cast(dict, ctx.obj)
     storage: Storage = obj["storage"]
     if storage.find_by_title(title):
-        console.print("[yellow]Warning: goal with this title already exists.[/yellow]")
+        console.print(
+            "[yellow]Warning: goal with this title already exists.[/yellow]"
+        )
+
+    if parent_id is not None:
+        storage.get_goal(parent_id)  # validate exists
 
     prio = Priority(priority)
     g = Goal(
@@ -135,6 +144,7 @@ def add_goal(ctx: click.Context, title: str, priority: str) -> None:
         title=title,
         created=datetime.utcnow(),
         priority=prio,
+        parent_id=parent_id,
     )
     storage.add_goal(g)
     console.print(f":check_mark: Added goal {g.title} ({g.id})")
@@ -307,6 +317,38 @@ def list_goals(
 
     table = render_goals(goals)
     console.print(table)
+
+
+@goal.command("tree")
+@click.pass_context
+def goal_tree(ctx: click.Context) -> None:
+    """Display goals in a tree view."""
+    obj = cast(dict, ctx.obj)
+    storage: Storage = obj["storage"]
+    goals = storage.list_goals()
+
+    children: dict[str, list[Goal]] = {}
+    roots: list[Goal] = []
+    for g in goals:
+        if g.parent_id:
+            children.setdefault(g.parent_id, []).append(g)
+        else:
+            roots.append(g)
+    for lst in children.values():
+        lst.sort(key=lambda g: g.created)
+    roots.sort(key=lambda g: g.created)
+
+    tree = Tree("Goals")
+
+    def add_nodes(node: Tree, goal: Goal) -> None:
+        branch = node.add(f"{goal.title} ({goal.id})")
+        for child in children.get(goal.id, []):
+            add_nodes(branch, child)
+
+    for g in roots:
+        add_nodes(tree, g)
+
+    console.print(tree)
 
 
 cli = goal

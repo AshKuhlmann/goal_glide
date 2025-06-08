@@ -11,9 +11,9 @@ if "" in sys.path:
     sys.path.append("")
 
 from textual.app import App, ComposeResult
-from textual.coordinate import Coordinate
 from textual.reactive import reactive
-from textual.widgets import DataTable, Footer, Header, Static
+from textual.widgets import Tree, Footer, Header, Static
+from textual.widgets.tree import TreeNode
 
 from .cli import get_storage
 from .models.goal import Goal, Priority
@@ -44,32 +44,45 @@ class GoalGlideApp(App[None]):
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
-        yield DataTable(id="goal_table")
+        yield Tree("Goals", id="goal_tree")
         yield Static(id="detail_panel")
         yield Footer()
 
     async def on_mount(self) -> None:
         self.storage = get_storage()
-        table = self.query_one(DataTable)
-        table.add_columns("ID", "Title", "Pri.", "Tags")
         await self.refresh_goals()
         self.set_interval(1.0, self._tick)
-        table.focus()
+        tree = self.query_one(Tree)
+        tree.focus()
 
     async def refresh_goals(self) -> None:
-        table = self.query_one(DataTable)
-        table.clear()
+        tree = self.query_one(Tree)
+        tree.root.remove_children()
         goals = list(self.storage.list_goals())
+        children: dict[str, list[Goal]] = {}
+        roots: list[Goal] = []
         for g in goals:
-            table.add_row(g.id, g.title, g.priority.value, ", ".join(g.tags), key=g.id)
-        if goals:
-            table.cursor_type = "row"
-            table.cursor_coordinate = Coordinate(0, 0)
+            if g.parent_id:
+                children.setdefault(g.parent_id, []).append(g)
+            else:
+                roots.append(g)
+        for lst in children.values():
+            lst.sort(key=lambda g: g.created)
+        roots.sort(key=lambda g: g.created)
 
-    async def on_data_table_row_highlighted(
-        self, event: DataTable.RowHighlighted
+        def add_nodes(node: TreeNode, goal: Goal) -> None:
+            branch = node.add(f"{goal.title}", goal.id)
+            for child in children.get(goal.id, []):
+                add_nodes(branch, child)
+
+        for g in roots:
+            add_nodes(tree.root, g)
+        tree.root.expand()
+
+    async def on_tree_node_highlighted(
+        self, event: Tree.NodeHighlighted[str]
     ) -> None:
-        self.selected_goal = str(event.row_key)
+        self.selected_goal = event.node.data
         self.update_detail()
 
     def update_detail(self) -> None:
