@@ -159,3 +159,38 @@ def test_linux_notify_uses_notify_send(monkeypatch: pytest.MonkeyPatch) -> None:
     notify._linux_notify("hey")
 
     assert calls == [["notify-send", "Goal Glide", "hey"]]
+
+
+def test_scheduler_singleton(monkeypatch: pytest.MonkeyPatch) -> None:
+    start_calls: list[str] = []
+
+    class FakeScheduler:
+        def __init__(self, daemon: bool = False) -> None:
+            self.started = 0
+
+        def start(self) -> None:
+            self.started += 1
+            start_calls.append("start")
+
+    monkeypatch.setattr(reminder, "BackgroundScheduler", FakeScheduler)
+    monkeypatch.setattr(reminder, "_sched", None)
+
+    first = reminder._scheduler()
+    second = reminder._scheduler()
+
+    assert first is second
+    assert len(start_calls) == 1
+
+
+def test_cancel_all_calls_remove_all_jobs(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[str] = []
+
+    class FakeScheduler:
+        def remove_all_jobs(self) -> None:
+            calls.append("removed")
+
+    monkeypatch.setattr(reminder, "_sched", FakeScheduler())
+
+    reminder.cancel_all()
+
+    assert calls == ["removed"]
