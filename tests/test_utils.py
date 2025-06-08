@@ -13,6 +13,12 @@ def test_format_duration_basic() -> None:
     assert fmt.format_duration(3661) == "1:01"
 
 
+def test_format_duration_long() -> None:
+    assert fmt.format_duration_long(0) == "0m"
+    assert fmt.format_duration_long(3600) == "1h"
+    assert fmt.format_duration_long(3661) == "1h 1m"
+
+
 def test_natural_delta_formats(monkeypatch: pytest.MonkeyPatch) -> None:
     fixed_now = datetime(2023, 1, 2, 12, 0, 0)
     monkeypatch.setattr(

@@ -45,6 +45,8 @@ def test_stats_week_output_has_7_bars(
     )
     lines = [line for line in result.output.splitlines() if "[" in line]
     assert len(lines) == 7
+    assert "Longest streak" in result.output
+    assert "Most productive day" in result.output
 
 
 def test_stats_month_output_has_4_bars(

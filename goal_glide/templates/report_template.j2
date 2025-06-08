@@ -31,7 +31,12 @@ th { background: #f0f0f0; }
 {% endfor %}
 </table>
 <h2>Streak</h2>
-<p>{{ streak }}</p>
+<p>Current: {{ streak }} days<br>
+Longest: {{ longest }} days</p>
+{% if most_productive %}
+<h2>Most Productive Day</h2>
+<p>{{ most_productive }} (avg. {{ format_duration_long(avg_mpd) }})</p>
+{% endif %}
 <h2>Histogram</h2>
 <table>
 <tr><th>Date</th><th>Seconds</th></tr>
