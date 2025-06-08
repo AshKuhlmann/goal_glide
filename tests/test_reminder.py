@@ -229,3 +229,11 @@ def test_cancel_all_calls_remove_all_jobs(monkeypatch: pytest.MonkeyPatch) -> No
     reminder.cancel_all()
 
     assert calls == ["removed"]
+
+
+def test_cancel_all_no_scheduler(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(reminder, "_sched", None)
+
+    reminder.cancel_all()
+
+    assert reminder._sched is None
