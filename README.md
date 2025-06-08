@@ -180,5 +180,9 @@ pre-commit install
 The configured hook runs `black`, `flake8` and `mypy` on staged files so
 issues are caught early.
 
+## Documentation
+
+Sphinx configuration files live in the `docs` directory. Run `make html` inside that folder to build the HTML docs.
+
 ---
 Goal Glide is distributed under the terms of the GNU General Public License v3.
