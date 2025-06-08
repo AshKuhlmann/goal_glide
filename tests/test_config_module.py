@@ -94,3 +94,13 @@ def test_save_creates_parent_dirs(
     config.save_config({"quotes_enabled": False})
     assert nested.parent.exists() is True
     assert nested.exists() is True
+
+
+def test_save_string_value(cfg_path: Path) -> None:
+    cfg = {"foo": "bar"}
+    config.save_config(cfg)
+    config._CONFIG_CACHE = None
+    text = cfg_path.read_text()
+    assert "foo = 'bar'" in text
+    loaded = config.load_config()
+    assert loaded["foo"] == "bar"
