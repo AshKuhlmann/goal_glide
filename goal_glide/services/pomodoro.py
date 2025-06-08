@@ -4,7 +4,7 @@ import json
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Callable, Optional, TypedDict, cast
 
 from rich.console import Console
 
@@ -29,11 +29,20 @@ class ActiveSession:
     last_start: datetime | None
 
 
-def _load_data() -> dict | None:
+class SessionData(TypedDict):
+    start: str
+    duration_sec: int
+    goal_id: str | None
+    elapsed_sec: int
+    paused: bool
+    last_start: str | None
+
+
+def _load_data() -> SessionData | None:
     if not POMO_PATH.exists():
         return None
     with POMO_PATH.open(encoding="utf-8") as fp:
-        data = json.load(fp)
+        data = cast(SessionData, json.load(fp))
     # backward compatibility for older session files
     data.setdefault("elapsed_sec", 0)
     data.setdefault("paused", False)
@@ -41,7 +50,7 @@ def _load_data() -> dict | None:
     return data
 
 
-def _save_data(data: dict) -> None:
+def _save_data(data: SessionData) -> None:
     POMO_PATH.parent.mkdir(parents=True, exist_ok=True)
     with POMO_PATH.open("w", encoding="utf-8") as fp:
         json.dump(data, fp)
@@ -57,7 +66,7 @@ def start_session(
         start=datetime.now(),
         duration_sec=duration_min * 60,
     )
-    data = {
+    data: SessionData = {
         "start": session.start.isoformat(),
         "duration_sec": session.duration_sec,
         "goal_id": session.goal_id,
@@ -110,7 +119,7 @@ def stop_session() -> PomodoroSession:
     if not active.paused and active.last_start is not None:
         now = datetime.now()
         delta = int((now - active.last_start).total_seconds())
-        data = _load_data() or {}
+        data = _load_data() or cast(SessionData, {})
         data["elapsed_sec"] = active.elapsed_sec + delta
         _save_data(data)
     POMO_PATH.unlink(missing_ok=True)
@@ -134,7 +143,7 @@ def pause_session() -> ActiveSession:
         raise RuntimeError("Session already paused")
     now = datetime.now()
     delta = int((now - active.last_start).total_seconds()) if active.last_start else 0
-    data = _load_data() or {}
+    data = _load_data() or cast(SessionData, {})
     data["elapsed_sec"] = active.elapsed_sec + delta
     data["paused"] = True
     data["last_start"] = None
@@ -149,7 +158,7 @@ def resume_session() -> ActiveSession:
     if not active.paused:
         raise RuntimeError("Session is not paused")
     now = datetime.now()
-    data = _load_data() or {}
+    data = _load_data() or cast(SessionData, {})
     data["paused"] = False
     data["last_start"] = now.isoformat()
     _save_data(data)
