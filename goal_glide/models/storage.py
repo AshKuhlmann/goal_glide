@@ -177,7 +177,7 @@ class Storage:
         predicates = []
 
         if only_archived:
-            predicates.append(GoalQuery.archived == True)
+            predicates.append(lambda r: r.get("archived") is True)
         elif not include_archived:
             predicates.append(lambda r: not r.get("archived", False))
 
