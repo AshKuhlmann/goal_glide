@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 import logging
+import builtins
+import sys
+import types
 
 import pytest
 from click.testing import CliRunner
@@ -101,3 +104,58 @@ def test_notifier_failure_logs_warning(
     caplog.set_level(logging.WARNING)
     notify.push("boom")
     assert any("Notification failed" in rec.message for rec in caplog.records)
+
+
+def test_linux_notify_uses_notify2(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[tuple] = []
+
+    class FakeNotification:
+        def __init__(self, title: str, message: str) -> None:
+            calls.append(("Notification", title, message))
+
+        def show(self) -> None:
+            calls.append(("show",))
+
+    fake_notify2 = types.SimpleNamespace(
+        init=lambda name: calls.append(("init", name)),
+        Notification=FakeNotification,
+    )
+
+    monkeypatch.setitem(sys.modules, "notify2", fake_notify2)
+    monkeypatch.setattr(
+        notify.subprocess,
+        "run",
+        lambda *a, **k: (_ for _ in ()).throw(AssertionError("subprocess used")),
+    )
+
+    notify._linux_notify("hi")
+
+    assert calls == [
+        ("init", "GoalGlide"),
+        ("Notification", "Goal Glide", "hi"),
+        ("show",),
+    ]
+
+
+def test_linux_notify_uses_notify_send(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delitem(sys.modules, "notify2", raising=False)
+
+    orig_import = builtins.__import__
+
+    def fake_import(name, globals=None, locals=None, fromlist=(), level=0):
+        if name == "notify2":
+            raise ModuleNotFoundError
+        return orig_import(name, globals, locals, fromlist, level)
+
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+
+    calls: list[list[str]] = []
+
+    def fake_run(cmd: list[str], check: bool = False) -> None:
+        calls.append(cmd)
+
+    monkeypatch.setattr(notify.subprocess, "run", fake_run)
+
+    notify._linux_notify("hey")
+
+    assert calls == [["notify-send", "Goal Glide", "hey"]]
