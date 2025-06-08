@@ -188,6 +188,18 @@ def test_empty_storage_outputs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) 
     assert csv_text.strip() == ""
 
 
+def test_empty_html_contains_sections(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(report, "date", FakeDate)
+    storage = Storage(tmp_path)
+    out = report.build_report(storage, "week", "html", tmp_path / "empty.html")
+    text = out.read_text()
+    assert "Streak" in text
+    assert "Histogram" in text
+    assert "Most Productive Day" not in text
+
+
 def test_custom_range_skips_date_window(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
