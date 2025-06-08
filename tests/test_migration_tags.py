@@ -33,9 +33,15 @@ def test_tags_migration_updates_db(tmp_path: Path) -> None:
     """Verify migration writes missing tags back to the DB file."""
     db_path = tmp_path / "db.json"
     db = TinyDB(db_path)
-    db.table("goals").insert({"id": "g1", "title": "t1", "created": datetime.now().isoformat()})
+    db.table("goals").insert(
+        {
+            "id": "g1",
+            "title": "t1",
+            "created": datetime.now().isoformat(),
+        }
+    )
 
-    storage = Storage(tmp_path)
+    Storage(tmp_path)
 
     db2 = TinyDB(db_path)
     row = db2.table("goals").get(Query().id == "g1")
