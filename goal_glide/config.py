@@ -11,6 +11,7 @@ class ConfigDict(TypedDict):
     reminder_break_min: int
     reminder_interval_min: int
 
+
 DEFAULTS: ConfigDict = {
     "quotes_enabled": True,
     "reminders_enabled": False,

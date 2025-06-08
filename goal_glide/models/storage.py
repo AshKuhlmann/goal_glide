@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
-from typing import Any, TypedDict, cast
+from typing import TypedDict, cast
 
 from tinydb import Query, TinyDB
 
@@ -292,7 +292,8 @@ class Storage:
         self.session_table.insert(cast(SessionRow, asdict(session)))
 
     def list_sessions(self) -> list[PomodoroSession]:
-        return [self._row_to_session(cast(SessionRow, r)) for r in self.session_table.all()]
+        rows = self.session_table.all()
+        return [self._row_to_session(cast(SessionRow, r)) for r in rows]
 
     def add_thought(self, thought: Thought) -> None:
         from dataclasses import asdict
