@@ -127,6 +127,59 @@ If you prefer an interactive interface, run:
 python -m goal_glide.tui
 ```
 
+### Command Reference
+
+Quick examples of common commands:
+
+- **add** – create a goal.
+  ```bash
+  python -m goal_glide add "Read more books"
+  ```
+- **remove** – delete a goal permanently.
+  ```bash
+  python -m goal_glide remove <goal-id>
+  ```
+- **update** – change a goal's title or priority.
+  ```bash
+  python -m goal_glide update <goal-id> --title "New title" --priority high
+  ```
+- **archive** / **restore** – hide or unhide a goal.
+  ```bash
+  python -m goal_glide archive <goal-id>
+  python -m goal_glide restore <goal-id>
+  ```
+- **tag add/rm** – manage goal tags.
+  ```bash
+  python -m goal_glide tag add <goal-id> writing
+  python -m goal_glide tag rm <goal-id> writing
+  ```
+- **pomo start/stop** – run a pomodoro timer.
+  ```bash
+  python -m goal_glide pomo start --duration 25
+  python -m goal_glide pomo stop
+  ```
+- **reminder enable/disable** – toggle desktop reminders.
+  ```bash
+  python -m goal_glide reminder enable
+  python -m goal_glide reminder disable
+  ```
+- **reminder config** – set break and interval lengths.
+  ```bash
+  python -m goal_glide reminder config --break 5 --interval 30
+  ```
+- **reminder status** – show current reminder settings.
+  ```bash
+  python -m goal_glide reminder status
+  ```
+- **stats** – view weekly or monthly focus history.
+  ```bash
+  python -m goal_glide stats --month
+  ```
+- **report make** – build a progress report.
+  ```bash
+  python -m goal_glide report make --week
+  ```
+
 ## Configuration and Data Files
 
 Data is stored by default in `~/.goal_glide/db.json`. To use a different location set the `GOAL_GLIDE_DB_DIR` environment variable.
