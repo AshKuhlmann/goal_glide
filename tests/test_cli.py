@@ -49,6 +49,11 @@ def test_pomo_session_persisted(tmp_path, monkeypatch):
         env={"GOAL_GLIDE_DB_DIR": str(tmp_path)},
     )
     runner.invoke(cli.goal, ["pomo", "stop"], env={"GOAL_GLIDE_DB_DIR": str(tmp_path)})
+    # ensure further pomodoro commands see no active session
+    status = runner.invoke(cli.goal, ["pomo", "status"], env={"GOAL_GLIDE_DB_DIR": str(tmp_path)})
+    assert "No active session" in status.output
+    paused = runner.invoke(cli.goal, ["pomo", "pause"], env={"GOAL_GLIDE_DB_DIR": str(tmp_path)})
+    assert paused.exit_code == 1
     storage = Storage(tmp_path)
     sessions = storage.list_sessions()
     assert len(sessions) == 1
@@ -130,3 +135,20 @@ def test_config_quotes_enable(tmp_path, monkeypatch):
     assert result.exit_code == 0
     assert "Quotes are ON" in result.output
     assert config.quotes_enabled() is True
+
+
+def test_pomo_start_after_archive(tmp_path, monkeypatch):
+    monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
+    monkeypatch.setenv("HOME", str(tmp_path))
+    pomodoro.POMO_PATH = tmp_path / "session.json"
+    runner = CliRunner()
+    add_res = runner.invoke(cli.goal, ["add", "g"], env={"GOAL_GLIDE_DB_DIR": str(tmp_path)})
+    gid = add_res.output.split()[-1].strip("()")
+    runner.invoke(cli.goal, ["archive", gid], env={"GOAL_GLIDE_DB_DIR": str(tmp_path)})
+    start = runner.invoke(
+        cli.goal,
+        ["pomo", "start", "--duration", "1", "--goal", gid],
+        env={"GOAL_GLIDE_DB_DIR": str(tmp_path)},
+    )
+    assert start.exit_code == 0
+    assert "Started pomodoro" in start.output
