@@ -4,7 +4,7 @@ from datetime import datetime
 from pathlib import Path
 
 from goal_glide.models.storage import Storage
-from tinydb import TinyDB
+from tinydb import Query, TinyDB
 
 
 def test_tags_migration(tmp_path: Path) -> None:
@@ -27,3 +27,22 @@ def test_tags_migration(tmp_path: Path) -> None:
 
     assert goal1.tags == []
     assert goal2.tags == ["t"]
+
+
+def test_tags_migration_updates_db(tmp_path: Path) -> None:
+    """Verify migration writes missing tags back to the DB file."""
+    db_path = tmp_path / "db.json"
+    db = TinyDB(db_path)
+    db.table("goals").insert(
+        {
+            "id": "g1",
+            "title": "t1",
+            "created": datetime.now().isoformat(),
+        }
+    )
+
+    Storage(tmp_path)
+
+    db2 = TinyDB(db_path)
+    row = db2.table("goals").get(Query().id == "g1")
+    assert row["tags"] == []
