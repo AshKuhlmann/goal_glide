@@ -54,3 +54,18 @@ def test_show_command_outputs_all_settings(cfg_path: Path) -> None:
     for k, v in cfg.items():
         assert k in result.output
         assert str(v) in result.output
+
+
+def test_partial_config_file_loads_defaults(cfg_path: Path) -> None:
+    cfg_path.write_text("quotes_enabled = false", encoding="utf-8")
+    config._CONFIG_CACHE = None
+    loaded = config.load_config()
+    assert loaded["quotes_enabled"] is False
+    for key, value in config.DEFAULTS.items():
+        if key != "quotes_enabled":
+            assert loaded[key] == value
+
+    assert config.quotes_enabled() is False
+    assert config.reminders_enabled() is config.DEFAULTS["reminders_enabled"]
+    assert config.reminder_break() == config.DEFAULTS["reminder_break_min"]
+    assert config.reminder_interval() == config.DEFAULTS["reminder_interval_min"]
