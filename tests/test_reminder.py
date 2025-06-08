@@ -36,6 +36,14 @@ def test_invalid_break_value_errors(runner: CliRunner) -> None:
     assert result.exit_code != 0
 
 
+def test_invalid_interval_value_errors(runner: CliRunner) -> None:
+    result = CliRunner().invoke(
+        cli.goal, ["reminder", "config", "--interval", "200"]
+    )
+    assert result.exit_code != 0
+    assert "interval must be" in result.output
+
+
 def test_notification_backend_selection(monkeypatch: pytest.MonkeyPatch) -> None:
     captured: list[str] = []
 
