@@ -34,6 +34,14 @@ def total_time_by_goal(
             if end and day > end:
                 continue
             acc[s.goal_id] += s.duration_sec
+
+    goals = {g.id: g for g in storage.list_goals(include_archived=True)}
+    for gid, total in list(acc.items()):
+        g = goals.get(gid)
+        while g and g.parent_id:
+            acc[g.parent_id] += total
+            g = goals.get(g.parent_id)
+
     return dict(acc)
 
 
