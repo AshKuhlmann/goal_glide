@@ -29,6 +29,13 @@ def test_add_with_priority(tmp_path: Path, runner: CliRunner) -> None:
     assert goals[0].priority == Priority.high
 
 
+def test_add_with_deadline(tmp_path: Path, runner: CliRunner) -> None:
+    runner.invoke(goal, ["add", "Test goal", "--deadline", "2030-01-01"])
+    storage = Storage(tmp_path)
+    goals = storage.list_goals()
+    assert goals[0].deadline.strftime("%Y-%m-%d") == "2030-01-01"
+
+
 def test_archive_sets_flag(tmp_path: Path, runner: CliRunner) -> None:
     result = runner.invoke(goal, ["add", "Test goal"])
     assert result.exit_code == 0

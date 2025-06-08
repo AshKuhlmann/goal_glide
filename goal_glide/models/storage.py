@@ -37,6 +37,9 @@ class Storage:
             if "parent_id" not in row:
                 new_row["parent_id"] = None
                 updated = True
+            if "deadline" not in row:
+                new_row["deadline"] = None
+                updated = True
             if updated:
                 self.table.update(new_row, Query().id == row["id"])
 
@@ -46,6 +49,11 @@ class Storage:
             created_dt = datetime.fromisoformat(created)
         else:
             created_dt = created
+        dl = row.get("deadline")
+        if isinstance(dl, str):
+            dl_dt = datetime.fromisoformat(dl)
+        else:
+            dl_dt = dl
         return Goal(
             id=row["id"],
             title=row["title"],
@@ -54,6 +62,7 @@ class Storage:
             archived=row.get("archived", False),
             tags=row.get("tags", []),
             parent_id=row.get("parent_id"),
+            deadline=dl_dt,
         )
 
     def _row_to_thought(self, row: dict[str, Any]) -> Thought:
@@ -104,6 +113,7 @@ class Storage:
             archived=goal.archived,
             tags=sorted(updated_tags),
             parent_id=goal.parent_id,
+            deadline=goal.deadline,
         )
         self.update_goal(updated)
         return updated
@@ -121,6 +131,7 @@ class Storage:
             archived=goal.archived,
             tags=new_tags,
             parent_id=goal.parent_id,
+            deadline=goal.deadline,
         )
         self.update_goal(updated)
         return updated
@@ -144,6 +155,7 @@ class Storage:
             archived=True,
             tags=goal.tags,
             parent_id=goal.parent_id,
+            deadline=goal.deadline,
         )
         self.update_goal(updated)
         return updated
@@ -160,6 +172,7 @@ class Storage:
             archived=False,
             tags=goal.tags,
             parent_id=goal.parent_id,
+            deadline=goal.deadline,
         )
         self.update_goal(updated)
         return updated

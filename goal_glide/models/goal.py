@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Optional
 from enum import Enum
 
 
@@ -20,3 +21,4 @@ class Goal:
     archived: bool = False
     tags: list[str] = field(default_factory=list)
     parent_id: str | None = None
+    deadline: Optional[datetime] = None
