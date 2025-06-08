@@ -50,3 +50,27 @@ def test_pomo_session_persisted(tmp_path, monkeypatch):
     sessions = storage.list_sessions()
     assert len(sessions) == 1
     assert sessions[0].goal_id == gid
+
+
+def test_list_sort_order(tmp_path):
+    runner = CliRunner()
+    env = {"GOAL_GLIDE_DB_DIR": str(tmp_path)}
+
+    r_high = runner.invoke(cli, ["add", "H", "-p", "high"], env=env)
+    high_id = r_high.output.split("(")[-1].strip().strip(")")
+    runner.invoke(cli, ["add", "M", "-p", "medium"], env=env)
+    runner.invoke(cli, ["add", "L", "-p", "low"], env=env)
+
+    runner.invoke(cli, ["archive", high_id], env=env)
+
+    result = runner.invoke(cli, ["list", "--all"], env=env)
+    rows = [line for line in result.output.splitlines() if "|" in line][1:]
+    priorities = []
+    archived_flags = []
+    for row in rows:
+        parts = [p.strip() for p in row.split("|")]
+        priorities.append(parts[2])
+        archived_flags.append(parts[4] == "yes")
+
+    assert priorities == ["medium", "low", "high"]
+    assert archived_flags == [False, False, True]
