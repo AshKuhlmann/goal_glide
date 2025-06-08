@@ -2,6 +2,7 @@ click
 rich
 tinydb
 pytest
+pytest-cov
 apscheduler
 notify2
 textual>=0.55

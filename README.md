@@ -150,10 +150,10 @@ Run `python -m goal_glide config show` to view the current configuration.
 
 ## Running Tests
 
-To execute the unit tests run:
+To execute the unit tests with coverage run:
 
 ```bash
-pytest
+pytest --cov=goal_glide --cov-report=term-missing
 ```
 
 To run the test suite automatically before each push, configure Git to use the
@@ -163,8 +163,9 @@ included hooks directory:
 git config core.hooksPath .githooks
 ```
 
-With this option enabled, `pytest` and `mypy` will run whenever `git push`
-is invoked and the push will abort if either the tests or type checks fail.
+With this option enabled, the test suite will run with coverage and `mypy`
+whenever `git push` is invoked. The push will abort if tests, coverage
+(`--cov-fail-under=80`) or type checks fail.
 
 ## Pre-commit Hooks
 
