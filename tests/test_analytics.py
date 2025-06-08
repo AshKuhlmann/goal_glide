@@ -5,6 +5,7 @@ from pathlib import Path
 import tempfile
 
 from hypothesis import given, settings, strategies as st
+import pytest
 
 from goal_glide.models.session import PomodoroSession
 from goal_glide.models.storage import Storage
@@ -150,6 +151,41 @@ def test_current_streak_with_gaps_and_future(tmp_path: Path) -> None:
     assert analytics.current_streak(storage, today) == 2
 
 
+def test_average_focus_per_day_simple(tmp_path: Path) -> None:
+    storage = Storage(tmp_path)
+    sessions = [
+        make_session("g", datetime(2023, 6, 1, 8), 60),
+        make_session("g", datetime(2023, 6, 2, 8), 120),
+    ]
+    seed(storage, sessions)
+    avg = analytics.average_focus_per_day(storage)
+    assert avg == 90
+
+
+def test_most_productive_day_simple(tmp_path: Path) -> None:
+    storage = Storage(tmp_path)
+    sessions = [
+        make_session("g", datetime(2023, 6, 1, 8), 60),  # Thu
+        make_session("g", datetime(2023, 6, 2, 8), 120),  # Fri
+        make_session("g", datetime(2023, 6, 9, 8), 180),  # Fri
+    ]
+    seed(storage, sessions)
+    assert analytics.most_productive_day(storage) == "Friday"
+
+
+def test_longest_streak_simple(tmp_path: Path) -> None:
+    storage = Storage(tmp_path)
+    sessions = [
+        make_session("g", datetime(2023, 6, 1, 8), 30),
+        make_session("g", datetime(2023, 6, 2, 8), 30),
+        make_session("g", datetime(2023, 6, 4, 8), 30),
+        make_session("g", datetime(2023, 6, 5, 8), 30),
+        make_session("g", datetime(2023, 6, 6, 8), 30),
+    ]
+    seed(storage, sessions)
+    assert analytics.longest_streak(storage) == 3
+
+
 # Property-based tests -----------------------------------------------------
 
 
@@ -180,6 +216,47 @@ def _ref_streak(sessions: list[PomodoroSession], today: date) -> int:
         streak += 1
         cursor -= timedelta(days=1)
     return streak
+
+
+def _ref_average_focus(sessions: list[PomodoroSession]) -> float:
+    if not sessions:
+        return 0.0
+    days = [s.start.date() for s in sessions]
+    start = min(days)
+    end = max(days)
+    buckets = {start + timedelta(days=i): 0 for i in range((end - start).days + 1)}
+    for s in sessions:
+        if not s.duration_sec:
+            continue
+        buckets[s.start.date()] += s.duration_sec
+    return sum(buckets.values()) / len(buckets)
+
+
+def _ref_most_productive_day(sessions: list[PomodoroSession]) -> str | None:
+    totals: dict[str, int] = {}
+    for s in sessions:
+        if not s.duration_sec:
+            continue
+        day = s.start.strftime("%A")
+        totals[day] = totals.get(day, 0) + s.duration_sec
+    if not totals:
+        return None
+    return max(totals.items(), key=lambda t: t[1])[0]
+
+
+def _ref_longest_streak(sessions: list[PomodoroSession]) -> int:
+    days = sorted({s.start.date() for s in sessions})
+    if not days:
+        return 0
+    longest = 1
+    current = 1
+    for prev, curr in zip(days, days[1:]):
+        if (curr - prev).days == 1:
+            current += 1
+        else:
+            longest = max(longest, current)
+            current = 1
+    return max(longest, current)
 
 
 @given(
@@ -261,3 +338,82 @@ def test_property_current_streak(sessions: list[PomodoroSession], today: date) -
         storage = Storage(Path(d))
         seed(storage, sessions)
         assert analytics.current_streak(storage, today) == _ref_streak(sessions, today)
+
+
+@given(
+    st.lists(
+        st.builds(
+            PomodoroSession,
+            id=st.text(min_size=1, max_size=3),
+            goal_id=st.text(min_size=1, max_size=2),
+            start=st.datetimes(
+                min_value=datetime(2023, 1, 1),
+                max_value=datetime(2023, 12, 31),
+            ),
+            duration_sec=st.one_of(
+                st.integers(min_value=0, max_value=3600),
+                st.just(None),
+            ),
+        )
+    )
+)
+@settings(max_examples=25)
+def test_property_average_focus_per_day(sessions: list[PomodoroSession]) -> None:
+    with tempfile.TemporaryDirectory() as d:
+        storage = Storage(Path(d))
+        seed(storage, sessions)
+        assert analytics.average_focus_per_day(storage) == pytest.approx(
+            _ref_average_focus(sessions)
+        )
+
+
+@given(
+    st.lists(
+        st.builds(
+            PomodoroSession,
+            id=st.text(min_size=1, max_size=3),
+            goal_id=st.text(min_size=1, max_size=2),
+            start=st.datetimes(
+                min_value=datetime(2023, 1, 1),
+                max_value=datetime(2023, 12, 31),
+            ),
+            duration_sec=st.one_of(
+                st.integers(min_value=0, max_value=3600),
+                st.just(None),
+            ),
+        )
+    )
+)
+@settings(max_examples=25)
+def test_property_most_productive_day(sessions: list[PomodoroSession]) -> None:
+    with tempfile.TemporaryDirectory() as d:
+        storage = Storage(Path(d))
+        seed(storage, sessions)
+        assert analytics.most_productive_day(storage) == _ref_most_productive_day(
+            sessions
+        )
+
+
+@given(
+    st.lists(
+        st.builds(
+            PomodoroSession,
+            id=st.text(min_size=1, max_size=3),
+            goal_id=st.text(min_size=1, max_size=2),
+            start=st.datetimes(
+                min_value=datetime(2023, 1, 1),
+                max_value=datetime(2023, 12, 31),
+            ),
+            duration_sec=st.one_of(
+                st.integers(min_value=0, max_value=3600),
+                st.just(None),
+            ),
+        )
+    )
+)
+@settings(max_examples=25)
+def test_property_longest_streak(sessions: list[PomodoroSession]) -> None:
+    with tempfile.TemporaryDirectory() as d:
+        storage = Storage(Path(d))
+        seed(storage, sessions)
+        assert analytics.longest_streak(storage) == _ref_longest_streak(sessions)
