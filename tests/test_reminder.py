@@ -35,15 +35,18 @@ def test_config_command_updates_values(runner: CliRunner) -> None:
     assert cfg.reminder_interval() == 15
 
 
-def test_invalid_break_value_errors(runner: CliRunner) -> None:
-    result = runner.invoke(cli.goal, ["reminder", "config", "--break", "200"])
+@pytest.mark.parametrize("val", [0, -5, 200])
+def test_invalid_break_value_errors(val: int, runner: CliRunner) -> None:
+    result = runner.invoke(cli.goal, ["reminder", "config", "--break", str(val)])
     assert result.exit_code != 0
+    assert "break must be between 1 and 120" in result.output
 
 
-def test_invalid_interval_value_errors(runner: CliRunner) -> None:
-    result = CliRunner().invoke(cli.goal, ["reminder", "config", "--interval", "200"])
+@pytest.mark.parametrize("val", [0, -5, 200])
+def test_invalid_interval_value_errors(val: int, runner: CliRunner) -> None:
+    result = runner.invoke(cli.goal, ["reminder", "config", "--interval", str(val)])
     assert result.exit_code != 0
-    assert "interval must be" in result.output
+    assert "interval must be between 1 and 120" in result.output
 
 
 def test_notification_backend_selection(monkeypatch: pytest.MonkeyPatch) -> None:
