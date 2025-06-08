@@ -1,8 +1,18 @@
 from click.testing import CliRunner
 
+import pytest
+from goal_glide import cli as cli_mod, config as cfg
 from goal_glide.cli import cli
 from goal_glide.models.storage import Storage
 from goal_glide.services import pomodoro
+
+
+@pytest.fixture()
+def runner(monkeypatch, tmp_path):
+    monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
+    cfg._CONFIG_PATH = tmp_path / "config.toml"
+    cfg._CONFIG_CACHE = None
+    return CliRunner()
 
 
 def test_add_list_remove(tmp_path):
@@ -50,3 +60,10 @@ def test_pomo_session_persisted(tmp_path, monkeypatch):
     sessions = storage.list_sessions()
     assert len(sessions) == 1
     assert sessions[0].goal_id == gid
+
+
+def test_config_quotes_toggle(runner):
+    runner.invoke(cli_mod.goal, ["config", "quotes", "--enable"])
+    assert cfg.quotes_enabled() is True
+    runner.invoke(cli_mod.goal, ["config", "quotes", "--disable"])
+    assert cfg.quotes_enabled() is False
