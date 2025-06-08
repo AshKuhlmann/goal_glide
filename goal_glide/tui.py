@@ -17,7 +17,7 @@ from textual.widgets import DataTable, Footer, Header, Static
 
 from .cli import get_storage
 from .models.goal import Goal, Priority
-from .models.session import PomodoroSession as ModelSession
+from .models.session import PomodoroSession
 from .models.thought import Thought
 from .services import pomodoro
 
@@ -125,7 +125,7 @@ class GoalGlideApp(App[None]):
         if self.active_session and self.active_session.goal_id == self.selected_goal:
             pomodoro.stop_session()
             self.storage.add_session(
-                ModelSession.new(
+                PomodoroSession.new(
                     self.selected_goal,
                     self.active_session.start,
                     self.active_session.duration_sec,
