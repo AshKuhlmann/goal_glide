@@ -7,6 +7,7 @@ from goal_glide.models.session import PomodoroSession
 from goal_glide.models import session as session_module
 from uuid import UUID
 from goal_glide.models.thought import Thought
+from goal_glide.models import thought as thought_module
 
 
 def test_goal_defaults() -> None:
@@ -85,3 +86,32 @@ def test_goal_parent_relationship() -> None:
     parent = Goal(id="p", title="parent", created=datetime.utcnow())
     child = Goal(id="c", title="child", created=datetime.utcnow(), parent_id="p")
     assert child.parent_id == parent.id
+
+
+def test_thought_new_timestamp_and_text(monkeypatch: pytest.MonkeyPatch) -> None:
+    fixed = datetime(2024, 1, 1, 12, 0, 0)
+
+    class FakeDT(datetime):
+        @classmethod
+        def now(cls) -> datetime:  # type: ignore[override]
+            return fixed
+
+    monkeypatch.setattr(thought_module, "datetime", FakeDT)
+
+    t = Thought.new("  hello world  ", "g")
+    assert t.timestamp == fixed
+    assert t.text == "hello world"
+    assert t.goal_id == "g"
+
+
+def test_thought_new_unique_ids(monkeypatch: pytest.MonkeyPatch) -> None:
+    seq = iter(
+        [
+            UUID("33333333-3333-3333-3333-333333333333"),
+            UUID("44444444-4444-4444-4444-444444444444"),
+        ]
+    )
+    monkeypatch.setattr(thought_module, "uuid4", lambda: next(seq))
+    t1 = Thought.new("a", None)
+    t2 = Thought.new("b", None)
+    assert t1.id != t2.id
