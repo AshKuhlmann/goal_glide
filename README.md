@@ -22,16 +22,10 @@ python3 -m venv .venv
 source .venv/bin/activate
 ```
 
-3. Install the required packages:
+3. Install the required packages with [Poetry](https://python-poetry.org/):
 
 ```bash
-pip install -r requirements.txt
-```
-
-Alternatively you can install the project in editable mode:
-
-```bash
-pip install -e .
+poetry install
 ```
 
 ## Usage
@@ -206,7 +200,7 @@ Run `python -m goal_glide config show` to view the current configuration.
 
 ## Troubleshooting
 
-- **Missing dependencies** – ensure all packages from `requirements.txt` are installed and that you are using a supported Python version.
+- **Missing dependencies** – ensure all packages are installed via `poetry install` and that you are using a supported Python version.
 - **No desktop notifications** – the notify backend may require additional OS packages (e.g. `notify2` on Linux). Check the console output for warnings.
 - **Database not updating** – confirm that `GOAL_GLIDE_DB_DIR` points to a writable directory and that only one instance of Goal Glide is manipulating the files at a time.
 - **Quotes do not appear** – network access might be blocked. In that case, a local quote database is used automatically.
