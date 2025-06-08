@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict, cast
 
 from tinydb import Query, TinyDB
 
@@ -15,6 +15,31 @@ from .goal import Goal, Priority
 from .session import PomodoroSession
 from .thought import TABLE_NAME as THOUGHTS_TABLE
 from .thought import Thought
+
+
+class GoalRow(TypedDict):
+    id: str
+    title: str
+    created: datetime | str
+    priority: str
+    archived: bool
+    tags: list[str]
+    parent_id: str | None
+    deadline: datetime | str | None
+
+
+class ThoughtRow(TypedDict):
+    id: str
+    text: str
+    timestamp: datetime | str
+    goal_id: str | None
+
+
+class SessionRow(TypedDict):
+    id: str
+    goal_id: str | None
+    start: datetime | str
+    duration_sec: int
 
 
 class Storage:
@@ -56,7 +81,7 @@ class Storage:
             if updated:
                 self.table.update(new_row, Query().id == row["id"])
 
-    def _row_to_goal(self, row: dict[str, Any]) -> Goal:
+    def _row_to_goal(self, row: GoalRow) -> Goal:
         created = row["created"]
         if isinstance(created, str):
             created_dt = datetime.fromisoformat(created)
@@ -81,7 +106,7 @@ class Storage:
             deadline=dl_dt,
         )
 
-    def _row_to_thought(self, row: dict[str, Any]) -> Thought:
+    def _row_to_thought(self, row: ThoughtRow) -> Thought:
         ts = row["timestamp"]
         if isinstance(ts, str):
             ts_dt = datetime.fromisoformat(ts)
@@ -94,7 +119,7 @@ class Storage:
             goal_id=row.get("goal_id"),
         )
 
-    def _row_to_session(self, row: dict[str, Any]) -> PomodoroSession:
+    def _row_to_session(self, row: SessionRow) -> PomodoroSession:
         st = row["start"]
         if isinstance(st, str):
             st_dt = datetime.fromisoformat(st)
@@ -116,13 +141,13 @@ class Storage:
 
         from dataclasses import asdict
 
-        self.table.insert(asdict(goal))
+        self.table.insert(cast(dict[str, Any], asdict(goal)))
 
     def get_goal(self, goal_id: str) -> Goal:
         row = self.table.get(Query().id == goal_id)
         if not row:
             raise GoalNotFoundError(f"Goal {goal_id} not found")
-        return self._row_to_goal(row)
+        return self._row_to_goal(cast(GoalRow, row))
 
     def add_tags(self, goal_id: str, tags: list[str]) -> Goal:
         goal = self.get_goal(goal_id)
@@ -163,7 +188,7 @@ class Storage:
 
         if not self.table.contains(Query().id == goal.id):
             raise GoalNotFoundError(f"Goal {goal.id} not found")
-        self.table.update(asdict(goal), Query().id == goal.id)
+        self.table.update(cast(dict[str, Any], asdict(goal)), Query().id == goal.id)
 
     def archive_goal(self, goal_id: str) -> Goal:
         goal = self.get_goal(goal_id)
@@ -238,16 +263,18 @@ class Storage:
             predicates.append(GoalQuery.parent_id == parent_id)
 
         def predicate(row: dict[str, Any]) -> bool:
-            return all(p(row) for p in predicates)
+            row_t = cast(GoalRow, row)
+            return all(p(row_t) for p in predicates)
 
         rows = self.table.search(predicate) if predicates else self.table.all()
-        return [self._row_to_goal(r) for r in rows]
+        return [self._row_to_goal(cast(GoalRow, r)) for r in rows]
 
     def list_all_tags(self) -> dict[str, int]:
         """Return mapping of tag name to count of goals containing it."""
         counts: dict[str, int] = {}
         for row in self.table.all():
-            for tag in row.get("tags", []):
+            goal_row = cast(GoalRow, row)
+            for tag in goal_row.get("tags", []):
                 counts[tag] = counts.get(tag, 0) + 1
         return counts
 
@@ -258,20 +285,21 @@ class Storage:
 
     def find_by_title(self, title: str) -> Goal | None:
         row = self.table.get(Query().title == title)
-        return self._row_to_goal(row) if row else None
+        return self._row_to_goal(cast(GoalRow, row)) if row else None
 
     def add_session(self, session: PomodoroSession) -> None:
         from dataclasses import asdict
 
-        self.session_table.insert(asdict(session))
+        self.session_table.insert(cast(dict[str, Any], asdict(session)))
 
     def list_sessions(self) -> list[PomodoroSession]:
-        return [self._row_to_session(r) for r in self.session_table.all()]
+        rows = self.session_table.all()
+        return [self._row_to_session(cast(SessionRow, r)) for r in rows]
 
     def add_thought(self, thought: Thought) -> None:
         from dataclasses import asdict
 
-        self.thought_table.insert(asdict(thought))
+        self.thought_table.insert(cast(dict[str, Any], asdict(thought)))
 
     def list_thoughts(
         self,
@@ -286,7 +314,7 @@ class Storage:
         else:
             db_rows = self.thought_table.all()
 
-        rows = [self._row_to_thought(r) for r in db_rows]
+        rows = [self._row_to_thought(cast(ThoughtRow, r)) for r in db_rows]
         rows.sort(key=lambda t: t.timestamp, reverse=newest_first)
         if limit is not None:
             rows = rows[:limit]
