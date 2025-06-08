@@ -104,3 +104,20 @@ def test_save_string_value(cfg_path: Path) -> None:
     assert "foo = 'bar'" in text
     loaded = config.load_config()
     assert loaded["foo"] == "bar"
+
+
+def test_mutating_loaded_config_does_not_affect_cache(cfg_path: Path) -> None:
+    cfg = {
+        "quotes_enabled": True,
+        "reminders_enabled": True,
+        "reminder_break_min": 10,
+        "reminder_interval_min": 20,
+    }
+    config.save_config(cfg)
+    config._CONFIG_CACHE = None
+
+    cfg1 = config.load_config()
+    cfg1["quotes_enabled"] = False
+
+    cfg2 = config.load_config()
+    assert cfg2["quotes_enabled"] is True
