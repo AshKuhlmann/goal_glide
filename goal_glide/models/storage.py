@@ -50,10 +50,13 @@ class Storage:
         else:
             created_dt = created
         dl = row.get("deadline")
+        dl_dt: datetime | None
         if isinstance(dl, str):
             dl_dt = datetime.fromisoformat(dl)
-        else:
+        elif isinstance(dl, datetime):
             dl_dt = dl
+        else:
+            dl_dt = None
         return Goal(
             id=row["id"],
             title=row["title"],
