@@ -65,3 +65,33 @@ def test_get_random_quote_uses_cache(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(quotes.random, "choice", lambda seq: seq[0])
     q, a = quotes.get_random_quote(use_online=False)
     assert (q, a) == ("C", "B")
+
+
+@pytest.mark.parametrize(
+    "resp, expect_error",
+    [
+        (type("Resp", (), {"ok": False})(), False),
+        (
+            type(
+                "Resp",
+                (),
+                {"ok": True, "json": staticmethod(lambda: [{}])},
+            )(),
+            True,
+        ),
+    ],
+)
+def test_get_random_quote_bad_response(
+    monkeypatch: pytest.MonkeyPatch, resp: Any, expect_error: bool
+) -> None:
+    sample = [{"quote": "F", "author": "B"}]
+    monkeypatch.setattr(quotes, "_LOCAL_CACHE", sample)
+    monkeypatch.setattr(quotes.random, "choice", lambda seq: seq[0])
+    monkeypatch.setattr(quotes.requests, "get", lambda *a, **k: resp)
+
+    if expect_error:
+        with pytest.raises(KeyError):
+            quotes.get_random_quote()
+    else:
+        q, a = quotes.get_random_quote()
+        assert (q, a) == ("F", "B")
