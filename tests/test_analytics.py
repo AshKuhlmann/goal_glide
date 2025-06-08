@@ -40,15 +40,35 @@ def test_total_time_by_goal_simple(tmp_path: Path) -> None:
 
 
 def test_total_time_by_goal_parent_accum(tmp_path: Path) -> None:
+    """Accumulated time propagates through multi-level hierarchies."""
     storage = Storage(tmp_path)
-    parent = Goal(id="p", title="p", created=datetime.now())
+    grand = Goal(id="gp", title="grand", created=datetime.now())
+    parent = Goal(id="p", title="p", created=datetime.now(), parent_id="gp")
     child = Goal(id="c", title="c", created=datetime.now(), parent_id="p")
-    storage.add_goal(parent)
-    storage.add_goal(child)
+
+    for g in (grand, parent, child):
+        storage.add_goal(g)
+
     storage.add_session(make_session("c", datetime.now(), 30))
+    storage.add_session(make_session("p", datetime.now(), 20))
+
     totals = analytics.total_time_by_goal(storage)
+
     assert totals["c"] == 30
-    assert totals["p"] == 30
+    assert totals["p"] == 50
+    assert totals["gp"] == 50
+
+
+def test_total_time_by_goal_missing_parent(tmp_path: Path) -> None:
+    """Sessions for a child with a missing parent should not error."""
+    storage = Storage(tmp_path)
+    child = Goal(id="c", title="c", created=datetime.now(), parent_id="missing")
+    storage.add_goal(child)
+    storage.add_session(make_session("c", datetime.now(), 40))
+    totals = analytics.total_time_by_goal(storage)
+    assert totals["c"] == 40
+    # parent does not exist, but the function still records the id
+    assert totals["missing"] == 40
 
 
 def test_weekly_histogram_exact_bounds(tmp_path: Path) -> None:
