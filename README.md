@@ -121,6 +121,25 @@ If you prefer an interactive interface, run:
 python -m goal_glide.tui
 ```
 
+```
+┏━━━━━━━━━━━━━ Goal Glide ━━━━━━━━━━━━━┓
+┃ ID │ Title          Pri.  Tags      ┃
+┃─────────────────────────────────────┃
+┃ 1  │ Example goal   high  project   ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+[Press S to start Pomodoro]
+
+q Quit  s Start/Stop  a Add Goal  delete Archive
+```
+
+Basic keys:
+
+- `q` – quit
+- `s` – start or stop a session
+- `a` – add a goal
+- `delete` – archive goal
+
 ### Command Reference
 
 Quick examples of common commands:
