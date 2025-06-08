@@ -219,6 +219,56 @@ def test_longest_streak_simple(tmp_path: Path) -> None:
     assert analytics.longest_streak(storage) == 3
 
 
+def test_weekly_histogram_year_boundary(tmp_path: Path) -> None:
+    week_start = date(2023, 12, 29)  # Friday spanning new year
+    storage = Storage(tmp_path)
+    sessions = [
+        make_session("g", datetime(2023, 12, 29, 8), 10),
+        make_session("g", datetime(2023, 12, 31, 9), 20),
+        make_session("g", datetime(2024, 1, 2, 10), 30),
+    ]
+    seed(storage, sessions)
+    hist = analytics.weekly_histogram(storage, week_start)
+    assert hist[week_start] == 10
+    assert hist[date(2023, 12, 31)] == 20
+    assert hist[date(2024, 1, 2)] == 30
+    assert sum(hist.values()) == 60
+
+
+def test_current_streak_year_boundary(tmp_path: Path) -> None:
+    storage = Storage(tmp_path)
+    sessions = [
+        make_session("g", datetime(2023, 12, 31, 8), 15),
+        make_session("g", datetime(2024, 1, 1, 8), 15),
+    ]
+    seed(storage, sessions)
+    assert analytics.current_streak(storage, date(2024, 1, 1)) == 2
+
+
+def test_current_streak_adjacent_seconds(tmp_path: Path) -> None:
+    storage = Storage(tmp_path)
+    sessions = [
+        make_session("g", datetime(2023, 6, 1, 23, 59, 59), 5),
+        make_session("g", datetime(2023, 6, 2, 0, 0, 1), 5),
+    ]
+    seed(storage, sessions)
+    assert analytics.current_streak(storage, date(2023, 6, 2)) == 2
+
+
+def test_longest_streak_multiple_equal(tmp_path: Path) -> None:
+    storage = Storage(tmp_path)
+    sessions = [
+        make_session("g", datetime(2023, 6, 1, 8), 20),
+        make_session("g", datetime(2023, 6, 2, 8), 20),
+        make_session("g", datetime(2023, 6, 3, 8), 20),
+        make_session("g", datetime(2023, 6, 5, 8), 20),
+        make_session("g", datetime(2023, 6, 6, 8), 20),
+        make_session("g", datetime(2023, 6, 7, 8), 20),
+    ]
+    seed(storage, sessions)
+    assert analytics.longest_streak(storage) == 3
+
+
 # Property-based tests -----------------------------------------------------
 
 
