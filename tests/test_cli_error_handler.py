@@ -108,3 +108,9 @@ def test_click_bad_parameter_error():
     r = CliRunner().invoke(_fake_cmd(click.BadParameter("oops")))
     assert r.exit_code == 1
     assert "Error:" in r.output
+
+
+def test_keyboard_interrupt_unexpected():
+    r = CliRunner().invoke(_fake_cmd(KeyboardInterrupt()))
+    assert r.exit_code == 1
+    assert "aborted" in r.output.lower()
