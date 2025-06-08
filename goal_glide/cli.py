@@ -15,7 +15,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 from tinydb import Query
 
-from .config import load_config, quotes_enabled, save_config
+from .config import load_config, save_config
 from .exceptions import (
     GoalAlreadyArchivedError,
     GoalNotArchivedError,
@@ -87,9 +87,9 @@ def _fmt(seconds: int) -> str:
     return f"{mins}m"
 
 
-def _print_completion(session: PomodoroSession) -> None:
+def _print_completion(session: PomodoroSession, config: dict) -> None:
     console.print(f"Pomodoro complete ✅ ({_fmt(session.duration_sec)})")
-    if quotes_enabled():
+    if config.get("quotes_enabled", True):
         quote, author = get_random_quote()
         console.print(
             f"[cyan italic]“{quote}”[/]\n— [bold]{author}[/]", justify="center"
@@ -100,7 +100,10 @@ def _print_completion(session: PomodoroSession) -> None:
 @click.pass_context
 def goal(ctx: click.Context) -> None:
     """Goal management CLI."""
-    ctx.obj = get_storage()
+    ctx.obj = {
+        "storage": get_storage(),
+        "config": load_config(),
+    }
 
 
 @goal.command("add")
@@ -121,7 +124,8 @@ def add_goal(ctx: click.Context, title: str, priority: str) -> None:
         console.print("[red]Title cannot be empty.[/red]")
         raise SystemExit(1)
 
-    storage: Storage = ctx.obj
+    obj = cast(dict, ctx.obj)
+    storage: Storage = obj["storage"]
     if storage.find_by_title(title):
         console.print("[yellow]Warning: goal with this title already exists.[/yellow]")
 
@@ -142,7 +146,8 @@ def add_goal(ctx: click.Context, title: str, priority: str) -> None:
 @click.pass_context
 def remove_goal_cmd(ctx: click.Context, goal_id: str) -> None:
     """Permanently remove a goal."""
-    storage: Storage = ctx.obj
+    obj = cast(dict, ctx.obj)
+    storage: Storage = obj["storage"]
     if click.confirm(f"Remove goal {goal_id}?"):
         storage.remove_goal(goal_id)
         console.print(f"[green]Removed[/green] {goal_id}")
@@ -154,7 +159,8 @@ def remove_goal_cmd(ctx: click.Context, goal_id: str) -> None:
 @click.pass_context
 def archive_goal_cmd(ctx: click.Context, goal_id: str) -> None:
     """Hide a goal from normal listings."""
-    storage: Storage = ctx.obj
+    obj = cast(dict, ctx.obj)
+    storage: Storage = obj["storage"]
     storage.archive_goal(goal_id)
     console.print(f":package: Goal {goal_id} archived")
 
@@ -165,7 +171,8 @@ def archive_goal_cmd(ctx: click.Context, goal_id: str) -> None:
 @click.pass_context
 def restore_goal_cmd(ctx: click.Context, goal_id: str) -> None:
     """Bring a goal back into the active list."""
-    storage: Storage = ctx.obj
+    obj = cast(dict, ctx.obj)
+    storage: Storage = obj["storage"]
     storage.restore_goal(goal_id)
     console.print(f":package: Goal {goal_id} restored")
 
@@ -184,7 +191,8 @@ def update_goal_cmd(
     ctx: click.Context, goal_id: str, title: str | None, priority: str | None
 ) -> None:
     """Modify goal attributes."""
-    storage: Storage = ctx.obj
+    obj = cast(dict, ctx.obj)
+    storage: Storage = obj["storage"]
     goal = storage.get_goal(goal_id)
 
     new_title = goal.title
@@ -223,7 +231,8 @@ def tag() -> None:
 @click.pass_context
 def tag_add(ctx: click.Context, goal_id: str, tags: tuple[str, ...]) -> None:
     """Add one or more tags to a goal."""
-    storage: Storage = ctx.obj
+    obj = cast(dict, ctx.obj)
+    storage: Storage = obj["storage"]
     validated = [validate_tag(t) for t in tags]
     goal = storage.add_tags(goal_id, validated)
     console.print(f"Tags for {goal.id}: {', '.join(goal.tags)}")
@@ -236,7 +245,8 @@ def tag_add(ctx: click.Context, goal_id: str, tags: tuple[str, ...]) -> None:
 @click.pass_context
 def tag_rm(ctx: click.Context, goal_id: str, tag: str) -> None:
     """Remove a tag from a goal."""
-    storage: Storage = ctx.obj
+    obj = cast(dict, ctx.obj)
+    storage: Storage = obj["storage"]
     validated = validate_tag(tag)
     before = storage.get_goal(goal_id)
     updated = storage.remove_tag(goal_id, validated)
@@ -249,7 +259,8 @@ def tag_rm(ctx: click.Context, goal_id: str, tag: str) -> None:
 @click.pass_context
 def tag_list(ctx: click.Context) -> None:
     """List all tags with goal counts."""
-    storage: Storage = ctx.obj
+    obj = cast(dict, ctx.obj)
+    storage: Storage = obj["storage"]
     tags = storage.list_all_tags()
     if not tags:
         console.print("No tags.")
@@ -282,7 +293,8 @@ def list_goals(
     tags: tuple[str, ...],
 ) -> None:
     """List goals with optional filtering."""
-    storage: Storage = ctx.obj
+    obj = cast(dict, ctx.obj)
+    storage: Storage = obj["storage"]
     goals = storage.list_goals(
         include_archived=show_all,
         only_archived=archived,
@@ -319,11 +331,12 @@ def start_pomo(duration: int, goal_id: str | None) -> None:
 @click.pass_context
 def stop_pomo(ctx: click.Context) -> None:
     session = stop_session()
-    storage: Storage = ctx.obj
+    obj = cast(dict, ctx.obj)
+    storage: Storage = obj["storage"]
     storage.add_session(
         PomodoroSession.new(session.goal_id, session.start, session.duration_sec)
     )
-    _print_completion(session)
+    _print_completion(session, obj["config"])
 
 
 @pomo.command("pause")
@@ -365,8 +378,10 @@ def reminder_cli() -> None:
 
 @reminder_cli.command("enable")
 @handle_exceptions
-def reminder_enable() -> None:
-    cfg = load_config()
+@click.pass_context
+def reminder_enable(ctx: click.Context) -> None:
+    obj = cast(dict, ctx.obj)
+    cfg = obj["config"]
     cfg["reminders_enabled"] = True
     save_config(cfg)
     console.print("Reminders ON")
@@ -374,8 +389,10 @@ def reminder_enable() -> None:
 
 @reminder_cli.command("disable")
 @handle_exceptions
-def reminder_disable() -> None:
-    cfg = load_config()
+@click.pass_context
+def reminder_disable(ctx: click.Context) -> None:
+    obj = cast(dict, ctx.obj)
+    cfg = obj["config"]
     cfg["reminders_enabled"] = False
     save_config(cfg)
     console.print("Reminders OFF")
@@ -385,8 +402,12 @@ def reminder_disable() -> None:
 @click.option("--break", "break_", type=int, help="Break length minutes (1-120)")
 @click.option("--interval", type=int, help="Interval minutes (1-120)")
 @handle_exceptions
-def reminder_config(break_: int | None, interval: int | None) -> None:
-    cfg = load_config()
+@click.pass_context
+def reminder_config(
+    ctx: click.Context, break_: int | None, interval: int | None
+) -> None:
+    obj = cast(dict, ctx.obj)
+    cfg = obj["config"]
     if break_ is not None:
         if not 1 <= break_ <= 120:
             raise ValueError("break must be between 1 and 120")
@@ -402,8 +423,10 @@ def reminder_config(break_: int | None, interval: int | None) -> None:
 
 
 @reminder_cli.command("status")
-def reminder_status() -> None:
-    cfg = load_config()
+@click.pass_context
+def reminder_status(ctx: click.Context) -> None:
+    obj = cast(dict, ctx.obj)
+    cfg = obj["config"]
     enabled = cfg.get("reminders_enabled", False)
     break_min = cfg.get("reminder_break_min", 5)
     interval_min = cfg.get("reminder_interval_min", 30)
@@ -426,8 +449,10 @@ def config() -> None:
 
 @config.command("quotes")
 @click.option("--enable/--disable", default=None, help="Toggle motivational quotes")
-def cfg_quotes(enable: bool | None) -> None:
-    cfg = load_config()
+@click.pass_context
+def cfg_quotes(ctx: click.Context, enable: bool | None) -> None:
+    obj = cast(dict, ctx.obj)
+    cfg = obj["config"]
     if enable is not None:
         cfg["quotes_enabled"] = enable
         save_config(cfg)
@@ -435,9 +460,11 @@ def cfg_quotes(enable: bool | None) -> None:
 
 
 @config.command("show")
-def cfg_show() -> None:
+@click.pass_context
+def cfg_show(ctx: click.Context) -> None:
     """Show current configuration."""
-    cfg = load_config()
+    obj = cast(dict, ctx.obj)
+    cfg = obj["config"]
     table = Table(title="Config")
     table.add_column("Key")
     table.add_column("Value")
@@ -453,7 +480,10 @@ goal.add_command(config)
 @click.pass_context
 def thought(ctx: click.Context) -> None:
     if ctx.obj is None:
-        ctx.obj = get_storage()
+        ctx.obj = {
+            "storage": get_storage(),
+            "config": load_config(),
+        }
 
 
 goal.add_command(thought)
@@ -466,7 +496,8 @@ goal.add_command(thought)
 @click.pass_context
 def jot_thought(ctx: click.Context, message: str | None, goal_id: str | None) -> None:
     """Record a short thought or reflection."""
-    storage: Storage = ctx.obj
+    obj = cast(dict, ctx.obj)
+    storage: Storage = obj["storage"]
 
     if message is None:
         message = click.edit()
@@ -496,7 +527,8 @@ def jot_thought(ctx: click.Context, message: str | None, goal_id: str | None) ->
 @click.pass_context
 def list_thoughts_cmd(ctx: click.Context, goal_id: str | None, limit: int) -> None:
     """Display recent thoughts."""
-    storage: Storage = ctx.obj
+    obj = cast(dict, ctx.obj)
+    storage: Storage = obj["storage"]
     thoughts = storage.list_thoughts(goal_id=goal_id, limit=limit, newest_first=True)
 
     table = Table(title="Thoughts")
@@ -524,7 +556,8 @@ def list_thoughts_cmd(ctx: click.Context, goal_id: str | None, limit: int) -> No
 @click.pass_context
 def remove_thought_cmd(ctx: click.Context, thought_id: str) -> None:
     """Delete a thought."""
-    storage: Storage = ctx.obj
+    obj = cast(dict, ctx.obj)
+    storage: Storage = obj["storage"]
     if storage.remove_thought(thought_id):
         console.print(f"[green]Removed[/green] {thought_id}")
     else:
@@ -555,7 +588,8 @@ def stats_cmd(
     end_date: datetime | None,
 ) -> None:
     """Visualise focus stats and streaks."""
-    storage: Storage = ctx.obj
+    obj = cast(dict, ctx.obj)
+    storage: Storage = obj["storage"]
     today = datetime.now().date()
 
     def _color(seconds: int) -> str:
@@ -676,13 +710,10 @@ def report_make(
     range_ = (
         "week"
         if range_week
-        else "month"
-        if range_month
-        else "all"
-        if range_all
-        else "week"
+        else "month" if range_month else "all" if range_all else "week"
     )
-    storage: Storage = ctx.obj
+    obj = cast(dict, ctx.obj)
+    storage: Storage = obj["storage"]
     start = start_date.date() if start_date else None
     end = end_date.date() if end_date else None
     with Progress(

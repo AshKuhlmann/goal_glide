@@ -31,7 +31,6 @@ def runner(
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
     cfg._CONFIG_PATH = tmp_path / ".goal_glide" / "config.toml"
-    cfg._CONFIG_CACHE = None
     monkeypatch.setattr(reminder, "_sched", FakeScheduler())
 
     class FakeDT(datetime):

@@ -12,7 +12,6 @@ from click.testing import CliRunner
 def cfg_path(tmp_path: Path, monkeypatch: MonkeyPatch) -> Path:
     path = tmp_path / "config.toml"
     monkeypatch.setattr(config, "_CONFIG_PATH", path)
-    config._CONFIG_CACHE = None
     return path
 
 
@@ -32,7 +31,6 @@ def test_save_and_load_roundtrip(cfg_path: Path) -> None:
         "reminder_interval_min": 20,
     }
     config.save_config(new_cfg)
-    config._CONFIG_CACHE = None
     loaded = config.load_config()
     assert loaded["quotes_enabled"] is False
     assert loaded["reminders_enabled"] is True
@@ -49,7 +47,6 @@ def test_show_command_outputs_all_settings(cfg_path: Path) -> None:
         "reminder_interval_min": 20,
     }
     config.save_config(cfg)
-    config._CONFIG_CACHE = None
     runner = CliRunner()
     result = runner.invoke(cli.goal, ["config", "show"])
     assert result.exit_code == 0
@@ -60,7 +57,6 @@ def test_show_command_outputs_all_settings(cfg_path: Path) -> None:
 
 def test_partial_config_file_loads_defaults(cfg_path: Path) -> None:
     cfg_path.write_text("quotes_enabled = false", encoding="utf-8")
-    config._CONFIG_CACHE = None
     loaded = config.load_config()
     assert loaded["quotes_enabled"] is False
     for key, value in config.DEFAULTS.items():
@@ -73,25 +69,18 @@ def test_partial_config_file_loads_defaults(cfg_path: Path) -> None:
     assert config.reminder_interval() == config.DEFAULTS["reminder_interval_min"]
 
 
-def test_cache_prevents_reload_without_clear(cfg_path: Path) -> None:
+def test_load_reflects_file_changes(cfg_path: Path) -> None:
     cfg_path.write_text("quotes_enabled = false", encoding="utf-8")
-    config._CONFIG_CACHE = None
     first = config.quotes_enabled()
     assert first is False
     cfg_path.write_text("quotes_enabled = true", encoding="utf-8")
     second = config.quotes_enabled()
-    assert second is False
-    config._CONFIG_CACHE = None
-    third = config.quotes_enabled()
-    assert third is True
+    assert second is True
 
 
-def test_save_creates_parent_dirs(
-    tmp_path: Path, monkeypatch: MonkeyPatch
-) -> None:
+def test_save_creates_parent_dirs(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
     nested = tmp_path / "a" / "b" / "config.toml"
     monkeypatch.setattr(config, "_CONFIG_PATH", nested)
-    config._CONFIG_CACHE = None
     config.save_config({"quotes_enabled": False})
     assert nested.parent.exists() is True
     assert nested.exists() is True
@@ -100,7 +89,6 @@ def test_save_creates_parent_dirs(
 def test_save_string_value(cfg_path: Path) -> None:
     cfg = {"foo": "bar"}
     config.save_config(cfg)
-    config._CONFIG_CACHE = None
     text = cfg_path.read_text()
     assert "foo = 'bar'" in text
     loaded = config.load_config()
@@ -115,7 +103,6 @@ def test_mutating_loaded_config_does_not_affect_cache(cfg_path: Path) -> None:
         "reminder_interval_min": 20,
     }
     config.save_config(cfg)
-    config._CONFIG_CACHE = None
 
     cfg1 = config.load_config()
     cfg1["quotes_enabled"] = False
@@ -126,6 +113,5 @@ def test_mutating_loaded_config_does_not_affect_cache(cfg_path: Path) -> None:
 
 def test_invalid_toml_raises_decode_error(cfg_path: Path) -> None:
     cfg_path.write_text("foo = bar", encoding="utf-8")
-    config._CONFIG_CACHE = None
     with pytest.raises(tomllib.TOMLDecodeError):
         config.load_config()
