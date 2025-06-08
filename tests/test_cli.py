@@ -3,9 +3,7 @@ from pathlib import Path
 
 import pytest
 @pytest.fixture()
-def quotes_runner(
-) -> CliRunner:
-    """Return a CliRunner configured with an isolated config path."""
+def quotes_runner(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> CliRunner:
     return CliRunner()
 
 def test_quotes_disable_enable(quotes_runner: CliRunner) -> None:
@@ -13,12 +11,8 @@ def test_quotes_disable_enable(quotes_runner: CliRunner) -> None:
     result = quotes_runner.invoke(cli.goal, ["config", "quotes", "--enable"])
 
 
-from goal_glide import cli
-from goal_glide import config as cfg
-
-def test_quotes_disable_enable(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
+    result = runner.invoke(cli.goal, ["list"], env={"GOAL_GLIDE_DB_DIR": str(tmp_path)})
+    lines = [line for line in result.output.splitlines() if "Test Goal" in line]
     runner = CliRunner()
 
     result = runner.invoke(cli.goal, ["config", "quotes", "--disable"])
