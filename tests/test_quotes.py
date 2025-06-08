@@ -45,7 +45,7 @@ def test_get_random_quote_offline_no_network(monkeypatch: pytest.MonkeyPatch) ->
     sample = [{"quote": "L", "author": "A"}]
     monkeypatch.setattr(quotes, "_LOCAL_CACHE", sample)
 
-    def fail(*args: Any, **kwargs: Any) -> None:  # pragma: no cover - should not be called
+    def fail(*args: Any, **kwargs: Any) -> None:  # pragma: no cover
         raise AssertionError("network call attempted")
 
     monkeypatch.setattr(quotes.requests, "get", fail)
