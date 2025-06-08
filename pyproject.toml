@@ -22,6 +22,7 @@ pytest-cov = "*"
 hypothesis = "*"
 mypy = "*"
 sphinx = "*"
+beautifulsoup4 = "*"
 
 [tool.black]
 target-version = ['py311']

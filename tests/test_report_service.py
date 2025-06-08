@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import date, datetime, timedelta
 from pathlib import Path
+from bs4 import BeautifulSoup
 
 import pandas as pd
 import pytest
@@ -49,6 +50,25 @@ def seed(storage: Storage) -> None:
             duration_sec=1800,
         )
     )
+
+
+def seed_many(storage: Storage) -> None:
+    week_start = FakeDate.today() - timedelta(days=FakeDate.today().weekday())
+    durations = [600, 1200, 1800, 2400, 3000, 3600]
+    for i, dur in enumerate(durations, start=1):
+        gid = f"g{i}"
+        storage.add_goal(Goal(id=gid, title=f"G{i}", created=datetime(2023, 6, 1)))
+        storage.add_session(
+            PomodoroSession(
+                id=f"s{i}",
+                goal_id=gid,
+                start=datetime.combine(
+                    week_start + timedelta(days=i - 1),
+                    datetime.min.time(),
+                ),
+                duration_sec=dur,
+            )
+        )
 
 
 def test_date_window_week_month_all(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -187,3 +207,18 @@ def test_custom_range_skips_date_window(
     )
     text = out.read_text()
     assert f"Period: {start} - {end}" in text
+
+
+def test_html_top_goals_limit_and_order(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(report, "date", FakeDate)
+    storage = Storage(tmp_path)
+    seed_many(storage)
+    out = report.build_report(storage, "week", "html", tmp_path / "top.html")
+    soup = BeautifulSoup(out.read_text(), "html.parser")
+    table = soup.find("h2", string="Top Goals").find_next("table")
+    rows = table.find_all("tr")[1:]
+    assert len(rows) == 5
+    secs = [int(r.find_all("td")[1].text) for r in rows]
+    assert secs == sorted(secs, reverse=True)
