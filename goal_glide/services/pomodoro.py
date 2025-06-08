@@ -96,11 +96,8 @@ def load_active_session() -> Optional[ActiveSession]:
     data = _load_data()
     if data is None:
         return None
-    last_start = (
-        datetime.fromisoformat(data["last_start"])
-        if data.get("last_start")
-        else None
-    )
+    raw_last = data.get("last_start")
+    last_start = datetime.fromisoformat(raw_last) if raw_last is not None else None
     return ActiveSession(
         goal_id=data.get("goal_id"),
         start=datetime.fromisoformat(data["start"]),

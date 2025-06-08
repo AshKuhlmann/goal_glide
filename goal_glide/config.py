@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import tomllib
 from pathlib import Path
-from typing import Any, Dict, TypedDict
+from typing import Any, Dict, TypedDict, cast
 
 
-class ConfigDict(TypedDict):
+class ConfigDict(TypedDict, total=False):
     quotes_enabled: bool
     reminders_enabled: bool
     reminder_break_min: int
@@ -30,7 +30,7 @@ def _load_file() -> Dict[str, Any]:
 
 
 def _config() -> ConfigDict:
-    data = _load_file()
+    data = cast(ConfigDict, _load_file())
     full_cfg: ConfigDict = {**DEFAULTS, **data}
     return full_cfg
 
@@ -52,7 +52,7 @@ def reminder_interval() -> int:
 
 
 def load_config() -> ConfigDict:
-    file_cfg = _load_file()
+    file_cfg = cast(ConfigDict, _load_file())
     full_cfg: ConfigDict = {**DEFAULTS, **file_cfg}
     return full_cfg
 

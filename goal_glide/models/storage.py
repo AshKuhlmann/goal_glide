@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
-from typing import TypedDict, cast
+from typing import Any, TypedDict, cast
 
 from tinydb import Query, TinyDB
 
@@ -141,7 +141,7 @@ class Storage:
 
         from dataclasses import asdict
 
-        self.table.insert(cast(GoalRow, asdict(goal)))
+        self.table.insert(cast(dict[str, Any], asdict(goal)))
 
     def get_goal(self, goal_id: str) -> Goal:
         row = self.table.get(Query().id == goal_id)
@@ -188,7 +188,7 @@ class Storage:
 
         if not self.table.contains(Query().id == goal.id):
             raise GoalNotFoundError(f"Goal {goal.id} not found")
-        self.table.update(cast(GoalRow, asdict(goal)), Query().id == goal.id)
+        self.table.update(cast(dict[str, Any], asdict(goal)), Query().id == goal.id)
 
     def archive_goal(self, goal_id: str) -> Goal:
         goal = self.get_goal(goal_id)
@@ -262,8 +262,9 @@ class Storage:
         if parent_id is not None:
             predicates.append(GoalQuery.parent_id == parent_id)
 
-        def predicate(row: GoalRow) -> bool:
-            return all(p(row) for p in predicates)
+        def predicate(row: dict[str, Any]) -> bool:
+            row_t = cast(GoalRow, row)
+            return all(p(row_t) for p in predicates)
 
         rows = self.table.search(predicate) if predicates else self.table.all()
         return [self._row_to_goal(cast(GoalRow, r)) for r in rows]
@@ -289,7 +290,7 @@ class Storage:
     def add_session(self, session: PomodoroSession) -> None:
         from dataclasses import asdict
 
-        self.session_table.insert(cast(SessionRow, asdict(session)))
+        self.session_table.insert(cast(dict[str, Any], asdict(session)))
 
     def list_sessions(self) -> list[PomodoroSession]:
         rows = self.session_table.all()
@@ -298,7 +299,7 @@ class Storage:
     def add_thought(self, thought: Thought) -> None:
         from dataclasses import asdict
 
-        self.thought_table.insert(cast(ThoughtRow, asdict(thought)))
+        self.thought_table.insert(cast(dict[str, Any], asdict(thought)))
 
     def list_thoughts(
         self,

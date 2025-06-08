@@ -95,7 +95,7 @@ def _fmt(seconds: int) -> str:
     return f"{mins}m"
 
 
-def _print_completion(session: PomodoroSession, config: dict) -> None:
+def _print_completion(session: PomodoroSession, config: ConfigDict) -> None:
     console.print(f"Pomodoro complete ✅ ({_fmt(session.duration_sec)})")
     if config.get("quotes_enabled", True):
         quote, author = get_random_quote()
