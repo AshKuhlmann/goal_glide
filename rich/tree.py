@@ -1,9 +1,9 @@
 class Tree:
     def __init__(self, label: str) -> None:
         self.label = label
-        self.children: list[tuple[str, 'Tree']] = []
+        self.children: list[tuple[str, "Tree"]] = []
 
-    def add(self, label: str) -> 'Tree':
+    def add(self, label: str) -> "Tree":
         child = Tree(label)
         self.children.append((label, child))
         return child
@@ -21,5 +21,6 @@ class Tree:
         out.append(prefix + connector + label)
         child_prefix = prefix + ("   " if last else "│  ")
         for i, (lbl, child) in enumerate(node.children):
-            self._render_child(out, lbl, child, child_prefix, i == len(node.children) - 1)
-
+            self._render_child(
+                out, lbl, child, child_prefix, i == len(node.children) - 1
+            )
