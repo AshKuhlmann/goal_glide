@@ -1,6 +1,6 @@
 #!/bin/sh
-# Run tests and type checks before pushing
-pytest
+# Run tests with coverage and type checks before pushing
+pytest --cov=goal_glide --cov-report=term-missing --cov-fail-under=80
 status=$?
 if [ $status -ne 0 ]; then
   echo "\nTests failed. Aborting push." >&2
