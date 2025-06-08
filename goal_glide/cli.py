@@ -29,7 +29,6 @@ from .services import report
 from .services.analytics import (
     current_streak,
     total_time_by_goal,
-    weekly_histogram,
     date_histogram,
 )
 from .services.pomodoro import load_session, start_session, stop_session
