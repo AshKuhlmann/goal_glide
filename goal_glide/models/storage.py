@@ -18,6 +18,19 @@ from .thought import Thought
 
 
 class Storage:
+    """Manages persistence of goals, sessions and thoughts in TinyDB.
+
+    This class handles all database operations such as creating, reading,
+    updating and deleting records. It also performs simple migrations when new
+    fields are introduced.
+
+    Attributes:
+        db: The underlying :class:`TinyDB` instance.
+        table: Table used for storing goals.
+        thought_table: Table used for storing thoughts.
+        session_table: Table used for storing pomodoro sessions.
+    """
+
     def __init__(self, db_dir: Path | None = None) -> None:
         base = db_dir or Path.home() / ".goal_glide"
         db_path = Path(base) / "db.json"
@@ -95,6 +108,12 @@ class Storage:
         )
 
     def add_goal(self, goal: Goal) -> None:
+        """Saves a new goal to the database.
+
+        Args:
+            goal: A :class:`Goal` object to be added to the database.
+        """
+
         from dataclasses import asdict
 
         self.table.insert(asdict(goal))
@@ -188,6 +207,18 @@ class Storage:
         tags: list[str] | None = None,
         parent_id: str | None = None,
     ) -> list[Goal]:
+        """Retrieves goals filtered by various criteria.
+
+        Args:
+            include_archived: Whether to include archived goals in the results.
+            only_archived: If ``True``, return only archived goals.
+            priority: The priority to filter by.
+            tags: List of tags goals must contain. All tags are required.
+            parent_id: The ID of a parent goal to filter by.
+
+        Returns:
+            A list of :class:`Goal` objects matching the filter criteria.
+        """
         GoalQuery = Query()
 
         predicates = []
