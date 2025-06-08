@@ -11,8 +11,17 @@ if "" in sys.path:
     sys.path.append("")
 
 from textual.app import App, ComposeResult
+from textual.containers import Vertical
 from textual.reactive import reactive
-from textual.widgets import Tree, Footer, Header, Static
+from textual.screen import ModalScreen
+from textual.widgets import (
+    Tree,
+    Footer,
+    Header,
+    Static,
+    Input,
+    Button,
+)
 from textual.widgets.tree import TreeNode
 
 from .cli import get_storage
@@ -20,6 +29,7 @@ from .models.goal import Goal, Priority
 from .models.session import PomodoroSession
 from .models.thought import Thought
 from .services import pomodoro
+from .services.analytics import total_time_by_goal
 
 
 @dataclass(slots=True)
@@ -29,6 +39,33 @@ class RunningSession:
     duration_sec: int
 
 
+class InputModal(ModalScreen[str]):
+    """Simple modal to capture a line of text."""
+
+    def __init__(self, prompt: str, default: str = "") -> None:
+        super().__init__()
+        self.prompt = prompt
+        self.default = default
+
+    def compose(self) -> ComposeResult:
+        yield Vertical(
+            Static(self.prompt),
+            Input(value=self.default, id="input"),
+            Button("OK", id="ok"),
+            id="modal",
+        )
+
+    async def on_mount(self) -> None:
+        self.query_one(Input).focus()
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        value = self.query_one(Input).value
+        self.dismiss(value)
+
+    def on_input_submitted(self, event: Input.Submitted) -> None:
+        self.dismiss(event.value)
+
+
 class GoalGlideApp(App[None]):
     CSS_PATH = "tui.css"
     BINDINGS = [
@@ -36,6 +73,7 @@ class GoalGlideApp(App[None]):
         ("delete", "archive_goal", "Archive"),
         ("s", "toggle_pomo", "Start/Stop"),
         ("t", "jot_thought", "Thought"),
+        ("e", "edit_goal", "Edit"),
         ("q", "quit", "Quit"),
     ]
 
@@ -91,9 +129,22 @@ class GoalGlideApp(App[None]):
             panel.update("No goal selected")
             return
         goal = self.storage.get_goal(self.selected_goal)
-        lines = [f"[b]{goal.title}[/b]", f"Priority: {goal.priority.value}"]
+        lines = [
+            f"[b]{goal.title}[/b]",
+            f"Priority: {goal.priority.value}",
+            f"Created: {goal.created:%Y-%m-%d}",
+        ]
+        focus_totals = total_time_by_goal(self.storage)
+        if goal.id in focus_totals:
+            mins = focus_totals[goal.id] // 60
+            lines.append(f"Focus: {mins}m")
         if goal.tags:
             lines.append(f"Tags: {', '.join(goal.tags)}")
+        thoughts = self.storage.list_thoughts(goal.id, limit=5)
+        if thoughts:
+            lines.append("Thoughts:")
+            for t in thoughts:
+                lines.append(f"- {t.text}")
         if self.active_session and self.active_session.goal_id == goal.id:
             elapsed = int((datetime.now() - self.active_session.start).total_seconds())
             remaining = max(self.active_session.duration_sec - elapsed, 0)
@@ -107,12 +158,12 @@ class GoalGlideApp(App[None]):
         panel.update("\n".join(lines))
 
     async def action_add_goal(self) -> None:  # pragma: no cover - interactive
-        title = input("Goal title: ").strip()
-        if not title:
+        title = await self.push_screen(InputModal("Goal title:"), wait_for_dismiss=True)
+        if not title or not str(title).strip():
             return
         g = Goal(
             id=str(uuid4()),
-            title=title,
+            title=str(title).strip(),
             created=datetime.utcnow(),
             priority=Priority.medium,
         )
@@ -125,11 +176,41 @@ class GoalGlideApp(App[None]):
         self.storage.archive_goal(self.selected_goal)
         await self.refresh_goals()
 
-    async def action_jot_thought(self) -> None:  # pragma: no cover - interactive
-        text = input("Thought: ").strip()
-        if not text:
+    async def action_edit_goal(self) -> None:  # pragma: no cover - interactive
+        if not self.selected_goal:
             return
-        thought = Thought.new(text, self.selected_goal)
+        goal = self.storage.get_goal(self.selected_goal)
+        new_title = await self.push_screen(
+            InputModal("Edit title:", default=goal.title),
+            wait_for_dismiss=True,
+        )
+        if not new_title:
+            new_title = goal.title
+        new_prio = await self.push_screen(
+            InputModal("Priority (low/medium/high):", default=goal.priority.value),
+            wait_for_dismiss=True,
+        )
+        try:
+            priority = Priority(str(new_prio).strip()) if new_prio else goal.priority
+        except Exception:
+            priority = goal.priority
+        updated = Goal(
+            id=goal.id,
+            title=str(new_title).strip() or goal.title,
+            created=goal.created,
+            priority=priority,
+            archived=goal.archived,
+            tags=goal.tags,
+            parent_id=goal.parent_id,
+        )
+        self.storage.update_goal(updated)
+        await self.refresh_goals()
+
+    async def action_jot_thought(self) -> None:  # pragma: no cover - interactive
+        text = await self.push_screen(InputModal("Thought:"), wait_for_dismiss=True)
+        if not text or not str(text).strip():
+            return
+        thought = Thought.new(str(text).strip(), self.selected_goal)
         self.storage.add_thought(thought)
 
     async def action_toggle_pomo(self) -> None:

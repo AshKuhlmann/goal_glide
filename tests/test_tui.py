@@ -66,19 +66,18 @@ def test_toggle_pomo(app_env, tmp_path):
     asyncio.run(run())
 
 
-def test_add_and_archive_goal(app_env, tmp_path, monkeypatch):
+def test_add_and_archive_goal(app_env, tmp_path):
     Pilot = _setup_textual()
     if Pilot is None:
         pytest.skip("textual not available")
     from textual.widgets import Tree
     from goal_glide.tui import GoalGlideApp
 
-    monkeypatch.setattr("builtins.input", lambda *args: "new goal")
-
     async def run() -> None:
         async with Pilot(GoalGlideApp) as pilot:
             await pilot.pause()
             await pilot.press("a")
+            await pilot.press(*"new goal", "enter")
             tree = pilot.app.query_one(Tree)
             goals = Storage(tmp_path).list_goals()
             assert len(tree.root.children) == 1
