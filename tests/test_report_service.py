@@ -62,7 +62,10 @@ def seed_many(storage: Storage) -> None:
             PomodoroSession(
                 id=f"s{i}",
                 goal_id=gid,
-                start=datetime.combine(week_start + timedelta(days=i - 1), datetime.min.time()),
+                start=datetime.combine(
+                    week_start + timedelta(days=i - 1),
+                    datetime.min.time(),
+                ),
                 duration_sec=dur,
             )
         )
