@@ -2,15 +2,17 @@ import runpy
 import sys
 import types
 
+from typing import Callable
+
 import pytest
 
 
-def _patch_cli(monkeypatch: pytest.MonkeyPatch, impl: callable) -> None:
+def _patch_cli(monkeypatch: pytest.MonkeyPatch, impl: Callable[[], None]) -> None:
     """Inject a minimal ``goal_glide.cli`` module using *impl* as ``cli``."""
 
     fake_cli_module = types.ModuleType("goal_glide.cli")
-    fake_cli_module.cli = impl
-    fake_cli_module.handle_exceptions = lambda func: func
+    fake_cli_module.cli = impl  # type: ignore[attr-defined]
+    fake_cli_module.handle_exceptions = lambda func: func  # type: ignore[attr-defined]
     monkeypatch.setitem(sys.modules, "goal_glide.cli", fake_cli_module)
 
 
@@ -25,7 +27,9 @@ def test_main_invokes_cli(monkeypatch: pytest.MonkeyPatch) -> None:
     assert called == [True]
 
 
-def test_main_does_not_invoke_cli_when_not_main(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_main_does_not_invoke_cli_when_not_main(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     called = []
 
     def fake_cli() -> None:
