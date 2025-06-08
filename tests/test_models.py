@@ -1,4 +1,6 @@
 from datetime import datetime
+from dataclasses import FrozenInstanceError
+import pytest
 
 from goal_glide.models.goal import Goal, Priority
 from goal_glide.models.session import PomodoroSession
@@ -47,3 +49,9 @@ def test_goal_tags_are_isolated() -> None:
 
     assert g1.tags == ["a"]
     assert g2.tags == []
+
+
+def test_goal_is_frozen() -> None:
+    g = Goal(id="1", title="t", created=datetime.utcnow())
+    with pytest.raises(FrozenInstanceError):
+        g.title = "new title"  # type: ignore[misc]
