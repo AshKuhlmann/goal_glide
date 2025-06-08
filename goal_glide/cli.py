@@ -27,12 +27,8 @@ from .models.storage import Storage
 from .models.thought import Thought
 from .services import report
 from .services.analytics import current_streak, total_time_by_goal, weekly_histogram
-from .services.pomodoro import (
-    PomodoroSession as SvcSession,
-    start_session,
-    stop_session,
-)
-from .models.session import PomodoroSession as ModelSession
+from .services.pomodoro import load_session, start_session, stop_session
+from .models.session import PomodoroSession
 from .services.quotes import get_random_quote
 from .services.render import render_goals
 from .utils.format import format_duration
@@ -81,7 +77,7 @@ def _fmt(seconds: int) -> str:
     return f"{mins}m"
 
 
-def _print_completion(session: SvcSession) -> None:
+def _print_completion(session: PomodoroSession) -> None:
     console.print(f"Pomodoro complete ✅ ({_fmt(session.duration_sec)})")
     if quotes_enabled():
         quote, author = get_random_quote()
@@ -158,6 +154,42 @@ def restore_goal_cmd(goal_id: str) -> None:
     console.print(f":package: Goal {goal_id} restored")
 
 
+@goal.command("update")
+@click.argument("goal_id")
+@click.option("--title", help="New goal title")
+@click.option(
+    "--priority",
+    type=click.Choice([e.value for e in Priority]),
+    help="Goal priority (low, medium, high)",
+)
+@handle_exceptions
+def update_goal_cmd(goal_id: str, title: str | None, priority: str | None) -> None:
+    """Modify goal attributes."""
+    storage = get_storage()
+    goal = storage.get_goal(goal_id)
+
+    new_title = goal.title
+    if title is not None:
+        title = title.strip()
+        if not title:
+            console.print("[red]Title cannot be empty.[/red]")
+            raise SystemExit(1)
+        new_title = title
+
+    new_priority = goal.priority if priority is None else Priority(priority)
+
+    updated = Goal(
+        id=goal.id,
+        title=new_title,
+        created=goal.created,
+        priority=new_priority,
+        archived=goal.archived,
+        tags=goal.tags,
+    )
+    storage.update_goal(updated)
+    console.print(f":pencil: Updated goal {updated.id}")
+
+
 @goal.group("tag")
 def tag() -> None:
     """Tag management."""
@@ -189,6 +221,22 @@ def tag_rm(goal_id: str, tag: str) -> None:
     if validated not in before.tags:
         console.print(f"[yellow]Tag '{validated}' not present[/yellow]")
     console.print(f"Tags for {updated.id}: {', '.join(updated.tags)}")
+
+
+@tag.command("list")
+def tag_list() -> None:
+    """List all tags with goal counts."""
+    storage = get_storage()
+    tags = storage.list_all_tags()
+    if not tags:
+        console.print("No tags.")
+        return
+    table = Table(title="Tags")
+    table.add_column("Tag")
+    table.add_column("Goals")
+    for name, count in sorted(tags.items()):
+        table.add_row(name, str(count))
+    console.print(table)
 
 
 @goal.command("list")
@@ -244,9 +292,22 @@ def stop_pomo() -> None:
     session = stop_session()
     storage = get_storage()
     storage.add_session(
-        ModelSession.new(session.goal_id, session.start, session.duration_sec)
+        PomodoroSession.new(session.goal_id, session.start, session.duration_sec)
     )
     _print_completion(session)
+
+
+@pomo.command("status")
+@handle_exceptions
+def status_pomo() -> None:
+    """Show the remaining time for the current session."""
+    session = load_session()
+    if session is None:
+        console.print("No active session")
+        return
+    elapsed = int((datetime.now() - session.start).total_seconds())
+    remaining = max(session.duration_sec - elapsed, 0)
+    console.print(f"Elapsed {_fmt(elapsed)} | Remaining {_fmt(remaining)}")
 
 
 goal.add_command(pomo)
@@ -391,6 +452,7 @@ def list_thoughts_cmd(goal_id: str | None, limit: int) -> None:
     thoughts = storage.list_thoughts(goal_id=goal_id, limit=limit, newest_first=True)
 
     table = Table(title="Thoughts")
+    table.add_column("ID")
     table.add_column("When")
     table.add_column("Goal")
     table.add_column("Thought")
@@ -403,9 +465,21 @@ def list_thoughts_cmd(goal_id: str | None, limit: int) -> None:
                 goal_title = storage.get_goal(th.goal_id).title
             else:
                 goal_title = th.goal_id
-        table.add_row(when, goal_title, th.text)
+        table.add_row(th.id, when, goal_title, th.text)
 
     console.print(table)
+
+
+@thought.command("rm")
+@click.argument("thought_id")
+@handle_exceptions
+def remove_thought_cmd(thought_id: str) -> None:
+    """Delete a thought."""
+    storage = get_storage()
+    if storage.remove_thought(thought_id):
+        console.print(f"[green]Removed[/green] {thought_id}")
+    else:
+        console.print(f"[yellow]Thought {thought_id} not found[/yellow]")
 
 
 @goal.command("stats")

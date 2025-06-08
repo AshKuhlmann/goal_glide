@@ -74,7 +74,7 @@ def test_list_goal_filter(tmp_path: Path, runner: CliRunner) -> None:
     result = runner.invoke(thought, ["list", "-g", goal_id])
     rows = [line for line in result.output.splitlines() if "|" in line][1:]
     assert any("b" in r for r in rows)
-    assert all(r.split("|")[2].strip() != "a" for r in rows)
+    assert all(r.split("|")[3].strip() != "a" for r in rows)
 
 
 def test_migration_keeps_other_tables(tmp_path: Path, runner: CliRunner) -> None:
@@ -86,3 +86,17 @@ def test_migration_keeps_other_tables(tmp_path: Path, runner: CliRunner) -> None
     db2 = Storage(tmp_path).db
     assert len(db2.table("goals").all()) == 1
     assert len(db2.table("sessions").all()) == 1
+
+
+def test_remove_thought(tmp_path: Path, runner: CliRunner) -> None:
+    t = Thought(id="x", text="bye", timestamp=datetime.now())
+    Storage(tmp_path).add_thought(t)
+    result = runner.invoke(thought, ["rm", "x"])
+    assert result.exit_code == 0
+    assert not Storage(tmp_path).list_thoughts()
+
+
+def test_remove_thought_missing(tmp_path: Path, runner: CliRunner) -> None:
+    result = runner.invoke(thought, ["rm", "bad"])
+    assert result.exit_code == 0
+    assert "not found" in result.output

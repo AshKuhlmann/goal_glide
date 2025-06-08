@@ -7,12 +7,23 @@ from goal_glide.models.storage import Storage
 from tinydb import TinyDB
 
 
-def test_migrate_adds_empty_tags(tmp_path: Path) -> None:
+def test_tags_migration(tmp_path: Path) -> None:
     db_path = tmp_path / "db.json"
     db = TinyDB(db_path)
     goals = db.table("goals")
-    goals.insert({"id": "g1", "title": "t", "created": datetime.now().isoformat()})
+    goals.insert({"id": "g1", "title": "t1", "created": datetime.now().isoformat()})
+    goals.insert(
+        {
+            "id": "g2",
+            "title": "t2",
+            "created": datetime.now().isoformat(),
+            "tags": ["t"],
+        }
+    )
 
     storage = Storage(tmp_path)
-    goal = storage.get_goal("g1")
-    assert goal.tags == []
+    goal1 = storage.get_goal("g1")
+    goal2 = storage.get_goal("g2")
+
+    assert goal1.tags == []
+    assert goal2.tags == ["t"]

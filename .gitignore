@@ -13,3 +13,4 @@ venv/
 *.swp
 *.swo
 
+docs/_build/
