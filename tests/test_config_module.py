@@ -69,3 +69,16 @@ def test_partial_config_file_loads_defaults(cfg_path: Path) -> None:
     assert config.reminders_enabled() is config.DEFAULTS["reminders_enabled"]
     assert config.reminder_break() == config.DEFAULTS["reminder_break_min"]
     assert config.reminder_interval() == config.DEFAULTS["reminder_interval_min"]
+
+
+def test_cache_prevents_reload_without_clear(cfg_path: Path) -> None:
+    cfg_path.write_text("quotes_enabled = false", encoding="utf-8")
+    config._CONFIG_CACHE = None
+    first = config.quotes_enabled()
+    assert first is False
+    cfg_path.write_text("quotes_enabled = true", encoding="utf-8")
+    second = config.quotes_enabled()
+    assert second is False
+    config._CONFIG_CACHE = None
+    third = config.quotes_enabled()
+    assert third is True
