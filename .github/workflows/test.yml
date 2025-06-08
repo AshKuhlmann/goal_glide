@@ -19,4 +19,10 @@ jobs:
           pip install poetry
           poetry install --no-interaction --no-root
       - name: Run tests with coverage
-        run: poetry run pytest --cov=goal_glide --cov-report=term-missing --cov-fail-under=80 -q
+        run: poetry run pytest --cov=goal_glide --cov-report=term-missing --cov-report=xml --cov-fail-under=80 -q
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage.xml
+          fail_ci_if_error: true
