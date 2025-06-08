@@ -74,6 +74,10 @@ def test_schedule_after_stop_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_reminder_status_output(runner: CliRunner) -> None:
+    result = runner.invoke(cli.goal, ["reminder", "status"])
+    assert result.exit_code == 0
+    assert "Enabled: False | Break: 5m | Interval: 30m" in result.output
+
     runner.invoke(cli.goal, ["reminder", "enable"])
     runner.invoke(
         cli.goal,
