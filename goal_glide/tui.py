@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sys
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from uuid import uuid4
 
 # ensure real rich is used (textual dependency)
@@ -109,7 +109,14 @@ class GoalGlideApp(App[None]):
         roots.sort(key=lambda g: g.created)
 
         def add_nodes(node: TreeNode, goal: Goal) -> None:
-            branch = node.add(f"{goal.title}", goal.id)
+            label = goal.title
+            if goal.deadline:
+                now = datetime.utcnow()
+                if goal.deadline < now:
+                    label = f"[red]{goal.title}[/]"
+                elif goal.deadline - now <= timedelta(days=3):
+                    label = f"[yellow]{goal.title}[/]"
+            branch = node.add(label, goal.id)
             for child in children.get(goal.id, []):
                 add_nodes(branch, child)
 
@@ -134,6 +141,15 @@ class GoalGlideApp(App[None]):
             f"Priority: {goal.priority.value}",
             f"Created: {goal.created:%Y-%m-%d}",
         ]
+        if goal.deadline:
+            now = datetime.utcnow()
+            date_str = f"{goal.deadline:%Y-%m-%d}"
+            if goal.deadline < now:
+                lines.append(f"Deadline: [red]{date_str}[/]")
+            elif goal.deadline - now <= timedelta(days=3):
+                lines.append(f"Deadline: [yellow]{date_str}[/]")
+            else:
+                lines.append(f"Deadline: {date_str}")
         focus_totals = total_time_by_goal(self.storage)
         if goal.id in focus_totals:
             mins = focus_totals[goal.id] // 60

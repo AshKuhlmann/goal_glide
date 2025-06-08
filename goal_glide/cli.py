@@ -119,10 +119,19 @@ def goal(ctx: click.Context) -> None:
     show_default=True,
     help="Goal priority (low, medium, high)",
 )
+@click.option(
+    "--deadline",
+    type=click.DateTime(formats=["%Y-%m-%d"]),
+    help="Deadline YYYY-MM-DD",
+)
 @click.option("--parent", "parent_id", help="Parent goal ID")
 @click.pass_context
 def add_goal(
-    ctx: click.Context, title: str, priority: str, parent_id: str | None
+    ctx: click.Context,
+    title: str,
+    priority: str,
+    deadline: datetime | None,
+    parent_id: str | None,
 ) -> None:
     """Add a new goal."""
     title = title.strip()
@@ -144,6 +153,7 @@ def add_goal(
         title=title,
         created=datetime.utcnow(),
         priority=prio,
+        deadline=deadline,
         parent_id=parent_id,
     )
     storage.add_goal(g)
@@ -195,10 +205,19 @@ def restore_goal_cmd(ctx: click.Context, goal_id: str) -> None:
     type=click.Choice([e.value for e in Priority]),
     help="Goal priority (low, medium, high)",
 )
+@click.option(
+    "--deadline",
+    type=click.DateTime(formats=["%Y-%m-%d"]),
+    help="Deadline YYYY-MM-DD",
+)
 @handle_exceptions
 @click.pass_context
 def update_goal_cmd(
-    ctx: click.Context, goal_id: str, title: str | None, priority: str | None
+    ctx: click.Context,
+    goal_id: str,
+    title: str | None,
+    priority: str | None,
+    deadline: datetime | None,
 ) -> None:
     """Modify goal attributes."""
     obj = cast(dict, ctx.obj)
@@ -214,6 +233,7 @@ def update_goal_cmd(
         new_title = title
 
     new_priority = goal.priority if priority is None else Priority(priority)
+    new_deadline = goal.deadline if deadline is None else deadline
 
     updated = Goal(
         id=goal.id,
@@ -223,6 +243,7 @@ def update_goal_cmd(
         archived=goal.archived,
         tags=goal.tags,
         parent_id=goal.parent_id,
+        deadline=new_deadline,
     )
     storage.update_goal(updated)
     console.print(f":pencil: Updated goal {updated.id}")

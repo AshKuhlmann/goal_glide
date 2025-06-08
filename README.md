@@ -11,6 +11,7 @@ Features include:
 - Capture quick thoughts and attach them to goals
 - Display focus statistics and streaks
 - Optional Textual based TUI for an interactive view
+- Set deadlines on goals with visual warnings when approaching
 
 ## Installation
 
@@ -147,15 +148,15 @@ Quick examples of common commands:
 
 - **add** – create a goal.
   ```bash
-  python -m goal_glide add "Read more books"
+  python -m goal_glide add "Read more books" --deadline 2030-01-01
   ```
 - **remove** – delete a goal permanently.
   ```bash
   python -m goal_glide remove <goal-id>
   ```
-- **update** – change a goal's title or priority.
+- **update** – change a goal's title, priority or deadline.
   ```bash
-  python -m goal_glide update <goal-id> --title "New title" --priority high
+  python -m goal_glide update <goal-id> --title "New title" --priority high --deadline 2030-01-01
   ```
 - **archive** / **restore** – hide or unhide a goal.
   ```bash

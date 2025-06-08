@@ -16,6 +16,7 @@ def test_goal_defaults() -> None:
     assert g.archived is False
     assert g.tags == []
     assert g.parent_id is None
+    assert g.deadline is None
 
 
 def test_goal_nondefaults() -> None:
@@ -27,11 +28,13 @@ def test_goal_nondefaults() -> None:
         archived=True,
         tags=["a"],
         parent_id="p",
+        deadline=datetime(2030, 1, 1),
     )
     assert g.priority == Priority.high
     assert g.archived is True
     assert "a" in g.tags
     assert g.parent_id == "p"
+    assert g.deadline == datetime(2030, 1, 1)
 
 
 def test_session_new_generates_id() -> None:
