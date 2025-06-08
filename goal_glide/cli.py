@@ -153,6 +153,43 @@ def restore_goal_cmd(goal_id: str) -> None:
     console.print(f":package: Goal {goal_id} restored")
 
 
+@goal.command("update")
+@click.argument("goal_id")
+@click.option("--title", type=str, help="New title")
+@click.option(
+    "--priority",
+    type=click.Choice([e.value for e in Priority]),
+    help="New priority (low, medium, high)",
+)
+@handle_exceptions
+def update_goal_cmd(
+    goal_id: str, title: str | None, priority: str | None
+) -> None:
+    """Update goal title and/or priority."""
+    storage = get_storage()
+    goal = storage.get_goal(goal_id)
+
+    new_title = goal.title
+    if title is not None:
+        new_title = title.strip()
+        if not new_title:
+            raise click.ClickException("Title cannot be empty")
+
+    new_priority = Priority(priority) if priority is not None else goal.priority
+
+    updated = Goal(
+        id=goal.id,
+        title=new_title,
+        created=goal.created,
+        priority=new_priority,
+        archived=goal.archived,
+        tags=goal.tags,
+    )
+
+    storage.update_goal(updated)
+    console.print(f":pencil: Goal {goal_id} updated")
+
+
 @goal.group("tag")
 def tag() -> None:
     """Tag management."""
