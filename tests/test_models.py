@@ -50,6 +50,12 @@ def test_session_new_unique_ids(monkeypatch: pytest.MonkeyPatch) -> None:
     assert s1.id != s2.id
 
 
+def test_session_new_without_goal_generates_id() -> None:
+    s = PomodoroSession.new(None, datetime.utcnow(), 60)
+    assert s.goal_id is None
+    assert isinstance(s.id, str) and len(s.id) > 0
+
+
 def test_thought_new_trims() -> None:
     t = Thought.new(" text ", None)
     assert t.text == "text"
