@@ -14,6 +14,7 @@ def test_goal_defaults() -> None:
     assert g.priority == Priority.medium
     assert g.archived is False
     assert g.tags == []
+    assert g.parent_id is None
 
 
 def test_goal_nondefaults() -> None:
@@ -24,10 +25,12 @@ def test_goal_nondefaults() -> None:
         priority=Priority.high,
         archived=True,
         tags=["a"],
+        parent_id="p",
     )
     assert g.priority == Priority.high
     assert g.archived is True
     assert "a" in g.tags
+    assert g.parent_id == "p"
 
 
 def test_session_new_generates_id() -> None:
@@ -76,3 +79,9 @@ def test_goal_is_frozen() -> None:
     g = Goal(id="1", title="t", created=datetime.utcnow())
     with pytest.raises(FrozenInstanceError):
         g.title = "new title"  # type: ignore[misc]
+
+
+def test_goal_parent_relationship() -> None:
+    parent = Goal(id="p", title="parent", created=datetime.utcnow())
+    child = Goal(id="c", title="child", created=datetime.utcnow(), parent_id="p")
+    assert child.parent_id == parent.id

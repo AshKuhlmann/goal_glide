@@ -27,11 +27,17 @@ class Storage:
         self.thought_table = self.db.table(THOUGHTS_TABLE)
         self.session_table = self.db.table("sessions")
 
-        # migrate existing rows to include tags field
+        # migrate existing rows to include new fields
         for row in self.table.all():
+            updated = False
+            new_row = dict(row)
             if "tags" not in row:
-                new_row = dict(row)
                 new_row["tags"] = []
+                updated = True
+            if "parent_id" not in row:
+                new_row["parent_id"] = None
+                updated = True
+            if updated:
                 self.table.update(new_row, Query().id == row["id"])
 
     def _row_to_goal(self, row: dict[str, Any]) -> Goal:
@@ -47,6 +53,7 @@ class Storage:
             priority=Priority(row.get("priority", Priority.medium.value)),
             archived=row.get("archived", False),
             tags=row.get("tags", []),
+            parent_id=row.get("parent_id"),
         )
 
     def _row_to_thought(self, row: dict[str, Any]) -> Thought:
@@ -96,6 +103,7 @@ class Storage:
             priority=goal.priority,
             archived=goal.archived,
             tags=sorted(updated_tags),
+            parent_id=goal.parent_id,
         )
         self.update_goal(updated)
         return updated
@@ -112,6 +120,7 @@ class Storage:
             priority=goal.priority,
             archived=goal.archived,
             tags=new_tags,
+            parent_id=goal.parent_id,
         )
         self.update_goal(updated)
         return updated
@@ -134,6 +143,7 @@ class Storage:
             priority=goal.priority,
             archived=True,
             tags=goal.tags,
+            parent_id=goal.parent_id,
         )
         self.update_goal(updated)
         return updated
@@ -149,6 +159,7 @@ class Storage:
             priority=goal.priority,
             archived=False,
             tags=goal.tags,
+            parent_id=goal.parent_id,
         )
         self.update_goal(updated)
         return updated
@@ -159,6 +170,7 @@ class Storage:
         only_archived: bool = False,
         priority: Priority | None = None,
         tags: list[str] | None = None,
+        parent_id: str | None = None,
     ) -> list[Goal]:
         results = []
         for row in self.table.all():
@@ -170,6 +182,8 @@ class Storage:
             if priority and g.priority != priority:
                 continue
             if tags and not set(tags).issubset(g.tags):
+                continue
+            if parent_id is not None and g.parent_id != parent_id:
                 continue
             results.append(g)
         return results
