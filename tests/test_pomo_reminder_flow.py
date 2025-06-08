@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from datetime import datetime, timedelta
 
 import pytest
 from click.testing import CliRunner
@@ -8,6 +9,8 @@ from click.testing import CliRunner
 from goal_glide import cli
 from goal_glide import config as cfg
 from goal_glide.services import notify, reminder
+
+FIXED_NOW = datetime(2024, 1, 1, 12, 0, 0)
 
 
 class FakeScheduler:
@@ -30,6 +33,13 @@ def runner(
     cfg._CONFIG_PATH = tmp_path / ".goal_glide" / "config.toml"
     cfg._CONFIG_CACHE = None
     monkeypatch.setattr(reminder, "_sched", FakeScheduler())
+
+    class FakeDT(datetime):
+        @classmethod
+        def now(cls) -> datetime:  # type: ignore[override]
+            return FIXED_NOW
+
+    monkeypatch.setattr(reminder, "datetime", FakeDT)
     messages: list[str] = []
     monkeypatch.setattr(notify, "push", lambda m: messages.append(m))
     monkeypatch.setattr(reminder, "push", lambda m: messages.append(m))
@@ -49,3 +59,20 @@ def test_flow_schedules_jobs(runner) -> None:
     for func, args, _ in sched.jobs:
         func(*args)
     assert any("Pomodoro" in m or "Break" in m for m in messages)
+
+
+def test_flow_uses_config_and_clears_existing_jobs(runner) -> None:
+    cli_runner, _ = runner
+    cli_runner.invoke(cli.goal, ["reminder", "enable"])
+    cli_runner.invoke(
+        cli.goal,
+        ["reminder", "config", "--break", "2", "--interval", "7"],
+    )
+    reminder.schedule_after_stop()
+    reminder.schedule_after_stop()
+    sched = reminder._sched
+    assert len(sched.jobs) == 2
+    first_kwargs = sched.jobs[0][2]
+    second_kwargs = sched.jobs[1][2]
+    assert first_kwargs["run_date"] == FIXED_NOW + timedelta(minutes=2)
+    assert second_kwargs["minutes"] == 7
