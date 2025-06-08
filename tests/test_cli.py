@@ -97,4 +97,3 @@ def test_config_quotes_enable(tmp_path, monkeypatch):
     assert result.exit_code == 0
     assert "Quotes are ON" in result.output
     assert config.quotes_enabled() is True
-

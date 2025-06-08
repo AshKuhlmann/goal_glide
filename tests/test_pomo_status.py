@@ -61,7 +61,8 @@ def test_status_paused(tmp_path: Path, monkeypatch):
     pomodoro.start_session(30)
 
     later = start_time + datetime.timedelta(minutes=10)
-    monkeypatch.setattr(pomodoro, "datetime", type("DT", (datetime.datetime,), {"now": classmethod(lambda cls: later)}))
+    dt_cls = type("DT", (datetime.datetime,), {"now": classmethod(lambda cls: later)})
+    monkeypatch.setattr(pomodoro, "datetime", dt_cls)
     pomodoro.pause_session()
 
     much_later = start_time + datetime.timedelta(minutes=20)
@@ -77,4 +78,3 @@ def test_status_paused(tmp_path: Path, monkeypatch):
     assert result.exit_code == 0
     assert "Elapsed 10m" in result.output
     assert "Remaining 20m" in result.output
-

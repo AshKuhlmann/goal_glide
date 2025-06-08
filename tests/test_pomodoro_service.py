@@ -87,4 +87,3 @@ def test_pause_resume_flow(monkeypatch: pytest.MonkeyPatch, session_path: Path) 
     twelve = start + timedelta(minutes=12)
     _patch_now(monkeypatch, twelve)
     pomodoro.stop_session()
-

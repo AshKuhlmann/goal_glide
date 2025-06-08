@@ -33,7 +33,6 @@ from .services.analytics import (
 )
 from .services.pomodoro import (
     load_active_session,
-    load_session,
     pause_session,
     resume_session,
     start_session,
