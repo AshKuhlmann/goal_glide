@@ -61,6 +61,58 @@ def test_date_window_week_month_all(monkeypatch: pytest.MonkeyPatch) -> None:
     assert start == date.min and end == FakeDate.today()
 
 
+@pytest.mark.parametrize(
+    "today,week_start,week_end,month_start,month_end",
+    [
+        (
+            date(2023, 1, 1),
+            date(2022, 12, 26),
+            date(2023, 1, 1),
+            date(2022, 12, 1),
+            date(2022, 12, 31),
+        ),
+        (
+            date(2023, 12, 31),
+            date(2023, 12, 25),
+            date(2023, 12, 31),
+            date(2023, 11, 1),
+            date(2023, 11, 30),
+        ),
+        (
+            date(2023, 6, 1),
+            date(2023, 5, 29),
+            date(2023, 6, 4),
+            date(2023, 5, 1),
+            date(2023, 5, 31),
+        ),
+    ],
+)
+def test_date_window_edge_cases(
+    monkeypatch: pytest.MonkeyPatch,
+    today: date,
+    week_start: date,
+    week_end: date,
+    month_start: date,
+    month_end: date,
+) -> None:
+    class EdgeDate(date):
+        @classmethod
+        def today(cls) -> date:  # type: ignore[override]
+            return today
+
+    monkeypatch.setattr(report, "date", EdgeDate)
+    start, end = report._date_window("week")
+    assert (start, end) == (week_start, week_end)
+    start, end = report._date_window("month")
+    assert (start, end) == (month_start, month_end)
+
+
+def test_date_window_unknown_range(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(report, "date", FakeDate)
+    start, end = report._date_window("unknown")  # type: ignore[arg-type]
+    assert start == date.min and end == FakeDate.today()
+
+
 def test_csv_output_rows_and_headers(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
