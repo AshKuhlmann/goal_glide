@@ -10,7 +10,7 @@ DEFAULTS: Dict[str, Any] = {
     "reminder_break_min": 5,
     "reminder_interval_min": 30,
 }
-_CONFIG_CACHE: Dict[str, Any] | None = None
+
 _CONFIG_PATH = Path.home() / ".goal_glide" / "config.toml"
 
 
@@ -22,12 +22,8 @@ def _load_file() -> Dict[str, Any]:
 
 
 def _config() -> Dict[str, Any]:
-    global _CONFIG_CACHE
-    if _CONFIG_CACHE is None:
-        data = _load_file()
-        cfg = DEFAULTS | data
-        _CONFIG_CACHE = cfg
-    return _CONFIG_CACHE
+    data = _load_file()
+    return DEFAULTS | data
 
 
 def quotes_enabled() -> bool:
@@ -61,5 +57,3 @@ def save_config(cfg: Dict[str, Any]) -> None:
     content = "\n".join(items)
     with _CONFIG_PATH.open("w", encoding="utf-8") as f:
         f.write(content)
-    global _CONFIG_CACHE
-    _CONFIG_CACHE = cfg

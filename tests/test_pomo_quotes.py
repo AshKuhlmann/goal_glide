@@ -15,7 +15,6 @@ def runner(monkeypatch, tmp_path: Path) -> CliRunner:
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
     cfg._CONFIG_PATH = tmp_path / ".goal_glide" / "config.toml"
-    cfg._CONFIG_CACHE = None
     return CliRunner()
 
 
@@ -36,7 +35,6 @@ def test_quotes_disabled(
     path = tmp_path / ".goal_glide" / "config.toml"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("quotes_enabled = false", encoding="utf-8")
-    cfg._CONFIG_CACHE = None
     monkeypatch.setattr(quotes, "get_random_quote", lambda use_online=True: ("Q", "A"))
     monkeypatch.setattr(cli, "get_random_quote", lambda use_online=True: ("Q", "A"))
     runner.invoke(cli.goal, ["pomo", "start", "--duration", "1"])
@@ -87,7 +85,6 @@ def test_quotes_disabled_no_call(
     path = tmp_path / ".goal_glide" / "config.toml"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("quotes_enabled = false", encoding="utf-8")
-    cfg._CONFIG_CACHE = None
     called: list[bool] = []
 
     def fake(use_online: bool = True) -> tuple[str, str]:

@@ -80,7 +80,6 @@ def test_jot_from_editor(tmp_path, monkeypatch):
 
 def test_config_quotes_disable(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "_CONFIG_PATH", tmp_path / "config.toml")
-    config._CONFIG_CACHE = None
     runner = CliRunner()
     result = runner.invoke(cli.goal, ["config", "quotes", "--disable"])
     assert result.exit_code == 0
@@ -90,7 +89,6 @@ def test_config_quotes_disable(tmp_path, monkeypatch):
 
 def test_config_quotes_enable(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "_CONFIG_PATH", tmp_path / "config.toml")
-    config._CONFIG_CACHE = None
     runner = CliRunner()
     runner.invoke(cli.goal, ["config", "quotes", "--disable"])
     result = runner.invoke(cli.goal, ["config", "quotes", "--enable"])
