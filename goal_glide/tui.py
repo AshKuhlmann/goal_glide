@@ -12,7 +12,8 @@ if "" in sys.path:
 
 from textual.app import App, ComposeResult
 from textual.reactive import reactive
-from textual.widgets import Tree, TreeNode, Footer, Header, Static
+from textual.widgets import Tree, Footer, Header, Static
+from textual.widgets.tree import TreeNode
 
 from .cli import get_storage
 from .models.goal import Goal, Priority
