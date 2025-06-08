@@ -220,7 +220,16 @@ Run `python -m goal_glide config show` to view the current configuration.
 ## Troubleshooting
 
 - **Missing dependencies** – ensure all packages are installed via `poetry install` and that you are using a supported Python version.
-- **No desktop notifications** – the notify backend may require additional OS packages (e.g. `notify2` on Linux). Check the console output for warnings.
+- **No desktop notifications** – install the appropriate helper for your OS. On
+  macOS Goal Glide requires [`terminal-notifier`](https://github.com/julienXX/terminal-notifier)
+  which can be installed with Homebrew:
+  `brew install terminal-notifier`. On Linux it first tries the
+  [`notify2`](https://pypi.org/project/notify2/) Python package
+  (`pip install notify2`) and then falls back to
+  `notify-send` provided by `libnotify-bin` on Debian-based systems
+  (`sudo apt install libnotify-bin`). On Windows the
+  [`win10toast`](https://pypi.org/project/win10toast/) package is used
+  (`pip install win10toast`).
 - **Database not updating** – confirm that `GOAL_GLIDE_DB_DIR` points to a writable directory and that only one instance of Goal Glide is manipulating the files at a time.
 - **Quotes do not appear** – network access might be blocked. In that case, a local quote database is used automatically.
 
