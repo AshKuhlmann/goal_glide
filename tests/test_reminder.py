@@ -91,7 +91,12 @@ def test_schedule_after_stop_creates_scheduler(monkeypatch: pytest.MonkeyPatch) 
         def remove_all_jobs(self, jobstore: str | None = None) -> None:
             self.jobs.clear()
 
-        def add_job(self, func, _trigger, **kwargs) -> None:  # type: ignore[no-untyped-def]
+        def add_job(
+            self,
+            func,
+            _trigger,
+            **kwargs,
+        ) -> None:  # type: ignore[no-untyped-def]
             self.jobs.append(kwargs)
 
     monkeypatch.setattr(reminder, "BackgroundScheduler", FakeScheduler)
