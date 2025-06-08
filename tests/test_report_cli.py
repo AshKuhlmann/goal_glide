@@ -54,3 +54,28 @@ def test_cli_flag_collision(runner: CliRunner) -> None:
     result = runner.invoke(cli.goal, ["report", "make", "--week", "--month"])
     assert result.exit_code != 0
     assert "only one" in result.output
+
+
+def test_cli_custom_range(
+    tmp_path: Path, runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(report, "date", FakeDate)
+    storage = Storage(tmp_path)
+    seed(storage)
+    out = tmp_path / "range.html"
+    result = runner.invoke(
+        cli.goal,
+        [
+            "report",
+            "make",
+            "--from",
+            "2023-06-01",
+            "--to",
+            "2023-06-14",
+            "--out",
+            str(out),
+        ],
+        env={"GOAL_GLIDE_DB_DIR": str(tmp_path)},
+    )
+    assert result.exit_code == 0
+    assert out.exists()

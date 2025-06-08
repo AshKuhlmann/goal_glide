@@ -26,7 +26,12 @@ from .models.goal import Goal, Priority
 from .models.storage import Storage
 from .models.thought import Thought
 from .services import report
-from .services.analytics import current_streak, total_time_by_goal, weekly_histogram
+from .services.analytics import (
+    current_streak,
+    total_time_by_goal,
+    weekly_histogram,
+    date_histogram,
+)
 from .services.pomodoro import load_session, start_session, stop_session
 from .models.session import PomodoroSession
 from .services.quotes import get_random_quote
@@ -508,8 +513,26 @@ def remove_thought_cmd(ctx: click.Context, thought_id: str) -> None:
 @goal.command("stats")
 @click.option("--month", is_flag=True, help="Show last calendar month")
 @click.option("--goals", "show_goals", is_flag=True, help="Breakdown by top goals")
+@click.option(
+    "--from",
+    "start_date",
+    type=click.DateTime(formats=["%Y-%m-%d"]),
+    help="Start date YYYY-MM-DD",
+)
+@click.option(
+    "--to",
+    "end_date",
+    type=click.DateTime(formats=["%Y-%m-%d"]),
+    help="End date YYYY-MM-DD",
+)
 @click.pass_context
-def stats_cmd(ctx: click.Context, month: bool, show_goals: bool) -> None:
+def stats_cmd(
+    ctx: click.Context,
+    month: bool,
+    show_goals: bool,
+    start_date: datetime | None,
+    end_date: datetime | None,
+) -> None:
     """Visualise focus stats and streaks."""
     storage: Storage = ctx.obj
     today = datetime.now().date()
@@ -521,19 +544,33 @@ def stats_cmd(ctx: click.Context, month: bool, show_goals: bool) -> None:
             return "yellow"
         return "red"
 
+    if (start_date is not None) ^ (end_date is not None):
+        raise click.UsageError("Specify both --from and --to")
+
     bars: list[Bar] = []
-    if month:
+    if start_date and end_date:
+        start = start_date.date()
+        end = end_date.date()
+        if start > end:
+            raise click.UsageError("--from must not be after --to")
+        hist = date_histogram(storage, start, end)
+        for day, total in sorted(hist.items()):
+            label = day.strftime("%m-%d")
+            bars.append(Bar(total, label=label, max=7200, color=_color(total)))
+    elif month:
         first = today.replace(day=1)
         last_month_end = first - timedelta(days=1)
         start = last_month_end.replace(day=1)
+        end = last_month_end
         for i in range(4):
             week_start = start + timedelta(days=i * 7)
-            hist = weekly_histogram(storage, week_start)
+            hist = date_histogram(storage, week_start, week_start + timedelta(days=6))
             total = sum(hist.values())
             bars.append(Bar(total, label=f"W{i+1}", max=7 * 7200, color=_color(total)))
     else:
         start = today - timedelta(days=today.weekday())
-        hist = weekly_histogram(storage, start)
+        end = start + timedelta(days=6)
+        hist = date_histogram(storage, start, end)
         for day, total in sorted(hist.items()):
             label = day.strftime("%a")
             bars.append(Bar(total, label=label, max=7200, color=_color(total)))
@@ -545,11 +582,11 @@ def stats_cmd(ctx: click.Context, month: bool, show_goals: bool) -> None:
     for bar in bars:
         console.print(bar)
 
-    streak = current_streak(storage, today)
+    streak = current_streak(storage, end)
     console.print(f"\N{FIRE}  Current streak: {streak} days")
 
     if show_goals:
-        totals = total_time_by_goal(storage)
+        totals = total_time_by_goal(storage, start, end)
         if not totals:
             console.print("No session data yet.")
             return
@@ -584,6 +621,18 @@ def report_group() -> None:
     show_default=True,
 )
 @click.option("--out", "out_path", type=Path, help="Output file path")
+@click.option(
+    "--from",
+    "start_date",
+    type=click.DateTime(formats=["%Y-%m-%d"]),
+    help="Start date YYYY-MM-DD",
+)
+@click.option(
+    "--to",
+    "end_date",
+    type=click.DateTime(formats=["%Y-%m-%d"]),
+    help="End date YYYY-MM-DD",
+)
 @click.pass_context
 def report_make(
     ctx: click.Context,
@@ -592,11 +641,17 @@ def report_make(
     range_all: bool,
     fmt: str,
     out_path: Path | None,
+    start_date: datetime | None,
+    end_date: datetime | None,
 ) -> None:
     """Create a report."""
     flags = [range_week, range_month, range_all]
     if sum(flags) > 1:
         raise click.UsageError("Choose only one of --week/--month/--all")
+    if (start_date is not None) ^ (end_date is not None):
+        raise click.UsageError("Specify both --from and --to")
+    if (start_date or end_date) and any(flags):
+        raise click.UsageError("--from/--to cannot be combined with range flags")
     range_ = (
         "week"
         if range_week
@@ -607,6 +662,8 @@ def report_make(
         else "week"
     )
     storage: Storage = ctx.obj
+    start = start_date.date() if start_date else None
+    end = end_date.date() if end_date else None
     with Progress(
         SpinnerColumn(), TextColumn("[progress.description]{task.description}")
     ) as prog:
@@ -616,6 +673,8 @@ def report_make(
             cast(report.Range, range_),
             cast(report.Fmt, fmt),
             out_path,
+            start,
+            end,
         )
     console.print(f":page_facing_up:  Report saved to [bold]{path}[/]")
 

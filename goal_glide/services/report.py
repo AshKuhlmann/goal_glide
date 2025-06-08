@@ -9,7 +9,11 @@ from jinja2 import Environment, PackageLoader, select_autoescape
 
 from ..models.storage import Storage
 from ..utils.format import format_duration
-from .analytics import current_streak, total_time_by_goal, weekly_histogram
+from .analytics import (
+    current_streak,
+    total_time_by_goal,
+    date_histogram,
+)
 
 Range = Literal["week", "month", "all"]
 Fmt = Literal["html", "md", "csv"]
@@ -34,10 +38,16 @@ def _date_window(range_: Range) -> tuple[date, date]:
 
 
 def build_report(
-    storage: Storage, range_: Range, fmt: Fmt, out_path: Path | None
+    storage: Storage,
+    range_: Range,
+    fmt: Fmt,
+    out_path: Path | None,
+    start: date | None = None,
+    end: date | None = None,
 ) -> Path:
-    start, end = _date_window(range_)
-    goals_sec = total_time_by_goal(storage)
+    if start is None or end is None:
+        start, end = _date_window(range_)
+    goals_sec = total_time_by_goal(storage, start, end)
 
     tag_totals: dict[str, int] = {}
     for gid, sec in goals_sec.items():
@@ -45,7 +55,7 @@ def build_report(
         for t in g.tags:
             tag_totals[t] = tag_totals.get(t, 0) + sec
 
-    hist = weekly_histogram(storage, start)
+    hist = date_histogram(storage, start, end)
     streak = current_streak(storage, end)
 
     if fmt == "csv":

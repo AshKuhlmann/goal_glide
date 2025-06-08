@@ -106,3 +106,26 @@ def test_stats_empty_db_graceful(
     )
     assert result.exit_code == 0
     assert "No session data" in result.output
+
+
+def test_stats_custom_range(
+    runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    storage = Storage(tmp_path)
+    start_day = date(2023, 1, 1)
+    for i in range(3):
+        storage.add_session(make_session(start_day + timedelta(days=i)))
+
+    class FakeDT(datetime):
+        @classmethod
+        def now(cls) -> datetime:
+            return datetime(2023, 1, 5)
+
+    monkeypatch.setattr(cli, "datetime", FakeDT)
+    result = runner.invoke(
+        cli.goal,
+        ["stats", "--from", "2023-01-01", "--to", "2023-01-03"],
+        env={"GOAL_GLIDE_DB_DIR": str(tmp_path)},
+    )
+    lines = [line for line in result.output.splitlines() if "[" in line]
+    assert len(lines) == 3
