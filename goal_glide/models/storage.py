@@ -4,6 +4,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, TypedDict, cast
 
+from filelock import FileLock
 from tinydb import Query, TinyDB
 from tinydb.queries import QueryLike
 
@@ -62,7 +63,9 @@ class Storage:
         base = db_dir or Path.home() / ".goal_glide"
         db_path = Path(base) / "db.json"
         db_path.parent.mkdir(parents=True, exist_ok=True)
-        self.db = TinyDB(db_path, default=str)
+        self.lock = FileLock(db_path.with_suffix(".lock"))
+        with self.lock:
+            self.db = TinyDB(db_path, default=str)
         self.table = self.db.table("goals")
         self.thought_table = self.db.table(THOUGHTS_TABLE)
         self.session_table = self.db.table("sessions")
@@ -138,6 +141,19 @@ class Storage:
             duration_sec=row["duration_sec"],
         )
 
+    def _get_goal_no_lock(self, goal_id: str) -> Goal:
+        row = self.table.get(Query().id == goal_id)
+        if not row:
+            raise GoalNotFoundError(f"Goal {goal_id} not found")
+        return self._row_to_goal(cast(GoalRow, row))
+
+    def _update_goal_no_lock(self, goal: Goal) -> None:
+        from dataclasses import asdict
+
+        if not self.table.contains(Query().id == goal.id):
+            raise GoalNotFoundError(f"Goal {goal.id} not found")
+        self.table.update(cast(dict[str, Any], asdict(goal)), Query().id == goal.id)
+
     def add_goal(self, goal: Goal) -> None:
         """Saves a new goal to the database.
 
@@ -147,128 +163,133 @@ class Storage:
 
         from dataclasses import asdict
 
-        self.table.insert(cast(dict[str, Any], asdict(goal)))
+        with self.lock:
+            self.table.insert(cast(dict[str, Any], asdict(goal)))
 
     def get_goal(self, goal_id: str) -> Goal:
-        row = self.table.get(Query().id == goal_id)
-        if not row:
-            raise GoalNotFoundError(f"Goal {goal_id} not found")
-        return self._row_to_goal(cast(GoalRow, row))
+        with self.lock:
+            return self._get_goal_no_lock(goal_id)
 
     def add_tags(self, goal_id: str, tags: list[str]) -> Goal:
-        goal = self.get_goal(goal_id)
-        updated_tags = list({*goal.tags, *tags})
-        updated = Goal(
-            id=goal.id,
-            title=goal.title,
-            created=goal.created,
-            priority=goal.priority,
-            archived=goal.archived,
-            tags=sorted(updated_tags),
-            parent_id=goal.parent_id,
-            deadline=goal.deadline,
-            completed=goal.completed,
-        )
-        self.update_goal(updated)
-        return updated
+        with self.lock:
+            goal = self._get_goal_no_lock(goal_id)
+            updated_tags = list({*goal.tags, *tags})
+            updated = Goal(
+                id=goal.id,
+                title=goal.title,
+                created=goal.created,
+                priority=goal.priority,
+                archived=goal.archived,
+                tags=sorted(updated_tags),
+                parent_id=goal.parent_id,
+                deadline=goal.deadline,
+                completed=goal.completed,
+            )
+            self._update_goal_no_lock(updated)
+            return updated
 
     def remove_tag(self, goal_id: str, tag: str) -> Goal:
-        goal = self.get_goal(goal_id)
-        if tag not in goal.tags:
-            return goal
-        new_tags = [t for t in goal.tags if t != tag]
-        updated = Goal(
-            id=goal.id,
-            title=goal.title,
-            created=goal.created,
-            priority=goal.priority,
-            archived=goal.archived,
-            tags=new_tags,
-            parent_id=goal.parent_id,
-            deadline=goal.deadline,
-            completed=goal.completed,
-        )
-        self.update_goal(updated)
-        return updated
+        with self.lock:
+            goal = self._get_goal_no_lock(goal_id)
+            if tag not in goal.tags:
+                return goal
+            new_tags = [t for t in goal.tags if t != tag]
+            updated = Goal(
+                id=goal.id,
+                title=goal.title,
+                created=goal.created,
+                priority=goal.priority,
+                archived=goal.archived,
+                tags=new_tags,
+                parent_id=goal.parent_id,
+                deadline=goal.deadline,
+                completed=goal.completed,
+            )
+            self._update_goal_no_lock(updated)
+            return updated
 
     def update_goal(self, goal: Goal) -> None:
         from dataclasses import asdict
-
-        if not self.table.contains(Query().id == goal.id):
-            raise GoalNotFoundError(f"Goal {goal.id} not found")
-        self.table.update(cast(dict[str, Any], asdict(goal)), Query().id == goal.id)
+        with self.lock:
+            if not self.table.contains(Query().id == goal.id):
+                raise GoalNotFoundError(f"Goal {goal.id} not found")
+            self.table.update(cast(dict[str, Any], asdict(goal)), Query().id == goal.id)
 
     def archive_goal(self, goal_id: str) -> Goal:
-        goal = self.get_goal(goal_id)
-        if goal.archived:
-            raise GoalAlreadyArchivedError(f"Goal {goal_id} already archived")
-        updated = Goal(
-            id=goal.id,
-            title=goal.title,
-            created=goal.created,
-            priority=goal.priority,
-            archived=True,
-            tags=goal.tags,
-            parent_id=goal.parent_id,
-            deadline=goal.deadline,
-            completed=goal.completed,
-        )
-        self.update_goal(updated)
-        return updated
+        with self.lock:
+            goal = self._get_goal_no_lock(goal_id)
+            if goal.archived:
+                raise GoalAlreadyArchivedError(f"Goal {goal_id} already archived")
+            updated = Goal(
+                id=goal.id,
+                title=goal.title,
+                created=goal.created,
+                priority=goal.priority,
+                archived=True,
+                tags=goal.tags,
+                parent_id=goal.parent_id,
+                deadline=goal.deadline,
+                completed=goal.completed,
+            )
+            self._update_goal_no_lock(updated)
+            return updated
 
     def restore_goal(self, goal_id: str) -> Goal:
-        goal = self.get_goal(goal_id)
-        if not goal.archived:
-            raise GoalNotArchivedError(f"Goal {goal_id} is not archived")
-        updated = Goal(
-            id=goal.id,
-            title=goal.title,
-            created=goal.created,
-            priority=goal.priority,
-            archived=False,
-            tags=goal.tags,
-            parent_id=goal.parent_id,
-            deadline=goal.deadline,
-            completed=goal.completed,
-        )
-        self.update_goal(updated)
-        return updated
+        with self.lock:
+            goal = self._get_goal_no_lock(goal_id)
+            if not goal.archived:
+                raise GoalNotArchivedError(f"Goal {goal_id} is not archived")
+            updated = Goal(
+                id=goal.id,
+                title=goal.title,
+                created=goal.created,
+                priority=goal.priority,
+                archived=False,
+                tags=goal.tags,
+                parent_id=goal.parent_id,
+                deadline=goal.deadline,
+                completed=goal.completed,
+            )
+            self._update_goal_no_lock(updated)
+            return updated
 
     def complete_goal(self, goal_id: str) -> Goal:
-        goal = self.get_goal(goal_id)
-        if goal.completed:
-            return goal
-        updated = Goal(
-            id=goal.id,
-            title=goal.title,
-            created=goal.created,
-            priority=goal.priority,
-            archived=goal.archived,
-            tags=goal.tags,
-            parent_id=goal.parent_id,
-            deadline=goal.deadline,
-            completed=True,
-        )
-        self.update_goal(updated)
-        return updated
+        with self.lock:
+            goal = self._get_goal_no_lock(goal_id)
+            if goal.completed:
+                return goal
+            updated = Goal(
+                id=goal.id,
+                title=goal.title,
+                created=goal.created,
+                priority=goal.priority,
+                archived=goal.archived,
+                tags=goal.tags,
+                parent_id=goal.parent_id,
+                deadline=goal.deadline,
+                completed=True,
+            )
+            self._update_goal_no_lock(updated)
+            return updated
 
     def reopen_goal(self, goal_id: str) -> Goal:
-        goal = self.get_goal(goal_id)
-        if not goal.completed:
-            return goal
-        updated = Goal(
-            id=goal.id,
-            title=goal.title,
-            created=goal.created,
-            priority=goal.priority,
-            archived=goal.archived,
-            tags=goal.tags,
-            parent_id=goal.parent_id,
-            deadline=goal.deadline,
-            completed=False,
-        )
-        self.update_goal(updated)
-        return updated
+        with self.lock:
+            goal = self._get_goal_no_lock(goal_id)
+            if not goal.completed:
+                return goal
+            updated = Goal(
+                id=goal.id,
+                title=goal.title,
+                created=goal.created,
+                priority=goal.priority,
+                archived=goal.archived,
+                tags=goal.tags,
+                parent_id=goal.parent_id,
+                deadline=goal.deadline,
+                completed=False,
+            )
+            self._update_goal_no_lock(updated)
+            return updated
 
     def list_goals(
         self,
@@ -313,40 +334,45 @@ class Storage:
             return all(p(row_t) for p in predicates)
 
         search_cond = cast(QueryLike, predicate)
-        rows = self.table.search(search_cond) if predicates else self.table.all()
-        return [self._row_to_goal(cast(GoalRow, r)) for r in rows]
+        with self.lock:
+            rows = self.table.search(search_cond) if predicates else self.table.all()
+            return [self._row_to_goal(cast(GoalRow, r)) for r in rows]
 
     def list_all_tags(self) -> dict[str, int]:
         """Return mapping of tag name to count of goals containing it."""
         counts: dict[str, int] = {}
-        for row in self.table.all():
-            goal_row = cast(GoalRow, row)
-            for tag in goal_row.get("tags", []):
-                counts[tag] = counts.get(tag, 0) + 1
+        with self.lock:
+            for row in self.table.all():
+                goal_row = cast(GoalRow, row)
+                for tag in goal_row.get("tags", []):
+                    counts[tag] = counts.get(tag, 0) + 1
         return counts
 
     def remove_goal(self, goal_id: str) -> None:
-        if not self.table.contains(Query().id == goal_id):
-            raise GoalNotFoundError(f"Goal {goal_id} not found")
-        self.table.remove(Query().id == goal_id)
+        with self.lock:
+            if not self.table.contains(Query().id == goal_id):
+                raise GoalNotFoundError(f"Goal {goal_id} not found")
+            self.table.remove(Query().id == goal_id)
 
     def find_by_title(self, title: str) -> Goal | None:
-        row = self.table.get(Query().title == title)
-        return self._row_to_goal(cast(GoalRow, row)) if row else None
+        with self.lock:
+            row = self.table.get(Query().title == title)
+            return self._row_to_goal(cast(GoalRow, row)) if row else None
 
     def add_session(self, session: PomodoroSession) -> None:
         from dataclasses import asdict
-
-        self.session_table.insert(cast(dict[str, Any], asdict(session)))
+        with self.lock:
+            self.session_table.insert(cast(dict[str, Any], asdict(session)))
 
     def list_sessions(self) -> list[PomodoroSession]:
-        rows = self.session_table.all()
-        return [self._row_to_session(cast(SessionRow, r)) for r in rows]
+        with self.lock:
+            rows = self.session_table.all()
+            return [self._row_to_session(cast(SessionRow, r)) for r in rows]
 
     def add_thought(self, thought: Thought) -> None:
         from dataclasses import asdict
-
-        self.thought_table.insert(cast(dict[str, Any], asdict(thought)))
+        with self.lock:
+            self.thought_table.insert(cast(dict[str, Any], asdict(thought)))
 
     def list_thoughts(
         self,
@@ -355,21 +381,22 @@ class Storage:
         newest_first: bool = True,
     ) -> list[Thought]:
         ThoughtQuery = Query()
+        with self.lock:
+            if goal_id is not None:
+                db_rows = self.thought_table.search(ThoughtQuery.goal_id == goal_id)
+            else:
+                db_rows = self.thought_table.all()
 
-        if goal_id is not None:
-            db_rows = self.thought_table.search(ThoughtQuery.goal_id == goal_id)
-        else:
-            db_rows = self.thought_table.all()
-
-        rows = [self._row_to_thought(cast(ThoughtRow, r)) for r in db_rows]
-        rows.sort(key=lambda t: t.timestamp, reverse=newest_first)
-        if limit is not None:
-            rows = rows[:limit]
-        return rows
+            rows = [self._row_to_thought(cast(ThoughtRow, r)) for r in db_rows]
+            rows.sort(key=lambda t: t.timestamp, reverse=newest_first)
+            if limit is not None:
+                rows = rows[:limit]
+            return rows
 
     def remove_thought(self, thought_id: str) -> bool:
         """Delete a thought. Returns True if removed."""
-        if not self.thought_table.contains(Query().id == thought_id):
-            return False
-        self.thought_table.remove(Query().id == thought_id)
-        return True
+        with self.lock:
+            if not self.thought_table.contains(Query().id == thought_id):
+                return False
+            self.thought_table.remove(Query().id == thought_id)
+            return True

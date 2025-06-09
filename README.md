@@ -28,6 +28,7 @@ source .venv/bin/activate
 ```bash
 poetry install
 ```
+The `filelock` package is included to handle database locking.
 
 ## Usage
 
@@ -216,6 +217,7 @@ The HTML and Markdown templates used for report generation live in `goal_glide/t
 ## Configuration and Data Files
 
 Data is stored by default in `~/.goal_glide/db.json`. To use a different location set the `GOAL_GLIDE_DB_DIR` environment variable.
+The database file is protected by `db.json.lock` to prevent corruption when multiple instances write concurrently.
 
 Active pomodoro session data is written to `~/.goal_glide/session.json`. Set
 `GOAL_GLIDE_SESSION_FILE` to override this file path.
@@ -244,7 +246,7 @@ Run `python -m goal_glide config show` to view the current configuration.
   (`sudo apt install libnotify-bin`). On Windows the
   [`win10toast`](https://pypi.org/project/win10toast/) package is used
   (`pip install win10toast`).
-- **Database not updating** – confirm that `GOAL_GLIDE_DB_DIR` points to a writable directory and that only one instance of Goal Glide is manipulating the files at a time.
+- **Database not updating** – confirm that `GOAL_GLIDE_DB_DIR` points to a writable directory. A lock file is used to serialise access, so ensure it can be created.
 - **Quotes do not appear** – network access might be blocked. In that case, a local quote database is used automatically.
 
 ## Running Tests
