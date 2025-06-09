@@ -34,6 +34,18 @@ def test_add_list_remove(tmp_path):
     assert result.exit_code == 0
 
 
+def test_add_duplicate_goal_warning(tmp_path) -> None:
+    """Adding a goal twice should show a warning message."""
+    env = {"GOAL_GLIDE_DB_DIR": str(tmp_path)}
+    runner = CliRunner()
+
+    runner.invoke(cli.goal, ["add", "dup"], env=env)
+    result = runner.invoke(cli.goal, ["add", "dup"], env=env)
+
+    assert result.exit_code == 0
+    assert "Warning: goal with this title already exists." in result.output
+
+
 def test_pomo_session_persisted(tmp_path, monkeypatch):
     monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
     monkeypatch.setenv("HOME", str(tmp_path))
