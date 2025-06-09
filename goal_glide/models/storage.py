@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
-from typing import Any, TypedDict, cast
+from typing import Any, Callable, TypedDict
 
 from tinydb import Query, TinyDB
 from tinydb.queries import QueryLike
@@ -82,56 +82,14 @@ class Storage:
             if updated:
                 self.table.update(new_row, Query().id == row["id"])
 
-    def _row_to_goal(self, row: GoalRow) -> Goal:
-        created = row["created"]
-        if isinstance(created, str):
-            created_dt = datetime.fromisoformat(created)
-        else:
-            created_dt = created
-        dl = row.get("deadline")
-        dl_dt: datetime | None
-        if isinstance(dl, str):
-            dl_dt = datetime.fromisoformat(dl)
-        elif isinstance(dl, datetime):
-            dl_dt = dl
-        else:
-            dl_dt = None
-        return Goal(
-            id=row["id"],
-            title=row["title"],
-            created=created_dt,
-            priority=Priority(row.get("priority", Priority.medium.value)),
-            archived=row.get("archived", False),
-            tags=row.get("tags", []),
-            parent_id=row.get("parent_id"),
-            deadline=dl_dt,
-        )
+    def _row_to_goal(self, row: dict[str, Any]) -> Goal:
+        return Goal.from_dict(row)
 
-    def _row_to_thought(self, row: ThoughtRow) -> Thought:
-        ts = row["timestamp"]
-        if isinstance(ts, str):
-            ts_dt = datetime.fromisoformat(ts)
-        else:
-            ts_dt = ts
-        return Thought(
-            id=row["id"],
-            text=row["text"],
-            timestamp=ts_dt,
-            goal_id=row.get("goal_id"),
-        )
+    def _row_to_thought(self, row: dict[str, Any]) -> Thought:
+        return Thought.from_dict(row)
 
-    def _row_to_session(self, row: SessionRow) -> PomodoroSession:
-        st = row["start"]
-        if isinstance(st, str):
-            st_dt = datetime.fromisoformat(st)
-        else:
-            st_dt = st
-        return PomodoroSession(
-            id=row["id"],
-            goal_id=row.get("goal_id"),
-            start=st_dt,
-            duration_sec=row["duration_sec"],
-        )
+    def _row_to_session(self, row: dict[str, Any]) -> PomodoroSession:
+        return PomodoroSession.from_dict(row)
 
     def add_goal(self, goal: Goal) -> None:
         """Saves a new goal to the database.
@@ -139,16 +97,13 @@ class Storage:
         Args:
             goal: A :class:`Goal` object to be added to the database.
         """
-
-        from dataclasses import asdict
-
-        self.table.insert(cast(dict[str, Any], asdict(goal)))
+        self.table.insert(goal.to_dict())
 
     def get_goal(self, goal_id: str) -> Goal:
         row = self.table.get(Query().id == goal_id)
         if not row:
             raise GoalNotFoundError(f"Goal {goal_id} not found")
-        return self._row_to_goal(cast(GoalRow, row))
+        return self._row_to_goal(row)
 
     def add_tags(self, goal_id: str, tags: list[str]) -> Goal:
         goal = self.get_goal(goal_id)
@@ -185,11 +140,9 @@ class Storage:
         return updated
 
     def update_goal(self, goal: Goal) -> None:
-        from dataclasses import asdict
-
         if not self.table.contains(Query().id == goal.id):
             raise GoalNotFoundError(f"Goal {goal.id} not found")
-        self.table.update(cast(dict[str, Any], asdict(goal)), Query().id == goal.id)
+        self.table.update(goal.to_dict(), Query().id == goal.id)
 
     def archive_goal(self, goal_id: str) -> Goal:
         goal = self.get_goal(goal_id)
@@ -246,8 +199,7 @@ class Storage:
             A list of :class:`Goal` objects matching the filter criteria.
         """
         GoalQuery = Query()
-
-        predicates = []
+        predicates: list[Callable[[dict[str, Any]], bool]] = []
 
         if only_archived:
             predicates.append(lambda r: r.get("archived") is True)
@@ -264,9 +216,9 @@ class Storage:
             predicates.append(GoalQuery.parent_id == parent_id)
 
         def predicate(row: dict[str, Any]) -> bool:
-            row_t = cast(GoalRow, row)
-            return all(p(row_t) for p in predicates)
+            return all(p(row) for p in predicates)
 
+        # For type safety, cast the predicate to QueryLike
         search_cond = cast(QueryLike, predicate)
         rows = self.table.search(search_cond) if predicates else self.table.all()
         return [self._row_to_goal(cast(GoalRow, r)) for r in rows]
@@ -275,8 +227,7 @@ class Storage:
         """Return mapping of tag name to count of goals containing it."""
         counts: dict[str, int] = {}
         for row in self.table.all():
-            goal_row = cast(GoalRow, row)
-            for tag in goal_row.get("tags", []):
+            for tag in row.get("tags", []):
                 counts[tag] = counts.get(tag, 0) + 1
         return counts
 
@@ -287,21 +238,17 @@ class Storage:
 
     def find_by_title(self, title: str) -> Goal | None:
         row = self.table.get(Query().title == title)
-        return self._row_to_goal(cast(GoalRow, row)) if row else None
+        return self._row_to_goal(row) if row else None
 
     def add_session(self, session: PomodoroSession) -> None:
-        from dataclasses import asdict
-
-        self.session_table.insert(cast(dict[str, Any], asdict(session)))
+        self.session_table.insert(session.to_dict())
 
     def list_sessions(self) -> list[PomodoroSession]:
         rows = self.session_table.all()
-        return [self._row_to_session(cast(SessionRow, r)) for r in rows]
+        return [self._row_to_session(r) for r in rows]
 
     def add_thought(self, thought: Thought) -> None:
-        from dataclasses import asdict
-
-        self.thought_table.insert(cast(dict[str, Any], asdict(thought)))
+        self.thought_table.insert(thought.to_dict())
 
     def list_thoughts(
         self,
@@ -316,7 +263,7 @@ class Storage:
         else:
             db_rows = self.thought_table.all()
 
-        rows = [self._row_to_thought(cast(ThoughtRow, r)) for r in db_rows]
+        rows = [self._row_to_thought(r) for r in db_rows]
         rows.sort(key=lambda t: t.timestamp, reverse=newest_first)
         if limit is not None:
             rows = rows[:limit]
