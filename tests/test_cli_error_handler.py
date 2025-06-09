@@ -5,7 +5,7 @@ from click.testing import CliRunner
 
 import pytest
 
-from goal_glide.cli import handle_exceptions
+from goal_glide.commands.common import handle_exceptions
 from goal_glide.exceptions import (
     GoalAlreadyArchivedError,
     GoalNotArchivedError,

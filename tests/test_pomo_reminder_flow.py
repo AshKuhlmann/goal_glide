@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import pytest
 from click.testing import CliRunner
 
-from goal_glide import cli
+from goal_glide.cli import cli
 from goal_glide import config as cfg
 from goal_glide.services import notify, reminder, pomodoro
 from hypothesis import HealthCheck, given, settings, strategies as st
@@ -50,11 +50,11 @@ def reminder_runner(
 
 def test_flow_schedules_jobs(reminder_runner) -> None:
     cli_runner, messages = reminder_runner
-    cli_runner.invoke(cli.goal, ["reminder", "enable"])
-    gid = cli_runner.invoke(cli.goal, ["add", "g"])
+    cli_runner.invoke(cli, ["reminder", "enable"])
+    gid = cli_runner.invoke(cli, ["goal", "add", "g"])
     gid = gid.output.split()[-1].strip("()")
-    cli_runner.invoke(cli.goal, ["pomo", "start", "--duration", "1"])
-    result = cli_runner.invoke(cli.goal, ["pomo", "stop"])
+    cli_runner.invoke(cli, ["pomo", "start", "--duration", "1"])
+    result = cli_runner.invoke(cli, ["pomo", "stop"])
     assert "reminders scheduled" in result.output
     sched = reminder._sched
     assert sched is not None
@@ -66,9 +66,9 @@ def test_flow_schedules_jobs(reminder_runner) -> None:
 
 def test_flow_uses_config_and_clears_existing_jobs(reminder_runner) -> None:
     cli_runner, _ = reminder_runner
-    cli_runner.invoke(cli.goal, ["reminder", "enable"])
+    cli_runner.invoke(cli, ["reminder", "enable"])
     cli_runner.invoke(
-        cli.goal,
+        cli,
         ["reminder", "config", "--break", "2", "--interval", "7"],
     )
     reminder.schedule_after_stop()
