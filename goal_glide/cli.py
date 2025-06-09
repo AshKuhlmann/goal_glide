@@ -400,6 +400,14 @@ def goal_tree(ctx: click.Context) -> None:
     console.print(tree)
 
 
+@goal.command("version")
+def version_cmd() -> None:
+    """Print package version."""
+    from . import __version__
+
+    console.print(__version__)
+
+
 cli = goal
 
 

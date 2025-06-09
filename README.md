@@ -196,6 +196,10 @@ Quick examples of common commands:
   python -m goal_glide report make --week
   ```
   Use `--from` and `--to` to generate a report for a custom date range.
+- **version** – display package version.
+  ```bash
+  python -m goal_glide version
+  ```
 
 ## Reports
 

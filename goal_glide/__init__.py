@@ -1,3 +1,24 @@
-from .cli import handle_exceptions  # noqa: F401
+"""Goal Glide package."""
 
-__all__ = ["handle_exceptions"]
+from __future__ import annotations
+
+from importlib import metadata
+from pathlib import Path
+import tomllib
+
+
+try:
+    __version__ = metadata.version("goal_glide")
+except metadata.PackageNotFoundError:
+    # Fallback for editable/checkout usage
+    try:
+        pyproject = Path(__file__).resolve().parent.parent / "pyproject.toml"
+        with pyproject.open("rb") as fh:
+            data = tomllib.load(fh)
+        __version__ = data.get("tool", {}).get("poetry", {}).get("version", "0.0.0")
+    except Exception:  # pragma: no cover - extremely unlikely
+        __version__ = "0.0.0"
+
+from .cli import handle_exceptions  # noqa: E402,F401  keep import order
+
+__all__ = ["handle_exceptions", "__version__"]
