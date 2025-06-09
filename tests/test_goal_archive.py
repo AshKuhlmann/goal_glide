@@ -75,7 +75,7 @@ def test_errors_on_double_archive(tmp_path: Path, runner: CliRunner) -> None:
 def test_archive_restore_keeps_tags(tmp_path: Path, runner: CliRunner) -> None:
     runner.invoke(cli, ["goal", "add", "g"])
     gid = Storage(tmp_path).list_goals()[0].id
-    runner.invoke(cli, ["goal", "tag", "add", gid, "a", "b"])
+    runner.invoke(cli, ["tag", "add", gid, "a", "b"])
     runner.invoke(cli, ["goal", "archive", gid])
     assert Storage(tmp_path).get_goal(gid).tags == ["a", "b"]
     runner.invoke(cli, ["goal", "restore", gid])

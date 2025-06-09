@@ -8,7 +8,7 @@ from rich.bar import Bar
 from rich.table import Table
 from tinydb import Query
 
-from .common import AppContext
+from .common import AppContext, console
 from ..models.storage import Storage
 from ..services.analytics import (
     current_streak,
@@ -132,4 +132,4 @@ def stats_cmd(
             else:
                 title = gid
             table.add_row(title, format_duration(sec))
-        click.echo(table)
+        console.print(table)

@@ -4,7 +4,7 @@ import click
 from rich.table import Table
 from typing import cast
 
-from .common import AppContext
+from .common import AppContext, console
 from ..config import save_config
 
 
@@ -37,4 +37,4 @@ def cfg_show(ctx: click.Context) -> None:
     table.add_column("Value")
     for key, value in cfg.items():
         table.add_row(key, str(value))
-    click.echo(table)
+    console.print(table)
