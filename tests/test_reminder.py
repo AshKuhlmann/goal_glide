@@ -14,12 +14,9 @@ from goal_glide import config as cfg
 from goal_glide.services import notify, reminder
 
 
-@pytest.fixture()
-def runner(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> CliRunner:
-    monkeypatch.setenv("HOME", str(tmp_path))
-    monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
+@pytest.fixture(autouse=True)
+def _cfg_path(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     cfg._CONFIG_PATH = tmp_path / ".goal_glide" / "config.toml"
-    return CliRunner()
 
 
 def test_enable_disable_updates_config(runner: CliRunner) -> None:

@@ -3,18 +3,11 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from pathlib import Path
 
-import pytest
 from click.testing import CliRunner
 
 from goal_glide.cli import goal, thought
 from goal_glide.models.storage import Storage
 from goal_glide.models.thought import Thought
-
-
-@pytest.fixture()
-def runner(monkeypatch, tmp_path: Path) -> CliRunner:
-    monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
-    return CliRunner()
 
 
 def test_jot_basic(tmp_path: Path, runner: CliRunner) -> None:

@@ -27,12 +27,9 @@ class FakeScheduler:
 
 
 @pytest.fixture()
-def runner(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+def reminder_runner(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, runner: CliRunner
 ) -> tuple[CliRunner, list[str]]:
-    monkeypatch.setenv("HOME", str(tmp_path))
-    monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
-    monkeypatch.setenv("GOAL_GLIDE_SESSION_FILE", str(tmp_path / "session.json"))
     import importlib
     importlib.reload(pomodoro)
     importlib.reload(reminder)
@@ -48,11 +45,11 @@ def runner(
     messages: list[str] = []
     monkeypatch.setattr(notify, "push", lambda m: messages.append(m))
     monkeypatch.setattr(reminder, "push", lambda m: messages.append(m))
-    return CliRunner(), messages
+    return runner, messages
 
 
-def test_flow_schedules_jobs(runner) -> None:
-    cli_runner, messages = runner
+def test_flow_schedules_jobs(reminder_runner) -> None:
+    cli_runner, messages = reminder_runner
     cli_runner.invoke(cli.goal, ["reminder", "enable"])
     gid = cli_runner.invoke(cli.goal, ["add", "g"])
     gid = gid.output.split()[-1].strip("()")
@@ -67,8 +64,8 @@ def test_flow_schedules_jobs(runner) -> None:
     assert any("Pomodoro" in m or "Break" in m for m in messages)
 
 
-def test_flow_uses_config_and_clears_existing_jobs(runner) -> None:
-    cli_runner, _ = runner
+def test_flow_uses_config_and_clears_existing_jobs(reminder_runner) -> None:
+    cli_runner, _ = reminder_runner
     cli_runner.invoke(cli.goal, ["reminder", "enable"])
     cli_runner.invoke(
         cli.goal,
@@ -85,8 +82,8 @@ def test_flow_uses_config_and_clears_existing_jobs(runner) -> None:
     assert second_kwargs["minutes"] == 7
 
 
-def test_cancel_all_runs_on_new_session(runner, monkeypatch, tmp_path) -> None:
-    cli_runner, _ = runner
+def test_cancel_all_runs_on_new_session(reminder_runner, monkeypatch, tmp_path) -> None:
+    cli_runner, _ = reminder_runner
     sched = reminder._sched
     assert sched is not None
     # pre-populate fake scheduler with dummy jobs
@@ -105,10 +102,10 @@ def test_cancel_all_runs_on_new_session(runner, monkeypatch, tmp_path) -> None:
 )
 @settings(max_examples=10, suppress_health_check=[HealthCheck.function_scoped_fixture])
 def test_schedule_after_stop_randomized(
-    runner, monkeypatch, break_min: int, interval_min: int
+    reminder_runner, monkeypatch, break_min: int, interval_min: int
 ) -> None:
     """`schedule_after_stop` uses config values when scheduling."""
-    _, _ = runner
+    _, _ = reminder_runner
     monkeypatch.setattr(reminder, "reminders_enabled", lambda: True)
     monkeypatch.setattr(reminder, "reminder_break", lambda: break_min)
     monkeypatch.setattr(reminder, "reminder_interval", lambda: interval_min)

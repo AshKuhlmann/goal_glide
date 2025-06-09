@@ -15,12 +15,6 @@ from goal_glide.models.storage import Storage
 from goal_glide.services import report
 
 
-@pytest.fixture()
-def runner(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> CliRunner:
-    monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
-    return CliRunner()
-
-
 class FakeDate(date):
     @classmethod
     def today(cls) -> date:  # type: ignore[override]
@@ -45,7 +39,6 @@ def test_cli_creates_html(
     result = runner.invoke(
         cli.goal,
         ["report", "make", "--out", str(out)],
-        env={"GOAL_GLIDE_DB_DIR": str(tmp_path)},
     )
     assert result.exit_code == 0
     assert out.exists()
@@ -77,7 +70,6 @@ def test_cli_custom_range(
             "--out",
             str(out),
         ],
-        env={"GOAL_GLIDE_DB_DIR": str(tmp_path)},
     )
     assert result.exit_code == 0
     assert out.exists()
@@ -117,7 +109,6 @@ def test_cli_range_flags(
     result = runner.invoke(
         cli.goal,
         ["report", "make", flag],
-        env={"GOAL_GLIDE_DB_DIR": str(tmp_path)},
     )
     assert result.exit_code == 0
     assert captured == [expected]
@@ -150,7 +141,6 @@ def test_cli_default_output_path(
     result = runner.invoke(
         cli.goal,
         ["report", "make", "--week"],
-        env={"GOAL_GLIDE_DB_DIR": str(tmp_path)},
     )
     assert result.exit_code == 0
     assert list(tmp_path.glob("GoalGlide_week_*"))
@@ -169,12 +159,10 @@ def test_cli_md_and_csv(
     result_md = runner.invoke(
         cli.goal,
         ["report", "make", "--format", "md", "--out", str(md_out)],
-        env={"GOAL_GLIDE_DB_DIR": str(tmp_path)},
     )
     result_csv = runner.invoke(
         cli.goal,
         ["report", "make", "--format", "csv", "--out", str(csv_out)],
-        env={"GOAL_GLIDE_DB_DIR": str(tmp_path)},
     )
     assert result_md.exit_code == 0
     assert result_csv.exit_code == 0
@@ -197,12 +185,10 @@ def test_cli_empty_storage_reports(
     result_md = runner.invoke(
         cli.goal,
         ["report", "make", "--format", "md", "--out", str(md_out)],
-        env={"GOAL_GLIDE_DB_DIR": str(tmp_path)},
     )
     result_csv = runner.invoke(
         cli.goal,
         ["report", "make", "--format", "csv", "--out", str(csv_out)],
-        env={"GOAL_GLIDE_DB_DIR": str(tmp_path)},
     )
     assert result_md.exit_code == 0
     assert result_csv.exit_code == 0
