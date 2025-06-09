@@ -225,7 +225,9 @@ The HTML and Markdown templates used for report generation live in `goal_glide/t
 Data is stored by default in `~/.goal_glide/db.json`. To use a different location set the `GOAL_GLIDE_DB_DIR` environment variable.
 The database file is protected by `db.json.lock` to prevent corruption when multiple instances write concurrently.
 
-Active pomodoro session data is written to `~/.goal_glide/session.json`. Set
+Active pomodoro session data is written to `~/.goal_glide/session.json`. The
+file is locked using `session.json.lock` while being updated.
+Running multiple instances simultaneously is not recommended. Set
 `GOAL_GLIDE_SESSION_FILE` to override this file path.
 
 Configuration is kept in `~/.goal_glide/config.toml`. Set `GOAL_GLIDE_CONFIG_DIR` to override this path. The file controls:
@@ -239,20 +241,43 @@ Configuration is kept in `~/.goal_glide/config.toml`. Set `GOAL_GLIDE_CONFIG_DIR
 Run `python -m goal_glide config quotes --enable/--disable` or the reminder commands shown above to modify these settings.
 Run `python -m goal_glide config show` to view the current configuration.
 
+### Restoring From Backups
+
+Backup the database and session files periodically to avoid data loss:
+
+```bash
+cp ~/.goal_glide/db.json ~/backups/db.json.bak
+cp ~/.goal_glide/session.json ~/backups/session.json.bak
+```
+
+Restore them if something goes wrong:
+
+```bash
+cp ~/backups/db.json.bak ~/.goal_glide/db.json
+cp ~/backups/session.json.bak ~/.goal_glide/session.json
+```
+
+### Exporting Sessions
+
+Export all recorded sessions to a CSV file using the report command:
+
+```bash
+python -m goal_glide report make --all --format csv --out ~/sessions.csv
+```
+
 ## Troubleshooting
 
 - **Missing dependencies** – ensure all packages are installed via `poetry install` and that you are using a supported Python version.
-- **No desktop notifications** – install the appropriate helper for your OS. On
-  macOS Goal Glide requires [`terminal-notifier`](https://github.com/julienXX/terminal-notifier)
-  which can be installed with Homebrew:
-  `brew install terminal-notifier`. On Linux it first tries the
+- **No desktop notifications** – if Goal Glide prints a message about installing
+  a helper, follow the instructions for your OS. On macOS install
+  [`terminal-notifier`](https://github.com/julienXX/terminal-notifier) with
+  Homebrew: `brew install terminal-notifier`. On Linux install the
   [`notify2`](https://pypi.org/project/notify2/) Python package
-  (`pip install notify2`) and then falls back to
-  `notify-send` provided by `libnotify-bin` on Debian-based systems
-  (`sudo apt install libnotify-bin`). On Windows the
-  [`win10toast`](https://pypi.org/project/win10toast/) package is used
+  (`pip install notify2`) or `notify-send` from `libnotify-bin`
+  (`sudo apt install libnotify-bin`). On Windows install
+  [`win10toast`](https://pypi.org/project/win10toast/)
   (`pip install win10toast`).
-- **Database not updating** – confirm that `GOAL_GLIDE_DB_DIR` points to a writable directory. A lock file is used to serialise access, so ensure it can be created.
+- **Database or path errors** – confirm that `GOAL_GLIDE_DB_DIR` and the new `GOAL_GLIDE_SESSION_FILE` point to writable locations. The database is protected by `db.json.lock` to avoid concurrent writes; remove the lock file if the program was interrupted.
 - **Quotes do not appear** – network access might be blocked. In that case, a local quote database is used automatically.
 
 ## Running Tests
@@ -318,4 +343,3 @@ pre-commit install
 ```
 
 The hooks defined in `.pre-commit-config.yaml` enforce coding standards using Black, Flake8 and Mypy.
-

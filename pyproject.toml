@@ -27,6 +27,9 @@ sphinx = "*"
 beautifulsoup4 = "*"
 types-requests = "*"
 
+[tool.poetry.group.dev.dependencies]
+mutmut = "^3.3.0"
+
 [tool.black]
 target-version = ['py311']
 
@@ -40,6 +43,11 @@ exclude = 'tinydb/'
 [[tool.mypy.overrides]]
 module = "tinydb.*"
 ignore_errors = true
+
+[tool.mutmut]
+paths_to_mutate = "goal_glide/"
+runner = "pytest -x"
+tests_dir = "tests/"
 
 [build-system]
 requires = ["poetry-core>=1.5.0"]

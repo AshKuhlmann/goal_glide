@@ -165,6 +165,28 @@ def test_notifier_failure_logs_warning(
     assert any("Notification failed" in rec.message for rec in caplog.records)
 
 
+def test_missing_notifier_prints_hint(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(notify.platform, "system", lambda: "UnknownOS")
+    notify.push("msg")
+    captured = capsys.readouterr()
+    assert "terminal-notifier" in captured.out
+
+
+def test_failed_notifier_prints_hint(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    def fail(_: str) -> None:
+        raise RuntimeError("boom")
+
+    monkeypatch.setitem(notify._OS_NOTIFIERS, "Linux", fail)
+    monkeypatch.setattr(notify.platform, "system", lambda: "Linux")
+    notify.push("oops")
+    captured = capsys.readouterr()
+    assert "notify2" in captured.out or "notify-send" in captured.out
+
+
 def test_linux_notify_uses_notify2(monkeypatch: pytest.MonkeyPatch) -> None:
     calls: list[tuple] = []
 

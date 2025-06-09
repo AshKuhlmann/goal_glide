@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Callable, Optional, TypedDict, cast
 
+from filelock import FileLock
 from rich.console import Console
+
 from .. import config
 from ..models.session import PomodoroSession
 
@@ -36,10 +39,12 @@ class SessionData(TypedDict):
 
 
 def _load_data(session_path: Path) -> SessionData | None:
-    if not session_path.exists():
-        return None
-    with session_path.open(encoding="utf-8") as fp:
-        data = cast(SessionData, json.load(fp))
+    lock = FileLock(session_path.with_suffix(".lock"))
+    with lock:
+        if not session_path.exists():
+            return None
+        with session_path.open(encoding="utf-8") as fp:
+            data = cast(SessionData, json.load(fp))
     # backward compatibility for older session files
     data.setdefault("elapsed_sec", 0)
     data.setdefault("paused", False)
@@ -48,8 +53,11 @@ def _load_data(session_path: Path) -> SessionData | None:
 
 
 def _save_data(data: SessionData, session_path: Path) -> None:
-    with session_path.open("w", encoding="utf-8") as fp:
-        json.dump(data, fp)
+    session_path.parent.mkdir(parents=True, exist_ok=True)
+    lock = FileLock(session_path.with_suffix(".lock"))
+    with lock:
+        with session_path.open("w", encoding="utf-8") as fp:
+            json.dump(data, fp)
 
 
 def start_session(

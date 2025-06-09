@@ -7,6 +7,7 @@ from click.testing import CliRunner
 from goal_glide.cli import goal
 from goal_glide.models.goal import Goal
 from goal_glide.models.storage import Storage
+from hypothesis import given, settings, strategies as st
 
 
 def test_store_and_retrieve_parent(tmp_path: Path) -> None:
@@ -78,9 +79,6 @@ def test_list_goals_parent_missing_returns_empty(tmp_path: Path) -> None:
     )
 
     assert storage.list_goals(parent_id="missing") == []
-
-
-from hypothesis import given, settings, strategies as st
 
 
 @st.composite
