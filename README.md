@@ -239,6 +239,30 @@ Configuration is kept in `~/.goal_glide/config.toml`. Set `GOAL_GLIDE_CONFIG_DIR
 Run `python -m goal_glide config quotes --enable/--disable` or the reminder commands shown above to modify these settings.
 Run `python -m goal_glide config show` to view the current configuration.
 
+### Restoring From Backups
+
+Backup the database and session files periodically to avoid data loss:
+
+```bash
+cp ~/.goal_glide/db.json ~/backups/db.json.bak
+cp ~/.goal_glide/session.json ~/backups/session.json.bak
+```
+
+Restore them if something goes wrong:
+
+```bash
+cp ~/backups/db.json.bak ~/.goal_glide/db.json
+cp ~/backups/session.json.bak ~/.goal_glide/session.json
+```
+
+### Exporting Sessions
+
+Export all recorded sessions to a CSV file using the report command:
+
+```bash
+python -m goal_glide report make --all --format csv --out ~/sessions.csv
+```
+
 ## Troubleshooting
 
 - **Missing dependencies** – ensure all packages are installed via `poetry install` and that you are using a supported Python version.
@@ -251,7 +275,7 @@ Run `python -m goal_glide config show` to view the current configuration.
   (`sudo apt install libnotify-bin`). On Windows install
   [`win10toast`](https://pypi.org/project/win10toast/)
   (`pip install win10toast`).
-- **Database not updating** – confirm that `GOAL_GLIDE_DB_DIR` points to a writable directory. A lock file is used to serialise access, so ensure it can be created.
+- **Database or path errors** – confirm that `GOAL_GLIDE_DB_DIR` and the new `GOAL_GLIDE_SESSION_FILE` point to writable locations. The database is protected by `db.json.lock` to avoid concurrent writes; remove the lock file if the program was interrupted.
 - **Quotes do not appear** – network access might be blocked. In that case, a local quote database is used automatically.
 
 ## Running Tests
