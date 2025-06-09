@@ -12,4 +12,4 @@ def test_corrupt_db_file_raises(tmp_path: Path) -> None:
     db_file = tmp_path / "db.json"
     db_file.write_text("{ bad json")
     with pytest.raises(JSONDecodeError):
-        Storage(tmp_path)
+        Storage(tmp_path / "db.json")

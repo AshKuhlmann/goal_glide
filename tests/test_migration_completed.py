@@ -10,6 +10,6 @@ def test_completed_migration(tmp_path: Path) -> None:
     db.table("goals").insert(
         {"id": "g1", "title": "t", "created": datetime.now().isoformat()}
     )
-    Storage(tmp_path)
+    Storage(tmp_path / "db.json")
     row = TinyDB(db_path).table("goals").get(Query().id == "g1")
     assert row["completed"] is False

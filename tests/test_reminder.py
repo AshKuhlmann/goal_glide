@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import os
 import logging
 import builtins
 import sys
@@ -15,21 +16,26 @@ from goal_glide.services import notify, reminder
 
 
 @pytest.fixture(autouse=True)
-def _cfg_path(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    cfg._CONFIG_PATH = tmp_path / ".goal_glide" / "config.toml"
+def _cfg_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> dict[str, str]:
+    env = {"GOAL_GLIDE_DB_DIR": str(tmp_path), "HOME": str(tmp_path)}
+    monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
+    monkeypatch.setenv("HOME", str(tmp_path))
+    return env
 
 
 def test_enable_disable_updates_config(runner: CliRunner) -> None:
+    cfg_path = Path(os.environ["GOAL_GLIDE_DB_DIR"]) / "config.toml"
     runner.invoke(cli.goal, ["reminder", "enable"])
-    assert cfg.reminders_enabled() is True
+    assert cfg.reminders_enabled(cfg_path) is True
     runner.invoke(cli.goal, ["reminder", "disable"])
-    assert cfg.reminders_enabled() is False
+    assert cfg.reminders_enabled(cfg_path) is False
 
 
 def test_config_command_updates_values(runner: CliRunner) -> None:
+    cfg_path = Path(os.environ["GOAL_GLIDE_DB_DIR"]) / "config.toml"
     runner.invoke(cli.goal, ["reminder", "config", "--break", "10", "--interval", "15"])
-    assert cfg.reminder_break() == 10
-    assert cfg.reminder_interval() == 15
+    assert cfg.reminder_break(cfg_path) == 10
+    assert cfg.reminder_interval(cfg_path) == 15
 
 
 @pytest.mark.parametrize("val", [0, -5, 200])
@@ -68,8 +74,9 @@ def test_notification_backend_selection(monkeypatch: pytest.MonkeyPatch) -> None
 
 def test_schedule_after_stop_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(reminder, "_sched", None)
-    monkeypatch.setattr(cfg, "reminders_enabled", lambda: False)
-    reminder.schedule_after_stop()
+    monkeypatch.setattr(cfg, "reminders_enabled", lambda path: False)
+    cfg_path = Path(os.environ["GOAL_GLIDE_DB_DIR"]) / "config.toml"
+    reminder.schedule_after_stop(cfg_path)
     assert reminder._sched is None
 
 
@@ -98,9 +105,10 @@ def test_schedule_after_stop_creates_scheduler(monkeypatch: pytest.MonkeyPatch) 
 
     monkeypatch.setattr(reminder, "BackgroundScheduler", FakeScheduler)
     monkeypatch.setattr(reminder, "_sched", None)
-    monkeypatch.setattr(reminder, "reminders_enabled", lambda: True)
+    monkeypatch.setattr(reminder, "reminders_enabled", lambda path: True)
 
-    reminder.schedule_after_stop()
+    cfg_path = Path(os.environ["GOAL_GLIDE_DB_DIR"]) / "config.toml"
+    reminder.schedule_after_stop(cfg_path)
 
     assert len(created) == 1
     assert started == [True]
