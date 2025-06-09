@@ -171,7 +171,11 @@ def test_pomo_start_default_from_config(tmp_path, monkeypatch):
     pomodoro.POMO_PATH = tmp_path / "session.json"
     monkeypatch.setattr(config, "pomo_duration", lambda: 2)
     runner = CliRunner()
-    result = runner.invoke(cli.goal, ["pomo", "start"], env={"GOAL_GLIDE_DB_DIR": str(tmp_path)})
+    result = runner.invoke(
+        cli.goal,
+        ["pomo", "start"],
+        env={"GOAL_GLIDE_DB_DIR": str(tmp_path)},
+    )
     assert result.exit_code == 0
     data = json.loads((tmp_path / "session.json").read_text())
     assert data["duration_sec"] == 120
