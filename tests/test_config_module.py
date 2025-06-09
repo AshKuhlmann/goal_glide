@@ -115,3 +115,15 @@ def test_invalid_toml_raises_decode_error(cfg_path: Path) -> None:
     cfg_path.write_text("foo = bar", encoding="utf-8")
     with pytest.raises(tomllib.TOMLDecodeError):
         config.load_config()
+
+
+def test_config_path_from_env(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
+    monkeypatch.setenv("GOAL_GLIDE_CONFIG_DIR", str(tmp_path))
+    import importlib
+    import goal_glide.config as cfg
+
+    importlib.reload(cfg)
+    assert cfg._CONFIG_PATH == tmp_path / "config.toml"
+
+    monkeypatch.delenv("GOAL_GLIDE_CONFIG_DIR", raising=False)
+    importlib.reload(cfg)
