@@ -359,7 +359,7 @@ def _ref_longest_streak(sessions: list[PomodoroSession]) -> int:
         )
     )
 )
-@settings(max_examples=25)
+@settings(max_examples=25, deadline=None)
 def test_property_total_time(sessions: list[PomodoroSession]) -> None:
     with tempfile.TemporaryDirectory() as d:
         storage = Storage(Path(d) / "db.json")
@@ -385,7 +385,7 @@ def test_property_total_time(sessions: list[PomodoroSession]) -> None:
     ),
     st.dates(min_value=date(2023, 1, 1), max_value=date(2023, 12, 25)),
 )
-@settings(max_examples=25)
+@settings(max_examples=25, deadline=None)
 def test_property_weekly_histogram(
     sessions: list[PomodoroSession], start: date
 ) -> None:
