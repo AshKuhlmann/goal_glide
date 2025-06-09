@@ -1,14 +1,9 @@
 from __future__ import annotations
 
-import sys
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from uuid import uuid4
 
-# ensure real rich is used (textual dependency)
-if "" in sys.path:
-    sys.path.remove("")
-    sys.path.append("")
 
 from textual.app import App, ComposeResult
 from textual.containers import Vertical

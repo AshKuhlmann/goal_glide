@@ -43,7 +43,8 @@ def test_stats_week_output_has_7_bars(
     result = runner.invoke(
         cli.goal, ["stats"], env={"GOAL_GLIDE_DB_DIR": str(tmp_path)}
     )
-    lines = [line for line in result.output.splitlines() if "[" in line]
+    days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    lines = [line for line in result.output.splitlines() if any(line.startswith(d) for d in days)]
     assert len(lines) == 7
     assert "Longest streak" in result.output
     assert "Most productive day" in result.output
@@ -66,7 +67,8 @@ def test_stats_month_output_has_4_bars(
     result = runner.invoke(
         cli.goal, ["stats", "--month"], env={"GOAL_GLIDE_DB_DIR": str(tmp_path)}
     )
-    lines = [line for line in result.output.splitlines() if "[" in line]
+    weeks = ["W1", "W2", "W3", "W4"]
+    lines = [line for line in result.output.splitlines() if any(line.startswith(w) for w in weeks)]
     assert len(lines) == 4
 
 
@@ -90,8 +92,8 @@ def test_stats_goals_table_shows_top5(
     )
     assert result.exit_code == 0
     assert "Top Goals" in result.output
-    rows = [line for line in result.output.splitlines() if "|" in line]
-    assert len(rows) == 6  # header + 5 rows
+    rows = [line for line in result.output.splitlines() if "│" in line]
+    assert len(rows) == 5  # 5 rows of data
 
 
 def test_stats_empty_db_graceful(
@@ -129,5 +131,5 @@ def test_stats_custom_range(
         ["stats", "--from", "2023-01-01", "--to", "2023-01-03"],
         env={"GOAL_GLIDE_DB_DIR": str(tmp_path)},
     )
-    lines = [line for line in result.output.splitlines() if "[" in line]
+    lines = [line for line in result.output.splitlines() if line[:5].count("-") == 1]
     assert len(lines) == 3
