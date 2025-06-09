@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any, cast
+from collections.abc import Mapping
 
 from filelock import FileLock
 from tinydb import Query, TinyDB
@@ -55,7 +56,7 @@ class Storage:
                     updated = True
                 if "parent_id" not in row:
                     new_row["parent_id"] = None
-                    updated = True
+        if row is None:
                 if "deadline" not in row:
                     new_row["deadline"] = None
                     updated = True
@@ -210,7 +211,7 @@ class Storage:
                 id=goal.id,
                 title=goal.title,
                 created=goal.created,
-                priority=goal.priority,
+        def predicate(row: Mapping[str, Any]) -> bool:
                 archived=goal.archived,
                 tags=goal.tags,
                 parent_id=goal.parent_id,
