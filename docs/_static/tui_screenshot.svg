@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="500" height="300">
+  <rect x="0" y="0" width="500" height="300" fill="black"/>
+  <rect x="10" y="10" width="480" height="280" fill="white" stroke="gray" stroke-width="2"/>
+  <text x="20" y="40" fill="black" font-family="monospace" font-size="16">ID │ Title │ Pri. │ Tags</text>
+  <text x="20" y="70" fill="black" font-family="monospace" font-size="16">1 │ Example goal │ high │ project</text>
+  <text x="20" y="100" fill="black" font-family="monospace" font-size="16">[Press S to start Pomodoro]</text>
+  <text x="20" y="260" fill="black" font-family="monospace" font-size="14">q Quit  s Start/Stop  a Add Goal  delete Archive</text>
+</svg>

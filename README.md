@@ -145,6 +145,10 @@ Basic keys:
 - `a` – add a goal
 - `delete` – archive goal
 
+See the [TUI documentation](docs/tui.rst) for a full list of keys,
+workflow tips and troubleshooting guidance. A screenshot of the interface
+is included there under `docs/_static/`.
+
 ### Command Reference
 
 Quick examples of common commands:
