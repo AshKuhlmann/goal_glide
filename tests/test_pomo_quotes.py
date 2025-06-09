@@ -6,7 +6,6 @@ import pytest
 from click.testing import CliRunner
 
 from goal_glide import cli
-from goal_glide import config as cfg
 from goal_glide.services import quotes
 
 

@@ -70,7 +70,9 @@ def test_stop_session_no_file_raises(session_path: Path, config_path: Path) -> N
         pomodoro.stop_session(session_path, config_path)
 
 
-def test_pause_resume_flow(monkeypatch: pytest.MonkeyPatch, session_path: Path, config_path: Path) -> None:
+def test_pause_resume_flow(
+    monkeypatch: pytest.MonkeyPatch, session_path: Path, config_path: Path
+) -> None:
     start = datetime(2023, 1, 2, 9, 0, 0)
     _patch_now(monkeypatch, start)
     pomodoro.start_session(10, None, session_path, config_path)

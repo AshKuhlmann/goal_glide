@@ -69,9 +69,16 @@ def test_partial_config_file_loads_defaults(cfg_path: Path) -> None:
             assert loaded[key] == value
 
     assert config.quotes_enabled(cfg_path) is False
-    assert config.reminders_enabled(cfg_path) is config.DEFAULTS["reminders_enabled"]
-    assert config.reminder_break(cfg_path) == config.DEFAULTS["reminder_break_min"]
-    assert config.reminder_interval(cfg_path) == config.DEFAULTS["reminder_interval_min"]
+    assert (
+        config.reminders_enabled(cfg_path)
+        is config.DEFAULTS["reminders_enabled"]
+    )
+    assert config.reminder_break(cfg_path) == config.DEFAULTS[
+        "reminder_break_min"
+    ]
+    assert config.reminder_interval(cfg_path) == config.DEFAULTS[
+        "reminder_interval_min"
+    ]
     assert config.pomo_duration(cfg_path) == config.DEFAULTS["pomo_duration_min"]
 
 

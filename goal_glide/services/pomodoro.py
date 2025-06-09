@@ -15,9 +15,6 @@ console = Console()
 on_new_session: list[Callable[[], None]] = []
 on_session_end: list[Callable[[], None]] = []
 
-
-
-
 @dataclass(slots=True)
 class ActiveSession:
     goal_id: str | None
@@ -60,7 +57,11 @@ def start_session(
     session_path: Path,
     config_path: Path,
 ) -> PomodoroSession:
-    dur = duration_min if duration_min is not None else config.pomo_duration(config_path)
+    dur = (
+        duration_min
+        if duration_min is not None
+        else config.pomo_duration(config_path)
+    )
     session = PomodoroSession(
         id="",
         goal_id=goal_id,

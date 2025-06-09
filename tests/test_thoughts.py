@@ -67,7 +67,9 @@ def test_list_limit(tmp_path: Path, runner: CliRunner) -> None:
 def test_list_goal_filter(tmp_path: Path, runner: CliRunner) -> None:
     runner.invoke(goal, ["add", "g"])
     goal_id = Storage(tmp_path / "db.json").list_goals()[0].id
-    Storage(tmp_path / "db.json").add_thought(Thought(id="1", text="a", timestamp=datetime.now()))
+    Storage(tmp_path / "db.json").add_thought(
+        Thought(id="1", text="a", timestamp=datetime.now())
+    )
     Storage(tmp_path / "db.json").add_thought(
         Thought(id="2", text="b", timestamp=datetime.now(), goal_id=goal_id)
     )

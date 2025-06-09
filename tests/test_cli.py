@@ -7,7 +7,6 @@ from datetime import datetime, timedelta
 import goal_glide.cli as cli
 from goal_glide import config
 from goal_glide.models.storage import Storage
-from goal_glide.services import pomodoro
 
 
 def test_add_list_remove(tmp_path):
@@ -127,7 +126,12 @@ def test_jot_from_editor_empty(tmp_path, monkeypatch):
 def test_config_quotes_disable(tmp_path, monkeypatch):
     monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
     runner = CliRunner()
-    result = runner.invoke(cli.goal, ["config", "quotes", "--disable"], env={"GOAL_GLIDE_DB_DIR": str(tmp_path)})
+    env = {"GOAL_GLIDE_DB_DIR": str(tmp_path)}
+    result = runner.invoke(
+        cli.goal,
+        ["config", "quotes", "--disable"],
+        env=env,
+    )
     assert result.exit_code == 0
     assert "Quotes are OFF" in result.output
     assert config.quotes_enabled(tmp_path / "config.toml") is False
@@ -136,8 +140,13 @@ def test_config_quotes_disable(tmp_path, monkeypatch):
 def test_config_quotes_enable(tmp_path, monkeypatch):
     monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
     runner = CliRunner()
-    runner.invoke(cli.goal, ["config", "quotes", "--disable"], env={"GOAL_GLIDE_DB_DIR": str(tmp_path)})
-    result = runner.invoke(cli.goal, ["config", "quotes", "--enable"], env={"GOAL_GLIDE_DB_DIR": str(tmp_path)})
+    env = {"GOAL_GLIDE_DB_DIR": str(tmp_path)}
+    runner.invoke(cli.goal, ["config", "quotes", "--disable"], env=env)
+    result = runner.invoke(
+        cli.goal,
+        ["config", "quotes", "--enable"],
+        env=env,
+    )
     assert result.exit_code == 0
     assert "Quotes are ON" in result.output
     assert config.quotes_enabled(tmp_path / "config.toml") is True

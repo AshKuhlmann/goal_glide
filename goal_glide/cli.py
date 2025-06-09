@@ -621,7 +621,8 @@ def cfg_quotes(ctx: click.Context, enable: bool | None) -> None:
     if enable is not None:
         cfg["quotes_enabled"] = enable
         save_config(cfg)
-    console.print(f"Quotes are {'ON' if cfg.get('quotes_enabled', True) else 'OFF'}")
+    status = "ON" if cfg.get("quotes_enabled", True) else "OFF"
+    console.print(f"Quotes are {status}")
 
 
 @config.command("show")

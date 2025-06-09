@@ -32,7 +32,10 @@ def test_enable_disable_updates_config(runner: tuple[CliRunner, Path]) -> None:
 
 def test_config_command_updates_values(runner: tuple[CliRunner, Path]) -> None:
     cli_runner, cfg_path = runner
-    cli_runner.invoke(cli.goal, ["reminder", "config", "--break", "10", "--interval", "15"])
+    cli_runner.invoke(
+        cli.goal,
+        ["reminder", "config", "--break", "10", "--interval", "15"],
+    )
     assert cfg.reminder_break(cfg_path) == 10
     assert cfg.reminder_interval(cfg_path) == 15
 
@@ -40,7 +43,10 @@ def test_config_command_updates_values(runner: tuple[CliRunner, Path]) -> None:
 @pytest.mark.parametrize("val", [0, -5, 200])
 def test_invalid_break_value_errors(val: int, runner: tuple[CliRunner, Path]) -> None:
     cli_runner, _ = runner
-    result = cli_runner.invoke(cli.goal, ["reminder", "config", "--break", str(val)])
+    result = cli_runner.invoke(
+        cli.goal,
+        ["reminder", "config", "--break", str(val)],
+    )
     assert result.exit_code != 0
     assert "break must be between 1 and 120" in result.output
 
@@ -48,7 +54,10 @@ def test_invalid_break_value_errors(val: int, runner: tuple[CliRunner, Path]) ->
 @pytest.mark.parametrize("val", [0, -5, 200])
 def test_invalid_interval_value_errors(val: int, runner: tuple[CliRunner, Path]) -> None:
     cli_runner, _ = runner
-    result = cli_runner.invoke(cli.goal, ["reminder", "config", "--interval", str(val)])
+    result = cli_runner.invoke(
+        cli.goal,
+        ["reminder", "config", "--interval", str(val)],
+    )
     assert result.exit_code != 0
     assert "interval must be between 1 and 120" in result.output
 

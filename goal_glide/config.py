@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import tomllib
 from pathlib import Path
-import os
 from typing import Any, Dict, TypedDict, cast
 
 
@@ -21,6 +20,7 @@ DEFAULTS: ConfigDict = {
     "reminder_interval_min": 30,
     "pomo_duration_min": 25,
 }
+
 
 def _load_file(config_path: Path) -> Dict[str, Any]:
     if config_path.exists():

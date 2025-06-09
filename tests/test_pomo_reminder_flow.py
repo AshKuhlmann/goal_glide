@@ -7,7 +7,6 @@ import pytest
 from click.testing import CliRunner
 
 from goal_glide import cli
-from goal_glide import config as cfg
 from goal_glide.services import notify, reminder, pomodoro
 from hypothesis import HealthCheck, given, settings, strategies as st
 from typing import Callable
@@ -35,6 +34,7 @@ def runner(
     session_path = tmp_path / "session.json"
     config_path = tmp_path / "config.toml"
     monkeypatch.setattr(reminder, "_sched", FakeScheduler())
+
     class FakeDT(datetime):
         @classmethod
         def now(cls) -> datetime:  # type: ignore[override]

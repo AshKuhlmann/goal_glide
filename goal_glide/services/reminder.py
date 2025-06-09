@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 
 from apscheduler.schedulers.background import BackgroundScheduler
+from pathlib import Path
 
 from ..config import reminder_break, reminder_interval, reminders_enabled
 from . import pomodoro

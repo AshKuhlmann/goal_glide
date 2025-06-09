@@ -5,7 +5,6 @@ import pytest
 
 from goal_glide.models.goal import Goal
 from goal_glide.models.storage import Storage
-from goal_glide.services import pomodoro
 
 
 def _setup_textual() -> bool:
