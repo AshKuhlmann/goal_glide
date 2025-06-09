@@ -1,3 +1,5 @@
+"""Create, load and manage Pomodoro sessions."""
+
 from __future__ import annotations
 
 import json
@@ -65,11 +67,27 @@ def start_session(
     session_path: Path,
     config_path: Path,
 ) -> PomodoroSession:
-    """Create a new Pomodoro session and persist it to disk."""
+    """Start a new Pomodoro timer.
+
+    Parameters
+    ----------
+    duration_min:
+        Optional custom duration in minutes.  When not provided the default
+        from the configuration is used.
+    goal_id:
+        Identifier of the goal this session relates to.
+    session_path:
+        File path used to persist the session state.
+    config_path:
+        Path to the configuration file from which defaults are read.
+
+    Returns
+    -------
+    PomodoroSession
+        The newly created session object.
+    """
     dur = (
-        duration_min
-        if duration_min is not None
-        else config.pomo_duration(config_path)
+        duration_min if duration_min is not None else config.pomo_duration(config_path)
     )
     session = PomodoroSession(
         id="",
@@ -92,7 +110,22 @@ def start_session(
 
 
 def load_session(session_path: Path) -> Optional[PomodoroSession]:
-    """Load a session without runtime state such as elapsed time."""
+    """Load a previously started session.
+
+    Only the static session information is returned. Runtime data such as
+    the elapsed time or pause state is ignored.
+
+    Parameters
+    ----------
+    session_path:
+        Path to the JSON file storing the session data.
+
+    Returns
+    -------
+    ActiveSession | None
+        ``ActiveSession`` with runtime information or ``None`` if no session
+        exists.
+    """
     data = _load_data(session_path)
     if data is None:
         return None
@@ -105,7 +138,13 @@ def load_session(session_path: Path) -> Optional[PomodoroSession]:
 
 
 def load_active_session(session_path: Path) -> Optional[ActiveSession]:
-    """Load the session including elapsed time and pause state."""
+    """Load the session including elapsed time and pause state.
+
+    Parameters
+    ----------
+    session_path:
+        Path to the JSON file storing the session data.
+    """
     data = _load_data(session_path)
     if data is None:
         return None
@@ -122,7 +161,20 @@ def load_active_session(session_path: Path) -> Optional[ActiveSession]:
 
 
 def stop_session(session_path: Path, config_path: Path) -> PomodoroSession:
-    """Stop the current session and schedule break reminders."""
+    """Stop the active timer and trigger any reminder jobs.
+
+    Parameters
+    ----------
+    session_path:
+        Location of the session file to remove.
+    config_path:
+        Configuration used when scheduling follow-up reminders.
+
+    Returns
+    -------
+    PomodoroSession
+        Representation of the finished session.
+    """
     active = load_active_session(session_path)
     if active is None:
         raise RuntimeError("No active session")
@@ -147,7 +199,18 @@ def stop_session(session_path: Path, config_path: Path) -> PomodoroSession:
 
 
 def pause_session(session_path: Path) -> ActiveSession:
-    """Pause the running session and record elapsed time."""
+    """Pause the running timer and update the elapsed time.
+
+    Parameters
+    ----------
+    session_path:
+        File containing the active session information.
+
+    Returns
+    -------
+    ActiveSession
+        Updated session state reflecting the pause.
+    """
     active = load_active_session(session_path)
     if active is None:
         raise RuntimeError("No active session")
@@ -164,7 +227,18 @@ def pause_session(session_path: Path) -> ActiveSession:
 
 
 def resume_session(session_path: Path) -> ActiveSession:
-    """Resume a previously paused session."""
+    """Resume a previously paused Pomodoro.
+
+    Parameters
+    ----------
+    session_path:
+        File containing the paused session information.
+
+    Returns
+    -------
+    ActiveSession
+        Updated state after the timer has resumed.
+    """
     active = load_active_session(session_path)
     if active is None:
         raise RuntimeError("No active session")

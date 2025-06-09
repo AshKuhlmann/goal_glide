@@ -1,3 +1,5 @@
+"""Scheduling helper for break and interval reminders."""
+
 from __future__ import annotations
 
 from datetime import datetime, timedelta
@@ -13,7 +15,11 @@ _sched: BackgroundScheduler | None = None
 
 
 def _scheduler() -> BackgroundScheduler:
-    """Return the singleton background scheduler instance."""
+    """Return the lazily created :class:`BackgroundScheduler` instance.
+
+    The scheduler runs in the background thread and is shared by all
+    reminder functions in this module.
+    """
 
     global _sched
     if _sched is None:
@@ -23,7 +29,11 @@ def _scheduler() -> BackgroundScheduler:
 
 
 def schedule_after_stop(config_path: Path) -> None:
-    """Schedule break and interval reminders after a session ends."""
+    """Set up reminders once a Pomodoro session finishes.
+
+    Two jobs are scheduled: one to notify the user when a break is over and
+    another periodic reminder encouraging them to start a new session.
+    """
 
     if not reminders_enabled(config_path):
         return
@@ -47,7 +57,7 @@ def schedule_after_stop(config_path: Path) -> None:
 
 
 def cancel_all() -> None:
-    """Cancel all currently scheduled reminder jobs."""
+    """Remove any pending reminder jobs from the scheduler."""
 
     if _sched:
         _sched.remove_all_jobs()
