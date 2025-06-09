@@ -32,16 +32,32 @@ _OS_NOTIFIERS: dict[str, Callable[[str], None]] = {
     "Windows": _win_notify,
 }
 
+_HELP_HINTS: dict[str, str] = {
+    "Darwin": "Install 'terminal-notifier' with Homebrew: brew install terminal-notifier",
+    "Linux": "Install 'notify2' via pip or 'notify-send' via your package manager",
+    "Windows": "Install 'win10toast' via pip: pip install win10toast",
+}
+
+_DEFAULT_HINT = (
+    "Desktop notifications require an external helper. "
+    "Install 'terminal-notifier' on macOS, 'notify2' or 'notify-send' on Linux, "
+    "or 'win10toast' on Windows."
+)
+
 
 def push(msg: str) -> None:
-    notifier = _OS_NOTIFIERS.get(platform.system())
+    osname = platform.system()
+    notifier = _OS_NOTIFIERS.get(osname)
+    hint = _HELP_HINTS.get(osname, _DEFAULT_HINT)
     if notifier:
         try:
             notifier(msg)
         except Exception as exc:  # pragma: no cover - log only
             logging.warning("Notification failed: %s", exc)
+            print(hint)
     else:  # pragma: no cover - unsupported OS
-        logging.info("No notifier for OS %s", platform.system())
+        logging.info("No notifier for OS %s", osname)
+        print(hint)
 
 
 __all__ = ["push"]
