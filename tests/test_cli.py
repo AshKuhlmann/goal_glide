@@ -36,7 +36,9 @@ def test_add_list_remove(tmp_path):
 def test_pomo_session_persisted(tmp_path, monkeypatch):
     monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
     monkeypatch.setenv("HOME", str(tmp_path))
-    pomodoro.POMO_PATH = tmp_path / "session.json"
+    monkeypatch.setenv("GOAL_GLIDE_SESSION_FILE", str(tmp_path / "session.json"))
+    import importlib
+    importlib.reload(pomodoro)
     runner = CliRunner()
     res = runner.invoke(
         cli.goal, ["add", "G"], env={"GOAL_GLIDE_DB_DIR": str(tmp_path)}
@@ -70,7 +72,9 @@ def test_pomo_session_persisted(tmp_path, monkeypatch):
 def test_pomo_pause_resume(tmp_path, monkeypatch):
     monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
     monkeypatch.setenv("HOME", str(tmp_path))
-    pomodoro.POMO_PATH = tmp_path / "session.json"
+    monkeypatch.setenv("GOAL_GLIDE_SESSION_FILE", str(tmp_path / "session.json"))
+    import importlib
+    importlib.reload(pomodoro)
     runner = CliRunner()
     runner.invoke(cli.goal, ["pomo", "start", "--duration", "1"])
     res = runner.invoke(cli.goal, ["pomo", "pause"])
@@ -147,7 +151,9 @@ def test_config_quotes_enable(tmp_path, monkeypatch):
 def test_pomo_start_after_archive(tmp_path, monkeypatch):
     monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
     monkeypatch.setenv("HOME", str(tmp_path))
-    pomodoro.POMO_PATH = tmp_path / "session.json"
+    monkeypatch.setenv("GOAL_GLIDE_SESSION_FILE", str(tmp_path / "session.json"))
+    import importlib
+    importlib.reload(pomodoro)
     runner = CliRunner()
     add_res = runner.invoke(
         cli.goal,
@@ -168,7 +174,9 @@ def test_pomo_start_after_archive(tmp_path, monkeypatch):
 def test_pomo_start_default_from_config(tmp_path, monkeypatch):
     monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
     monkeypatch.setenv("HOME", str(tmp_path))
-    pomodoro.POMO_PATH = tmp_path / "session.json"
+    monkeypatch.setenv("GOAL_GLIDE_SESSION_FILE", str(tmp_path / "session.json"))
+    import importlib
+    importlib.reload(pomodoro)
     monkeypatch.setattr(config, "pomo_duration", lambda: 2)
     runner = CliRunner()
     result = runner.invoke(

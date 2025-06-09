@@ -32,6 +32,10 @@ def runner(
 ) -> tuple[CliRunner, list[str]]:
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
+    monkeypatch.setenv("GOAL_GLIDE_SESSION_FILE", str(tmp_path / "session.json"))
+    import importlib
+    importlib.reload(pomodoro)
+    importlib.reload(reminder)
     cfg._CONFIG_PATH = tmp_path / ".goal_glide" / "config.toml"
     monkeypatch.setattr(reminder, "_sched", FakeScheduler())
 
@@ -89,8 +93,6 @@ def test_cancel_all_runs_on_new_session(runner, monkeypatch, tmp_path) -> None:
     sched.add_job(lambda: None, "interval")  # type: ignore[attr-defined]
     sched.add_job(lambda: None, "interval")  # type: ignore[attr-defined]
     assert len(sched.jobs) == 2  # type: ignore[attr-defined]
-
-    monkeypatch.setattr(pomodoro, "POMO_PATH", tmp_path / "session.json")
 
     pomodoro.start_session(1)
 

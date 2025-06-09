@@ -16,7 +16,9 @@ def _setup_textual() -> bool:
 def app_env(monkeypatch, tmp_path):
     monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
     monkeypatch.setenv("HOME", str(tmp_path))
-    pomodoro.POMO_PATH = tmp_path / "session.json"
+    monkeypatch.setenv("GOAL_GLIDE_SESSION_FILE", str(tmp_path / "session.json"))
+    import importlib
+    importlib.reload(pomodoro)
     yield
 
 
