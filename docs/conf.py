@@ -1,11 +1,12 @@
 # Configuration file for the Sphinx documentation builder.
 
-project = 'Goal Glide'
-author = 'Goal Glide Developers'
-
 import os
 import sys
+
 sys.path.insert(0, os.path.abspath('..'))
+
+project = 'Goal Glide'
+author = 'Goal Glide Developers'
 
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon']
 autodoc_mock_imports = [
