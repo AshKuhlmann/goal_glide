@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import tomllib
 from pathlib import Path
-import os
 from typing import Any, Dict, TypedDict, cast
 
 
@@ -22,54 +21,21 @@ DEFAULTS: ConfigDict = {
     "pomo_duration_min": 25,
 }
 
-_CONFIG_PATH = (
-    Path(os.environ["GOAL_GLIDE_CONFIG_DIR"]) / "config.toml"
-    if "GOAL_GLIDE_CONFIG_DIR" in os.environ
-    else Path.home() / ".goal_glide" / "config.toml"
-)
 
-
-def _load_file() -> Dict[str, Any]:
-    if _CONFIG_PATH.exists():
-        with _CONFIG_PATH.open("rb") as f:
+def _load_file(config_path: Path) -> Dict[str, Any]:
+    if config_path.exists():
+        with config_path.open("rb") as f:
             return tomllib.load(f)
     return {}
 
 
-def _config() -> ConfigDict:
-    data = cast(ConfigDict, _load_file())
-    full_cfg: ConfigDict = {**DEFAULTS, **data}
-    return full_cfg
-
-
-def quotes_enabled() -> bool:
-    return bool(_config().get("quotes_enabled", True))
-
-
-def reminders_enabled() -> bool:
-    return bool(_config().get("reminders_enabled", False))
-
-
-def reminder_break() -> int:
-    return int(_config().get("reminder_break_min", 5))
-
-
-def reminder_interval() -> int:
-    return int(_config().get("reminder_interval_min", 30))
-
-
-def pomo_duration() -> int:
-    return int(_config().get("pomo_duration_min", 25))
-
-
-def load_config() -> ConfigDict:
-    file_cfg = cast(ConfigDict, _load_file())
+def load_config(config_path: Path) -> ConfigDict:
+    file_cfg = cast(ConfigDict, _load_file(config_path))
     full_cfg: ConfigDict = {**DEFAULTS, **file_cfg}
     return full_cfg
 
 
-def save_config(cfg: ConfigDict) -> None:
-    _CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+def save_config(cfg: ConfigDict, config_path: Path) -> None:
     items = []
     for k, v in cfg.items():
         if isinstance(v, bool):
@@ -77,5 +43,25 @@ def save_config(cfg: ConfigDict) -> None:
         else:
             items.append(f"{k} = {v!r}")
     content = "\n".join(items)
-    with _CONFIG_PATH.open("w", encoding="utf-8") as f:
+    with config_path.open("w", encoding="utf-8") as f:
         f.write(content)
+
+
+def quotes_enabled(config_path: Path) -> bool:
+    return bool(load_config(config_path).get("quotes_enabled", True))
+
+
+def reminders_enabled(config_path: Path) -> bool:
+    return bool(load_config(config_path).get("reminders_enabled", False))
+
+
+def reminder_break(config_path: Path) -> int:
+    return int(load_config(config_path).get("reminder_break_min", 5))
+
+
+def reminder_interval(config_path: Path) -> int:
+    return int(load_config(config_path).get("reminder_interval_min", 30))
+
+
+def pomo_duration(config_path: Path) -> int:
+    return int(load_config(config_path).get("pomo_duration_min", 25))

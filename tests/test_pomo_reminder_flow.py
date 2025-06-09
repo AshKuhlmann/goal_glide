@@ -7,7 +7,6 @@ import pytest
 from click.testing import CliRunner
 
 from goal_glide.cli import cli
-from goal_glide import config as cfg
 from goal_glide.services import notify, reminder, pomodoro
 from hypothesis import HealthCheck, given, settings, strategies as st
 from typing import Callable
@@ -29,11 +28,12 @@ class FakeScheduler:
 @pytest.fixture()
 def reminder_runner(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, runner: CliRunner
-) -> tuple[CliRunner, list[str]]:
+) -> tuple[CliRunner, list[str], dict[str, str]]:
     import importlib
+
     importlib.reload(pomodoro)
     importlib.reload(reminder)
-    cfg._CONFIG_PATH = tmp_path / ".goal_glide" / "config.toml"
+    env = {"GOAL_GLIDE_DB_DIR": str(tmp_path), "HOME": str(tmp_path)}
     monkeypatch.setattr(reminder, "_sched", FakeScheduler())
 
     class FakeDT(datetime):
@@ -45,16 +45,16 @@ def reminder_runner(
     messages: list[str] = []
     monkeypatch.setattr(notify, "push", lambda m: messages.append(m))
     monkeypatch.setattr(reminder, "push", lambda m: messages.append(m))
-    return runner, messages
+    return runner, messages, env
 
 
 def test_flow_schedules_jobs(reminder_runner) -> None:
-    cli_runner, messages = reminder_runner
-    cli_runner.invoke(cli, ["reminder", "enable"])
-    gid = cli_runner.invoke(cli, ["goal", "add", "g"])
-    gid = gid.output.split()[-1].strip("()")
-    cli_runner.invoke(cli, ["pomo", "start", "--duration", "1"])
-    result = cli_runner.invoke(cli, ["pomo", "stop"])
+    cli_runner, messages, env = reminder_runner
+    cli_runner.invoke(cli, ["reminder", "enable"], env=env)
+    gid_result = cli_runner.invoke(cli, ["goal", "add", "g"], env=env)
+    gid = gid_result.output.split()[-1].strip("()")
+    cli_runner.invoke(cli, ["pomo", "start", "--duration", "1"], env=env)
+    result = cli_runner.invoke(cli, ["pomo", "stop"], env=env)
     assert "reminders scheduled" in result.output
     sched = reminder._sched
     assert sched is not None
@@ -65,14 +65,15 @@ def test_flow_schedules_jobs(reminder_runner) -> None:
 
 
 def test_flow_uses_config_and_clears_existing_jobs(reminder_runner) -> None:
-    cli_runner, _ = reminder_runner
-    cli_runner.invoke(cli, ["reminder", "enable"])
+    cli_runner, _, env = reminder_runner
+    cli_runner.invoke(cli, ["reminder", "enable"], env=env)
     cli_runner.invoke(
         cli,
         ["reminder", "config", "--break", "2", "--interval", "7"],
+        env=env,
     )
-    reminder.schedule_after_stop()
-    reminder.schedule_after_stop()
+    reminder.schedule_after_stop(Path(env["GOAL_GLIDE_DB_DIR"]) / "config.toml")
+    reminder.schedule_after_stop(Path(env["GOAL_GLIDE_DB_DIR"]) / "config.toml")
     sched = reminder._sched
     assert sched is not None
     assert len(sched.jobs) == 2  # type: ignore[attr-defined]
@@ -83,7 +84,7 @@ def test_flow_uses_config_and_clears_existing_jobs(reminder_runner) -> None:
 
 
 def test_cancel_all_runs_on_new_session(reminder_runner, monkeypatch, tmp_path) -> None:
-    cli_runner, _ = reminder_runner
+    cli_runner, _, env = reminder_runner
     sched = reminder._sched
     assert sched is not None
     # pre-populate fake scheduler with dummy jobs
@@ -91,7 +92,11 @@ def test_cancel_all_runs_on_new_session(reminder_runner, monkeypatch, tmp_path) 
     sched.add_job(lambda: None, "interval")  # type: ignore[attr-defined]
     assert len(sched.jobs) == 2  # type: ignore[attr-defined]
 
-    pomodoro.start_session(1)
+    pomodoro.start_session(
+        1,
+        session_path=Path(env["GOAL_GLIDE_DB_DIR"]) / "session.json",
+        config_path=Path(env["GOAL_GLIDE_DB_DIR"]) / "config.toml",
+    )
 
     assert sched.jobs == []  # type: ignore[attr-defined]
 
@@ -105,12 +110,12 @@ def test_schedule_after_stop_randomized(
     reminder_runner, monkeypatch, break_min: int, interval_min: int
 ) -> None:
     """`schedule_after_stop` uses config values when scheduling."""
-    _, _ = reminder_runner
-    monkeypatch.setattr(reminder, "reminders_enabled", lambda: True)
-    monkeypatch.setattr(reminder, "reminder_break", lambda: break_min)
-    monkeypatch.setattr(reminder, "reminder_interval", lambda: interval_min)
+    _, _, env = reminder_runner
+    monkeypatch.setattr(reminder, "reminders_enabled", lambda path: True)
+    monkeypatch.setattr(reminder, "reminder_break", lambda path: break_min)
+    monkeypatch.setattr(reminder, "reminder_interval", lambda path: interval_min)
 
-    reminder.schedule_after_stop()
+    reminder.schedule_after_stop(Path(env["GOAL_GLIDE_DB_DIR"]) / "config.toml")
 
     sched = reminder._sched
     assert sched is not None

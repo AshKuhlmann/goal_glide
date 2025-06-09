@@ -25,7 +25,7 @@ def seed(storage: Storage, sessions: list[PomodoroSession]) -> None:
 
 
 def test_total_time_by_goal_simple(tmp_path: Path) -> None:
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     seed(
         storage,
         [
@@ -41,7 +41,7 @@ def test_total_time_by_goal_simple(tmp_path: Path) -> None:
 
 def test_total_time_by_goal_parent_accum(tmp_path: Path) -> None:
     """Accumulated time propagates through multi-level hierarchies."""
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     grand = Goal(id="gp", title="grand", created=datetime.now())
     parent = Goal(id="p", title="p", created=datetime.now(), parent_id="gp")
     child = Goal(id="c", title="c", created=datetime.now(), parent_id="p")
@@ -61,7 +61,7 @@ def test_total_time_by_goal_parent_accum(tmp_path: Path) -> None:
 
 def test_total_time_by_goal_missing_parent(tmp_path: Path) -> None:
     """Sessions for a child with a missing parent should not error."""
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     child = Goal(id="c", title="c", created=datetime.now(), parent_id="missing")
     storage.add_goal(child)
     storage.add_session(make_session("c", datetime.now(), 40))
@@ -73,7 +73,7 @@ def test_total_time_by_goal_missing_parent(tmp_path: Path) -> None:
 
 def test_weekly_histogram_exact_bounds(tmp_path: Path) -> None:
     today = date(2023, 5, 15)  # Monday
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     seed(
         storage,
         [
@@ -87,12 +87,12 @@ def test_weekly_histogram_exact_bounds(tmp_path: Path) -> None:
 
 
 def test_current_streak_zero(tmp_path: Path) -> None:
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     assert analytics.current_streak(storage, date(2023, 1, 1)) == 0
 
 
 def test_current_streak_nonzero(tmp_path: Path) -> None:
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     seed(
         storage,
         [
@@ -104,7 +104,7 @@ def test_current_streak_nonzero(tmp_path: Path) -> None:
 
 
 def test_empty_storage(tmp_path: Path) -> None:
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     start = date(2023, 1, 2)
     assert analytics.total_time_by_goal(storage) == {}
     assert analytics.weekly_histogram(storage, start) == {
@@ -114,7 +114,7 @@ def test_empty_storage(tmp_path: Path) -> None:
 
 
 def test_total_time_by_goal_ignores_invalid(tmp_path: Path) -> None:
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     sessions = [
         PomodoroSession(
             id="1",
@@ -149,7 +149,7 @@ def test_total_time_by_goal_ignores_invalid(tmp_path: Path) -> None:
 
 def test_weekly_histogram_varied(tmp_path: Path) -> None:
     week_start = date(2023, 5, 15)  # Monday
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     sessions = [
         make_session("g", datetime(2023, 5, 15, 8), 10),
         make_session("g", datetime(2023, 5, 15, 9), 20),
@@ -171,7 +171,7 @@ def test_weekly_histogram_varied(tmp_path: Path) -> None:
 
 def test_current_streak_with_gaps_and_future(tmp_path: Path) -> None:
     today = date(2023, 6, 5)
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     sessions = [
         make_session("g", datetime(2023, 6, 5, 8), 25),
         make_session("g", datetime(2023, 6, 5, 9), 30),  # multiple same day
@@ -185,7 +185,7 @@ def test_current_streak_with_gaps_and_future(tmp_path: Path) -> None:
 
 
 def test_average_focus_per_day_simple(tmp_path: Path) -> None:
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     sessions = [
         make_session("g", datetime(2023, 6, 1, 8), 60),
         make_session("g", datetime(2023, 6, 2, 8), 120),
@@ -196,7 +196,7 @@ def test_average_focus_per_day_simple(tmp_path: Path) -> None:
 
 
 def test_most_productive_day_simple(tmp_path: Path) -> None:
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     sessions = [
         make_session("g", datetime(2023, 6, 1, 8), 60),  # Thu
         make_session("g", datetime(2023, 6, 2, 8), 120),  # Fri
@@ -207,7 +207,7 @@ def test_most_productive_day_simple(tmp_path: Path) -> None:
 
 
 def test_longest_streak_simple(tmp_path: Path) -> None:
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     sessions = [
         make_session("g", datetime(2023, 6, 1, 8), 30),
         make_session("g", datetime(2023, 6, 2, 8), 30),
@@ -221,7 +221,7 @@ def test_longest_streak_simple(tmp_path: Path) -> None:
 
 def test_weekly_histogram_year_boundary(tmp_path: Path) -> None:
     week_start = date(2023, 12, 29)  # Friday spanning new year
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     sessions = [
         make_session("g", datetime(2023, 12, 29, 8), 10),
         make_session("g", datetime(2023, 12, 31, 9), 20),
@@ -236,7 +236,7 @@ def test_weekly_histogram_year_boundary(tmp_path: Path) -> None:
 
 
 def test_current_streak_year_boundary(tmp_path: Path) -> None:
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     sessions = [
         make_session("g", datetime(2023, 12, 31, 8), 15),
         make_session("g", datetime(2024, 1, 1, 8), 15),
@@ -246,7 +246,7 @@ def test_current_streak_year_boundary(tmp_path: Path) -> None:
 
 
 def test_current_streak_adjacent_seconds(tmp_path: Path) -> None:
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     sessions = [
         make_session("g", datetime(2023, 6, 1, 23, 59, 59), 5),
         make_session("g", datetime(2023, 6, 2, 0, 0, 1), 5),
@@ -256,7 +256,7 @@ def test_current_streak_adjacent_seconds(tmp_path: Path) -> None:
 
 
 def test_longest_streak_multiple_equal(tmp_path: Path) -> None:
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     sessions = [
         make_session("g", datetime(2023, 6, 1, 8), 20),
         make_session("g", datetime(2023, 6, 2, 8), 20),
@@ -362,7 +362,7 @@ def _ref_longest_streak(sessions: list[PomodoroSession]) -> int:
 @settings(max_examples=25)
 def test_property_total_time(sessions: list[PomodoroSession]) -> None:
     with tempfile.TemporaryDirectory() as d:
-        storage = Storage(Path(d))
+        storage = Storage(Path(d) / "db.json")
         seed(storage, sessions)
         assert analytics.total_time_by_goal(storage) == _ref_total_time(sessions)
 
@@ -390,7 +390,7 @@ def test_property_weekly_histogram(
     sessions: list[PomodoroSession], start: date
 ) -> None:
     with tempfile.TemporaryDirectory() as d:
-        storage = Storage(Path(d))
+        storage = Storage(Path(d) / "db.json")
         seed(storage, sessions)
         assert analytics.weekly_histogram(storage, start) == _ref_histogram(
             sessions, start
@@ -418,7 +418,7 @@ def test_property_weekly_histogram(
 @settings(max_examples=25)
 def test_property_current_streak(sessions: list[PomodoroSession], today: date) -> None:
     with tempfile.TemporaryDirectory() as d:
-        storage = Storage(Path(d))
+        storage = Storage(Path(d) / "db.json")
         seed(storage, sessions)
         assert analytics.current_streak(storage, today) == _ref_streak(sessions, today)
 
@@ -443,7 +443,7 @@ def test_property_current_streak(sessions: list[PomodoroSession], today: date) -
 @settings(max_examples=25)
 def test_property_average_focus_per_day(sessions: list[PomodoroSession]) -> None:
     with tempfile.TemporaryDirectory() as d:
-        storage = Storage(Path(d))
+        storage = Storage(Path(d) / "db.json")
         seed(storage, sessions)
         assert analytics.average_focus_per_day(storage) == pytest.approx(
             _ref_average_focus(sessions)
@@ -470,7 +470,7 @@ def test_property_average_focus_per_day(sessions: list[PomodoroSession]) -> None
 @settings(max_examples=25)
 def test_property_most_productive_day(sessions: list[PomodoroSession]) -> None:
     with tempfile.TemporaryDirectory() as d:
-        storage = Storage(Path(d))
+        storage = Storage(Path(d) / "db.json")
         seed(storage, sessions)
         assert analytics.most_productive_day(storage) == _ref_most_productive_day(
             sessions
@@ -497,6 +497,6 @@ def test_property_most_productive_day(sessions: list[PomodoroSession]) -> None:
 @settings(max_examples=25)
 def test_property_longest_streak(sessions: list[PomodoroSession]) -> None:
     with tempfile.TemporaryDirectory() as d:
-        storage = Storage(Path(d))
+        storage = Storage(Path(d) / "db.json")
         seed(storage, sessions)
         assert analytics.longest_streak(storage) == _ref_longest_streak(sessions)
