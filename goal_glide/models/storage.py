@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any, cast
-from tinydb.table import Document
 
+from filelock import FileLock
 from tinydb import Query, TinyDB
 from tinydb.queries import QueryLike
+from tinydb.table import Document
 
 from ..exceptions import (
     GoalAlreadyArchivedError,
@@ -36,29 +37,33 @@ class Storage:
         base = db_dir or Path.home() / ".goal_glide"
         db_path = Path(base) / "db.json"
         db_path.parent.mkdir(parents=True, exist_ok=True)
-        self.db = TinyDB(db_path, default=str)
+        self.lock = FileLock(db_path.with_suffix(".lock"))
+        with self.lock:
+            self.db = TinyDB(db_path, default=str)
         self.table = self.db.table("goals")
         self.thought_table = self.db.table(THOUGHTS_TABLE)
         self.session_table = self.db.table("sessions")
 
-        # migrate existing rows to include new fields
-        for row in self.table.all():
-            updated = False
-            new_row = dict(row)
-            if "tags" not in row:
-                new_row["tags"] = []
-                updated = True
-            if "parent_id" not in row:
-                new_row["parent_id"] = None
-                updated = True
-            if "deadline" not in row:
-                new_row["deadline"] = None
-                updated = True
-            if "completed" not in row:
-                new_row["completed"] = False
-                updated = True
-            if updated:
-                self.table.update(new_row, Query().id == row["id"])
+        # Migrate existing rows to include new fields
+        # This lock ensures migration happens safely.
+        with self.lock:
+            for row in self.table.all():
+                updated = False
+                new_row = dict(row)
+                if "tags" not in row:
+                    new_row["tags"] = []
+                    updated = True
+                if "parent_id" not in row:
+                    new_row["parent_id"] = None
+                    updated = True
+                if "deadline" not in row:
+                    new_row["deadline"] = None
+                    updated = True
+                if "completed" not in row:
+                    new_row["completed"] = False
+                    updated = True
+                if updated:
+                    self.table.update(new_row, Query().id == row["id"])
 
     def _row_to_goal(self, row: Document | dict[str, Any]) -> Goal:
         return Goal.from_dict(dict(row))
@@ -69,133 +74,151 @@ class Storage:
     def _row_to_session(self, row: Document | dict[str, Any]) -> PomodoroSession:
         return PomodoroSession.from_dict(dict(row))
 
+    def _get_goal_no_lock(self, goal_id: str) -> Goal:
+        """Retrieves a goal without acquiring the file lock. Assumes lock is held."""
+        row = self.table.get(Query().id == goal_id)
+        if not row:
+            raise GoalNotFoundError(f"Goal {goal_id} not found")
+        return self._row_to_goal(row)
+
+    def _update_goal_no_lock(self, goal: Goal) -> None:
+        """Updates a goal without acquiring the file lock. Assumes lock is held."""
+        if not self.table.contains(Query().id == goal.id):
+            raise GoalNotFoundError(f"Goal {goal.id} not found")
+        self.table.update(goal.to_dict(), Query().id == goal.id)
+
     def add_goal(self, goal: Goal) -> None:
         """Saves a new goal to the database.
 
         Args:
             goal: A :class:`Goal` object to be added to the database.
         """
-
-        self.table.insert(goal.to_dict())
+        with self.lock:
+            self.table.insert(goal.to_dict())
 
     def get_goal(self, goal_id: str) -> Goal:
-        row = self.table.get(Query().id == goal_id)
-        if not row:
-            raise GoalNotFoundError(f"Goal {goal_id} not found")
-        return self._row_to_goal(cast(Document, row))
+        with self.lock:
+            return self._get_goal_no_lock(goal_id)
 
     def add_tags(self, goal_id: str, tags: list[str]) -> Goal:
-        goal = self.get_goal(goal_id)
-        updated_tags = list({*goal.tags, *tags})
-        updated = Goal(
-            id=goal.id,
-            title=goal.title,
-            created=goal.created,
-            priority=goal.priority,
-            archived=goal.archived,
-            tags=sorted(updated_tags),
-            parent_id=goal.parent_id,
-            deadline=goal.deadline,
-            completed=goal.completed,
-        )
-        self.update_goal(updated)
-        return updated
+        with self.lock:
+            goal = self._get_goal_no_lock(goal_id)
+            updated_tags = list({*goal.tags, *tags})
+            updated = Goal(
+                id=goal.id,
+                title=goal.title,
+                created=goal.created,
+                priority=goal.priority,
+                archived=goal.archived,
+                tags=sorted(updated_tags),
+                parent_id=goal.parent_id,
+                deadline=goal.deadline,
+                completed=goal.completed,
+            )
+            self._update_goal_no_lock(updated)
+            return updated
 
     def remove_tag(self, goal_id: str, tag: str) -> Goal:
-        goal = self.get_goal(goal_id)
-        if tag not in goal.tags:
-            return goal
-        new_tags = [t for t in goal.tags if t != tag]
-        updated = Goal(
-            id=goal.id,
-            title=goal.title,
-            created=goal.created,
-            priority=goal.priority,
-            archived=goal.archived,
-            tags=new_tags,
-            parent_id=goal.parent_id,
-            deadline=goal.deadline,
-            completed=goal.completed,
-        )
-        self.update_goal(updated)
-        return updated
+        with self.lock:
+            goal = self._get_goal_no_lock(goal_id)
+            if tag not in goal.tags:
+                return goal
+            new_tags = [t for t in goal.tags if t != tag]
+            updated = Goal(
+                id=goal.id,
+                title=goal.title,
+                created=goal.created,
+                priority=goal.priority,
+                archived=goal.archived,
+                tags=new_tags,
+                parent_id=goal.parent_id,
+                deadline=goal.deadline,
+                completed=goal.completed,
+            )
+            self._update_goal_no_lock(updated)
+            return updated
 
     def update_goal(self, goal: Goal) -> None:
-        if not self.table.contains(Query().id == goal.id):
-            raise GoalNotFoundError(f"Goal {goal.id} not found")
-        self.table.update(goal.to_dict(), Query().id == goal.id)
+        with self.lock:
+            if not self.table.contains(Query().id == goal.id):
+                raise GoalNotFoundError(f"Goal {goal.id} not found")
+            self.table.update(goal.to_dict(), Query().id == goal.id)
 
     def archive_goal(self, goal_id: str) -> Goal:
-        goal = self.get_goal(goal_id)
-        if goal.archived:
-            raise GoalAlreadyArchivedError(f"Goal {goal_id} already archived")
-        updated = Goal(
-            id=goal.id,
-            title=goal.title,
-            created=goal.created,
-            priority=goal.priority,
-            archived=True,
-            tags=goal.tags,
-            parent_id=goal.parent_id,
-            deadline=goal.deadline,
-            completed=goal.completed,
-        )
-        self.update_goal(updated)
-        return updated
+        with self.lock:
+            goal = self._get_goal_no_lock(goal_id)
+            if goal.archived:
+                raise GoalAlreadyArchivedError(f"Goal {goal_id} already archived")
+            updated = Goal(
+                id=goal.id,
+                title=goal.title,
+                created=goal.created,
+                priority=goal.priority,
+                archived=True,
+                tags=goal.tags,
+                parent_id=goal.parent_id,
+                deadline=goal.deadline,
+                completed=goal.completed,
+            )
+            self._update_goal_no_lock(updated)
+            return updated
 
     def restore_goal(self, goal_id: str) -> Goal:
-        goal = self.get_goal(goal_id)
-        if not goal.archived:
-            raise GoalNotArchivedError(f"Goal {goal_id} is not archived")
-        updated = Goal(
-            id=goal.id,
-            title=goal.title,
-            created=goal.created,
-            priority=goal.priority,
-            archived=False,
-            tags=goal.tags,
-            parent_id=goal.parent_id,
-            deadline=goal.deadline,
-            completed=goal.completed,
-        )
-        self.update_goal(updated)
-        return updated
+        with self.lock:
+            goal = self._get_goal_no_lock(goal_id)
+            if not goal.archived:
+                raise GoalNotArchivedError(f"Goal {goal_id} is not archived")
+            updated = Goal(
+                id=goal.id,
+                title=goal.title,
+                created=goal.created,
+                priority=goal.priority,
+                archived=False,
+                tags=goal.tags,
+                parent_id=goal.parent_id,
+                deadline=goal.deadline,
+                completed=goal.completed,
+            )
+            self._update_goal_no_lock(updated)
+            return updated
 
     def complete_goal(self, goal_id: str) -> Goal:
-        goal = self.get_goal(goal_id)
-        if goal.completed:
-            return goal
-        updated = Goal(
-            id=goal.id,
-            title=goal.title,
-            created=goal.created,
-            priority=goal.priority,
-            archived=goal.archived,
-            tags=goal.tags,
-            parent_id=goal.parent_id,
-            deadline=goal.deadline,
-            completed=True,
-        )
-        self.update_goal(updated)
-        return updated
+        with self.lock:
+            goal = self._get_goal_no_lock(goal_id)
+            if goal.completed:
+                return goal
+            updated = Goal(
+                id=goal.id,
+                title=goal.title,
+                created=goal.created,
+                priority=goal.priority,
+                archived=goal.archived,
+                tags=goal.tags,
+                parent_id=goal.parent_id,
+                deadline=goal.deadline,
+                completed=True,
+            )
+            self._update_goal_no_lock(updated)
+            return updated
 
     def reopen_goal(self, goal_id: str) -> Goal:
-        goal = self.get_goal(goal_id)
-        if not goal.completed:
-            return goal
-        updated = Goal(
-            id=goal.id,
-            title=goal.title,
-            created=goal.created,
-            priority=goal.priority,
-            archived=goal.archived,
-            tags=goal.tags,
-            parent_id=goal.parent_id,
-            deadline=goal.deadline,
-            completed=False,
-        )
-        self.update_goal(updated)
-        return updated
+        with self.lock:
+            goal = self._get_goal_no_lock(goal_id)
+            if not goal.completed:
+                return goal
+            updated = Goal(
+                id=goal.id,
+                title=goal.title,
+                created=goal.created,
+                priority=goal.priority,
+                archived=goal.archived,
+                tags=goal.tags,
+                parent_id=goal.parent_id,
+                deadline=goal.deadline,
+                completed=False,
+            )
+            self._update_goal_no_lock(updated)
+            return updated
 
     def list_goals(
         self,
@@ -218,56 +241,65 @@ class Storage:
             A list of :class:`Goal` objects matching the filter criteria.
         """
         GoalQuery = Query()
-
         predicates = []
 
         if only_archived:
-            predicates.append(lambda r: r.get("archived") is True)
+            predicates.append(GoalQuery.archived == True)
         elif not include_archived:
-            predicates.append(lambda r: not r.get("archived", False))
+            # Goals created before 'archived' field will not have it.
+            predicates.append(GoalQuery.archived != True)
 
         if priority:
             predicates.append(GoalQuery.priority == priority.value)
 
         if tags:
-            predicates.append(lambda r: set(tags).issubset(r.get("tags", [])))
+            # Using .all() to check for a subset of tags
+            predicates.append(GoalQuery.tags.all(tags))
 
         if parent_id is not None:
             predicates.append(GoalQuery.parent_id == parent_id)
 
-        def predicate(row: dict[str, Any]) -> bool:
-            return all(p(row) for p in predicates)
+        # Combine all predicates with a logical AND
+        final_query = Query()
+        for p in predicates:
+            final_query = final_query & p
 
-        search_cond = cast(QueryLike, predicate)
-        rows = self.table.search(search_cond) if predicates else self.table.all()
-        return [self._row_to_goal(r) for r in rows]
+        with self.lock:
+            rows = self.table.search(final_query) if predicates else self.table.all()
+            return [self._row_to_goal(r) for r in rows]
 
     def list_all_tags(self) -> dict[str, int]:
         """Return mapping of tag name to count of goals containing it."""
         counts: dict[str, int] = {}
-        for row in self.table.all():
-            for tag in row.get("tags", []):
-                counts[tag] = counts.get(tag, 0) + 1
+        with self.lock:
+            for row in self.table.all():
+                for tag in row.get("tags", []):
+                    counts[tag] = counts.get(tag, 0) + 1
         return counts
 
     def remove_goal(self, goal_id: str) -> None:
-        if not self.table.contains(Query().id == goal_id):
-            raise GoalNotFoundError(f"Goal {goal_id} not found")
-        self.table.remove(Query().id == goal_id)
+        with self.lock:
+            if not self.table.contains(Query().id == goal_id):
+                raise GoalNotFoundError(f"Goal {goal_id} not found")
+            self.table.remove(Query().id == goal_id)
 
     def find_by_title(self, title: str) -> Goal | None:
-        row = self.table.get(Query().title == title)
-        return self._row_to_goal(cast(Document, row)) if row else None
+        with self.lock:
+            row = self.table.get(Query().title == title)
+            return self._row_to_goal(row) if row else None
 
     def add_session(self, session: PomodoroSession) -> None:
-        self.session_table.insert(session.to_dict())
+        with self.lock:
+            self.session_table.insert(session.to_dict())
 
     def list_sessions(self) -> list[PomodoroSession]:
-        rows = self.session_table.all()
-        return [self._row_to_session(r) for r in rows]
+        with self.lock:
+            rows = self.session_table.all()
+            return [self._row_to_session(r) for r in rows]
 
     def add_thought(self, thought: Thought) -> None:
-        self.thought_table.insert(thought.to_dict())
+        with self.lock:
+            self.thought_table.insert(thought.to_dict())
 
     def list_thoughts(
         self,
@@ -276,21 +308,22 @@ class Storage:
         newest_first: bool = True,
     ) -> list[Thought]:
         ThoughtQuery = Query()
+        with self.lock:
+            if goal_id is not None:
+                db_rows = self.thought_table.search(ThoughtQuery.goal_id == goal_id)
+            else:
+                db_rows = self.thought_table.all()
 
-        if goal_id is not None:
-            db_rows = self.thought_table.search(ThoughtQuery.goal_id == goal_id)
-        else:
-            db_rows = self.thought_table.all()
-
-        rows = [self._row_to_thought(r) for r in db_rows]
-        rows.sort(key=lambda t: t.timestamp, reverse=newest_first)
-        if limit is not None:
-            rows = rows[:limit]
-        return rows
+            rows = [self._row_to_thought(r) for r in db_rows]
+            rows.sort(key=lambda t: t.timestamp, reverse=newest_first)
+            if limit is not None:
+                rows = rows[:limit]
+            return rows
 
     def remove_thought(self, thought_id: str) -> bool:
         """Delete a thought. Returns True if removed."""
-        if not self.thought_table.contains(Query().id == thought_id):
-            return False
-        self.thought_table.remove(Query().id == thought_id)
-        return True
+        with self.lock:
+            if not self.thought_table.contains(Query().id == thought_id):
+                return False
+            self.thought_table.remove(Query().id == thought_id)
+            return True
