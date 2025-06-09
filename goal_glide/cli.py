@@ -1,13 +1,12 @@
 from __future__ import annotations
 
+import click
 import functools
 import os
 import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Callable, ParamSpec, TypeVar, cast, TypedDict
-
-import click
+from typing import cast, Callable, TypeVar, TypedDict, ParamSpec
 
 from rich.bar import Bar
 from rich.console import Console
@@ -87,7 +86,6 @@ def get_storage() -> Storage:
     db_dir.mkdir(parents=True, exist_ok=True)
     return Storage(db_dir / "db.json")
 
-
 def _fmt(seconds: int) -> str:
     mins = int(seconds // 60)
     return f"{mins}m"
@@ -104,8 +102,9 @@ def _print_completion(session: PomodoroSession, config: ConfigDict) -> None:
 
 @click.group()
 @click.pass_context
-def goal(ctx: click.Context) -> None:
-    """Goal management CLI."""
+@handle_exceptions
+def cli(ctx: click.Context) -> None:
+    """Goal Glide command-line interface."""
     base_dir = Path(os.environ.get("GOAL_GLIDE_DB_DIR") or Path.home() / ".goal_glide")
     base_dir.mkdir(parents=True, exist_ok=True)
 
@@ -126,8 +125,13 @@ def goal(ctx: click.Context) -> None:
         },
     )
 
+# ── Goal Commands ─────────────────────────────────────────────────────────────
+@click.group(name="goal")
+def goal_cmds():
+    """Manage goals."""
+    pass
 
-@goal.command("add")
+@goal_cmds.command("add")
 @click.argument("title")
 @click.option(
     "-p",
@@ -151,15 +155,7 @@ def add_goal(
     deadline: datetime | None,
     parent_id: str | None,
 ) -> None:
-    """Adds a new goal to the database.
-
-    Args:
-        ctx: The click context object.
-        title: The title of the new goal.
-        priority: The priority level for the goal (e.g., "high", "medium", "low").
-        deadline: Optional deadline for completing the goal.
-        parent_id: The ID of a parent goal, if this is a sub-goal.
-    """
+    """Adds a new goal to the database."""
     title = title.strip()
     if not title:
         console.print("[red]Title cannot be empty.[/red]")
@@ -186,7 +182,7 @@ def add_goal(
     console.print(f":check_mark: Added goal {g.title} ({g.id})")
 
 
-@goal.command("remove")
+@goal_cmds.command("remove")
 @click.argument("goal_id")
 @handle_exceptions
 @click.pass_context
@@ -199,7 +195,7 @@ def remove_goal_cmd(ctx: click.Context, goal_id: str) -> None:
         console.print(f"[green]Removed[/green] {goal_id}")
 
 
-@goal.command("archive")
+@goal_cmds.command("archive")
 @click.argument("goal_id")
 @handle_exceptions
 @click.pass_context
@@ -211,7 +207,7 @@ def archive_goal_cmd(ctx: click.Context, goal_id: str) -> None:
     console.print(f":package: Goal {goal_id} archived")
 
 
-@goal.command("restore")
+@goal_cmds.command("restore")
 @click.argument("goal_id")
 @handle_exceptions
 @click.pass_context
@@ -223,7 +219,7 @@ def restore_goal_cmd(ctx: click.Context, goal_id: str) -> None:
     console.print(f":package: Goal {goal_id} restored")
 
 
-@goal.command("complete")
+@goal_cmds.command("complete")
 @click.argument("goal_id")
 @handle_exceptions
 @click.pass_context
@@ -235,7 +231,7 @@ def complete_goal_cmd(ctx: click.Context, goal_id: str) -> None:
     console.print(f"[green]Goal {goal_id} completed[/green]")
 
 
-@goal.command("reopen")
+@goal_cmds.command("reopen")
 @click.argument("goal_id")
 @handle_exceptions
 @click.pass_context
@@ -247,7 +243,7 @@ def reopen_goal_cmd(ctx: click.Context, goal_id: str) -> None:
     console.print(f"Goal {goal_id} reopened")
 
 
-@goal.command("update")
+@goal_cmds.command("update")
 @click.argument("goal_id")
 @click.option("--title", help="New goal title")
 @click.option(
@@ -269,18 +265,7 @@ def update_goal_cmd(
     priority: str | None,
     deadline: datetime | None,
 ) -> None:
-    """Modifies the attributes of an existing goal.
-
-    Allows for updating the title, priority and deadline of a goal, identified
-    by its unique ID.
-
-    Args:
-        ctx: The click context object.
-        goal_id: The ID of the goal to be updated.
-        title: The new title for the goal.
-        priority: The new priority for the goal.
-        deadline: The new deadline for the goal.
-    """
+    """Modifies the attributes of an existing goal."""
     obj = cast(AppContext, ctx.obj)
     storage: Storage = obj["storage"]
     goal = storage.get_goal(goal_id)
@@ -305,67 +290,13 @@ def update_goal_cmd(
         tags=goal.tags,
         parent_id=goal.parent_id,
         deadline=new_deadline,
+        completed=goal.completed
     )
     storage.update_goal(updated)
     console.print(f":pencil: Updated goal {updated.id}")
 
 
-@goal.group("tag")
-def tag() -> None:
-    """Tag management."""
-    pass
-
-
-@tag.command("add")
-@click.argument("goal_id")
-@click.argument("tags", nargs=-1, required=True)
-@handle_exceptions
-@click.pass_context
-def tag_add(ctx: click.Context, goal_id: str, tags: tuple[str, ...]) -> None:
-    """Add one or more tags to a goal."""
-    obj = cast(AppContext, ctx.obj)
-    storage: Storage = obj["storage"]
-    validated = [validate_tag(t) for t in tags]
-    goal = storage.add_tags(goal_id, validated)
-    console.print(f"Tags for {goal.id}: {', '.join(goal.tags)}")
-
-
-@tag.command("rm")
-@click.argument("goal_id")
-@click.argument("tag")
-@handle_exceptions
-@click.pass_context
-def tag_rm(ctx: click.Context, goal_id: str, tag: str) -> None:
-    """Remove a tag from a goal."""
-    obj = cast(AppContext, ctx.obj)
-    storage: Storage = obj["storage"]
-    validated = validate_tag(tag)
-    before = storage.get_goal(goal_id)
-    updated = storage.remove_tag(goal_id, validated)
-    if validated not in before.tags:
-        console.print(f"[yellow]Tag '{validated}' not present[/yellow]")
-    console.print(f"Tags for {updated.id}: {', '.join(updated.tags)}")
-
-
-@tag.command("list")
-@click.pass_context
-def tag_list(ctx: click.Context) -> None:
-    """List all tags with goal counts."""
-    obj = cast(AppContext, ctx.obj)
-    storage: Storage = obj["storage"]
-    tags = storage.list_all_tags()
-    if not tags:
-        console.print("No tags.")
-        return
-    table = Table(title="Tags")
-    table.add_column("Tag")
-    table.add_column("Goals")
-    for name, count in sorted(tags.items()):
-        table.add_row(name, str(count))
-    console.print(table)
-
-
-@goal.command("list")
+@goal_cmds.command("list")
 @click.option("--archived", is_flag=True, help="Show only archived goals")
 @click.option(
     "--all", "show_all", is_flag=True, help="Show both active and archived goals"
@@ -388,20 +319,7 @@ def list_goals(
     due_soon: bool,
     overdue: bool,
 ) -> None:
-    """Lists goals with optional filtering and sorting.
-
-    By default, it shows only active goals, sorted by priority and creation
-    date.
-
-    Args:
-        ctx: The click context object.
-        archived: If ``True``, shows only archived goals.
-        show_all: If ``True``, shows both active and archived goals.
-        priority: Filters the list to goals of a specific priority.
-        tags: Filters the list to goals that have all the specified tags.
-        due_soon: Show goals with a deadline within three days.
-        overdue: Show goals with a past deadline.
-    """
+    """Lists goals with optional filtering and sorting."""
     obj = cast(AppContext, ctx.obj)
     storage: Storage = obj["storage"]
     goals = storage.list_goals(
@@ -420,7 +338,7 @@ def list_goals(
     console.print(table)
 
 
-@goal.command("tree")
+@goal_cmds.command("tree")
 @click.pass_context
 def goal_tree(ctx: click.Context) -> None:
     """Display goals in a tree view."""
@@ -453,23 +371,67 @@ def goal_tree(ctx: click.Context) -> None:
     console.print(tree)
 
 
-@goal.command("version")
-def version_cmd() -> None:
-    """Print package version."""
-    from . import __version__
-
-    console.print(__version__)
-
-
-cli = goal
-
-
-@click.group(help="Manage pomodoro sessions.")
-def pomo() -> None:
+# ── Tag Commands ──────────────────────────────────────────────────────────────
+@click.group(name="tag")
+def tag_cmds():
+    """Manage tags."""
     pass
 
+@tag_cmds.command("add")
+@click.argument("goal_id")
+@click.argument("tags", nargs=-1, required=True)
+@handle_exceptions
+@click.pass_context
+def tag_add(ctx: click.Context, goal_id: str, tags: tuple[str, ...]) -> None:
+    """Add one or more tags to a goal."""
+    obj = cast(AppContext, ctx.obj)
+    storage: Storage = obj["storage"]
+    validated = [validate_tag(t) for t in tags]
+    goal = storage.add_tags(goal_id, validated)
+    console.print(f"Tags for {goal.id}: {', '.join(goal.tags)}")
 
-@pomo.command("start")
+
+@tag_cmds.command("rm")
+@click.argument("goal_id")
+@click.argument("tag")
+@handle_exceptions
+@click.pass_context
+def tag_rm(ctx: click.Context, goal_id: str, tag: str) -> None:
+    """Remove a tag from a goal."""
+    obj = cast(AppContext, ctx.obj)
+    storage: Storage = obj["storage"]
+    validated = validate_tag(tag)
+    before = storage.get_goal(goal_id)
+    updated = storage.remove_tag(goal_id, validated)
+    if validated not in before.tags:
+        console.print(f"[yellow]Tag '{validated}' not present[/yellow]")
+    console.print(f"Tags for {updated.id}: {', '.join(updated.tags)}")
+
+
+@tag_cmds.command("list")
+@click.pass_context
+def tag_list(ctx: click.Context) -> None:
+    """List all tags with goal counts."""
+    obj = cast(AppContext, ctx.obj)
+    storage: Storage = obj["storage"]
+    tags = storage.list_all_tags()
+    if not tags:
+        console.print("No tags.")
+        return
+    table = Table(title="Tags")
+    table.add_column("Tag")
+    table.add_column("Goals")
+    for name, count in sorted(tags.items()):
+        table.add_row(name, str(count))
+    console.print(table)
+
+# ── Pomodoro Commands ─────────────────────────────────────────────────────────
+@click.group(name="pomo")
+def pomo_cmds():
+    """Manage pomodoro sessions."""
+    pass
+
+@pomo_cmds.command("start")
 @click.option(
     "--duration",
     type=int,
@@ -494,7 +456,7 @@ def start_pomo(ctx: click.Context, duration: int | None, goal_id: str | None) ->
     console.print(f"Started pomodoro for {dur}m")
 
 
-@pomo.command("stop")
+@pomo_cmds.command("stop")
 @handle_exceptions
 @click.pass_context
 def stop_pomo(ctx: click.Context) -> None:
@@ -507,7 +469,7 @@ def stop_pomo(ctx: click.Context) -> None:
     _print_completion(session, obj["config"])
 
 
-@pomo.command("pause")
+@pomo_cmds.command("pause")
 @handle_exceptions
 @click.pass_context
 def pause_pomo(ctx: click.Context) -> None:
@@ -516,7 +478,7 @@ def pause_pomo(ctx: click.Context) -> None:
     console.print("Session paused")
 
 
-@pomo.command("resume")
+@pomo_cmds.command("resume")
 @handle_exceptions
 @click.pass_context
 def resume_pomo(ctx: click.Context) -> None:
@@ -525,7 +487,7 @@ def resume_pomo(ctx: click.Context) -> None:
     console.print("Session resumed")
 
 
-@pomo.command("status")
+@pomo_cmds.command("status")
 @handle_exceptions
 @click.pass_context
 def status_pomo(ctx: click.Context) -> None:
@@ -541,16 +503,13 @@ def status_pomo(ctx: click.Context) -> None:
     remaining = max(session.duration_sec - elapsed, 0)
     console.print(f"Elapsed {_fmt(elapsed)} | Remaining {_fmt(remaining)}")
 
-
-goal.add_command(pomo)
-
-
-@goal.group(name="reminder", help="Configure desktop break reminders.")
-def reminder_cli() -> None:
+# ── Reminder Commands ─────────────────────────────────────────────────────────
+@click.group(name="reminder")
+def reminder_cmds():
+    """Configure desktop break reminders."""
     pass
 
-
-@reminder_cli.command("enable")
+@reminder_cmds.command("enable")
 @handle_exceptions
 @click.pass_context
 def reminder_enable(ctx: click.Context) -> None:
@@ -561,7 +520,7 @@ def reminder_enable(ctx: click.Context) -> None:
     console.print("Reminders ON")
 
 
-@reminder_cli.command("disable")
+@reminder_cmds.command("disable")
 @handle_exceptions
 @click.pass_context
 def reminder_disable(ctx: click.Context) -> None:
@@ -572,7 +531,7 @@ def reminder_disable(ctx: click.Context) -> None:
     console.print("Reminders OFF")
 
 
-@reminder_cli.command("config")
+@reminder_cmds.command("config")
 @click.option("--break", "break_", type=int, help="Break length minutes (1-120)")
 @click.option("--interval", type=int, help="Interval minutes (1-120)")
 @handle_exceptions
@@ -596,7 +555,7 @@ def reminder_config(
     )
 
 
-@reminder_cli.command("status")
+@reminder_cmds.command("status")
 @click.pass_context
 def reminder_status(ctx: click.Context) -> None:
     obj = cast(AppContext, ctx.obj)
@@ -608,16 +567,13 @@ def reminder_status(ctx: click.Context) -> None:
         f"Enabled: {enabled} | Break: {break_min}m | Interval: {interval_min}m"
     )
 
-
-goal.add_command(reminder_cli)
-
-
-@click.group()
-def config() -> None:
+# ── Config Commands ───────────────────────────────────────────────────────────
+@click.group(name="config")
+def config_cmds():
     """Configuration commands."""
+    pass
 
-
-@config.command("quotes")
+@config_cmds.command("quotes")
 @click.option("--enable/--disable", default=None, help="Toggle motivational quotes")
 @click.pass_context
 def cfg_quotes(ctx: click.Context, enable: bool | None) -> None:
@@ -629,7 +585,7 @@ def cfg_quotes(ctx: click.Context, enable: bool | None) -> None:
     console.print(f"Quotes are {'ON' if cfg.get('quotes_enabled', True) else 'OFF'}")
 
 
-@config.command("show")
+@config_cmds.command("show")
 @click.pass_context
 def cfg_show(ctx: click.Context) -> None:
     """Show current configuration."""
@@ -643,36 +599,13 @@ def cfg_show(ctx: click.Context) -> None:
     console.print(table)
 
 
-goal.add_command(config)
+# ── Thought Commands ──────────────────────────────────────────────────────────
+@click.group(name="thought")
+def thought_cmds():
+    """Capture and review quick reflections."""
+    pass
 
-
-@click.group(help="Capture and review quick reflections.")
-@click.pass_context
-def thought(ctx: click.Context) -> None:
-    if ctx.obj is None:
-        base_dir = Path(
-            os.environ.get("GOAL_GLIDE_DB_DIR") or Path.home() / ".goal_glide"
-        )
-        base_dir.mkdir(parents=True, exist_ok=True)
-        db_path = base_dir / "db.json"
-        config_path = base_dir / "config.toml"
-        session_path = base_dir / "session.json"
-        ctx.obj = cast(
-            AppContext,
-            {
-                "storage": Storage(db_path),
-                "config": load_config(config_path),
-                "db_path": db_path,
-                "config_path": config_path,
-                "session_path": session_path,
-            },
-        )
-
-
-goal.add_command(thought)
-
-
-@thought.command("jot")
+@thought_cmds.command("jot")
 @click.argument("message", required=False)
 @click.option("-g", "--goal", "goal_id", help="Attach note to a goal ID")
 @handle_exceptions
@@ -703,7 +636,7 @@ def jot_thought(ctx: click.Context, message: str | None, goal_id: str | None) ->
     console.print(":thought_balloon: noted")
 
 
-@thought.command("list")
+@thought_cmds.command("list")
 @click.option("-g", "--goal", "goal_id", help="Filter by goal ID")
 @click.option("--limit", type=int, default=10, show_default=True, help="Max rows")
 @handle_exceptions
@@ -724,16 +657,16 @@ def list_thoughts_cmd(ctx: click.Context, goal_id: str | None, limit: int) -> No
         when = natural_delta(th.timestamp)
         goal_title = ""
         if th.goal_id:
-            if storage.table.contains(Query().id == th.goal_id):
+            try:
                 goal_title = storage.get_goal(th.goal_id).title
-            else:
-                goal_title = th.goal_id
+            except GoalGlideError:
+                goal_title = th.goal_id # show id if goal deleted
         table.add_row(th.id, when, goal_title, th.text)
 
     console.print(table)
 
 
-@thought.command("rm")
+@thought_cmds.command("rm")
 @click.argument("thought_id")
 @handle_exceptions
 @click.pass_context
@@ -746,8 +679,13 @@ def remove_thought_cmd(ctx: click.Context, thought_id: str) -> None:
     else:
         console.print(f"[yellow]Thought {thought_id} not found[/yellow]")
 
+# ── Stats Commands ────────────────────────────────────────────────────────────
+@click.group(name="stats")
+def stats_cmds():
+    """Visualise focus stats and streaks."""
+    pass
 
-@goal.command("stats")
+@stats_cmds.command("show")
 @click.option("--month", is_flag=True, help="Show last calendar month")
 @click.option("--goals", "show_goals", is_flag=True, help="Breakdown by top goals")
 @click.option(
@@ -763,7 +701,7 @@ def remove_thought_cmd(ctx: click.Context, thought_id: str) -> None:
     help="End date YYYY-MM-DD",
 )
 @click.pass_context
-def stats_cmd(
+def stats_show(
     ctx: click.Context,
     month: bool,
     show_goals: bool,
@@ -849,21 +787,21 @@ def stats_cmd(
         table.add_column("Time")
         ranked = sorted(totals.items(), key=lambda t: t[1], reverse=True)[:5]
         for gid, sec in ranked:
-            if storage.table.contains(Query().id == gid):
+            try:
                 title = storage.get_goal(gid).title
-            else:
+            except GoalGlideError:
                 title = gid
             table.add_row(title, format_duration(sec))
         console.print(table)
 
 
-@goal.group(name="report")
-def report_group() -> None:
+# ── Report Commands ───────────────────────────────────────────────────────────
+@click.group(name="report")
+def report_cmds():
     """Generate progress reports."""
     pass
 
-
-@report_group.command("make")
+@report_cmds.command("make")
 @click.option("--week", "range_week", is_flag=True, help="Last week")
 @click.option("--month", "range_month", is_flag=True, help="Last month")
 @click.option("--all", "range_all", is_flag=True, help="All time")
@@ -928,6 +866,31 @@ def report_make(
             end,
         )
     console.print(f":page_facing_up:  Report saved to [bold]{path}[/]")
+
+
+# ── Version Command ───────────────────────────────────────────────────────────
+@click.group(name="version")
+def version_cmds():
+    """Handles version display."""
+    pass
+
+@version_cmds.command("show")
+def version_show():
+    """Print package version."""
+    from . import __version__
+    console.print(__version__)
+
+
+# Add command groups to the main CLI
+cli.add_command(goal_cmds)
+cli.add_command(pomo_cmds)
+cli.add_command(tag_cmds)
+cli.add_command(thought_cmds)
+cli.add_command(config_cmds)
+cli.add_command(reminder_cmds)
+cli.add_command(report_cmds)
+cli.add_command(stats_cmds)
+cli.add_command(version_cmds)
 
 
 if __name__ == "__main__":

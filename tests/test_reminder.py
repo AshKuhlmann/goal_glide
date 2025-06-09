@@ -10,44 +10,49 @@ import types
 import pytest
 from click.testing import CliRunner
 
-from goal_glide import cli
+from goal_glide.cli import cli
 from goal_glide import config as cfg
 from goal_glide.services import notify, reminder
 
 
+@pytest.fixture()
+def cfg_path(tmp_path: Path) -> Path:
+    """Provides a temporary config file path for tests."""
+    return tmp_path / "config.toml"
+
+
 @pytest.fixture(autouse=True)
 def _cfg_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> dict[str, str]:
+    """Sets up a temporary, isolated environment for each test."""
     env = {"GOAL_GLIDE_DB_DIR": str(tmp_path), "HOME": str(tmp_path)}
     monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
     monkeypatch.setenv("HOME", str(tmp_path))
     return env
 
 
-def test_enable_disable_updates_config(runner: CliRunner) -> None:
-    cfg_path = Path(os.environ["GOAL_GLIDE_DB_DIR"]) / "config.toml"
-    runner.invoke(cli.goal, ["reminder", "enable"])
+def test_enable_disable_updates_config(runner: CliRunner, cfg_path: Path) -> None:
+    runner.invoke(cli, ["reminder", "enable"])
     assert cfg.reminders_enabled(cfg_path) is True
-    runner.invoke(cli.goal, ["reminder", "disable"])
+    runner.invoke(cli, ["reminder", "disable"])
     assert cfg.reminders_enabled(cfg_path) is False
 
 
-def test_config_command_updates_values(runner: CliRunner) -> None:
-    cfg_path = Path(os.environ["GOAL_GLIDE_DB_DIR"]) / "config.toml"
-    runner.invoke(cli.goal, ["reminder", "config", "--break", "10", "--interval", "15"])
+def test_config_command_updates_values(runner: CliRunner, cfg_path: Path) -> None:
+    runner.invoke(cli, ["reminder", "config", "--break", "10", "--interval", "15"])
     assert cfg.reminder_break(cfg_path) == 10
     assert cfg.reminder_interval(cfg_path) == 15
 
 
 @pytest.mark.parametrize("val", [0, -5, 200])
 def test_invalid_break_value_errors(val: int, runner: CliRunner) -> None:
-    result = runner.invoke(cli.goal, ["reminder", "config", "--break", str(val)])
+    result = runner.invoke(cli, ["reminder", "config", "--break", str(val)])
     assert result.exit_code != 0
     assert "break must be between 1 and 120" in result.output
 
 
 @pytest.mark.parametrize("val", [0, -5, 200])
 def test_invalid_interval_value_errors(val: int, runner: CliRunner) -> None:
-    result = runner.invoke(cli.goal, ["reminder", "config", "--interval", str(val)])
+    result = runner.invoke(cli, ["reminder", "config", "--interval", str(val)])
     assert result.exit_code != 0
     assert "interval must be between 1 and 120" in result.output
 
@@ -72,15 +77,14 @@ def test_notification_backend_selection(monkeypatch: pytest.MonkeyPatch) -> None
         assert captured == ["hi"]
 
 
-def test_schedule_after_stop_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_schedule_after_stop_disabled(monkeypatch: pytest.MonkeyPatch, cfg_path: Path) -> None:
     monkeypatch.setattr(reminder, "_sched", None)
     monkeypatch.setattr(cfg, "reminders_enabled", lambda path: False)
-    cfg_path = Path(os.environ["GOAL_GLIDE_DB_DIR"]) / "config.toml"
     reminder.schedule_after_stop(cfg_path)
     assert reminder._sched is None
 
 
-def test_schedule_after_stop_creates_scheduler(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_schedule_after_stop_creates_scheduler(monkeypatch: pytest.MonkeyPatch, cfg_path: Path) -> None:
     created: list[reminder.BackgroundScheduler] = []
     started: list[bool] = []
 
@@ -107,7 +111,6 @@ def test_schedule_after_stop_creates_scheduler(monkeypatch: pytest.MonkeyPatch) 
     monkeypatch.setattr(reminder, "_sched", None)
     monkeypatch.setattr(reminder, "reminders_enabled", lambda path: True)
 
-    cfg_path = Path(os.environ["GOAL_GLIDE_DB_DIR"]) / "config.toml"
     reminder.schedule_after_stop(cfg_path)
 
     assert len(created) == 1
@@ -118,16 +121,16 @@ def test_schedule_after_stop_creates_scheduler(monkeypatch: pytest.MonkeyPatch) 
 
 
 def test_reminder_status_output(runner: CliRunner) -> None:
-    result = runner.invoke(cli.goal, ["reminder", "status"])
+    result = runner.invoke(cli, ["reminder", "status"])
     assert result.exit_code == 0
     assert "Enabled: False | Break: 5m | Interval: 30m" in result.output
 
-    runner.invoke(cli.goal, ["reminder", "enable"])
+    runner.invoke(cli, ["reminder", "enable"])
     runner.invoke(
-        cli.goal,
+        cli,
         ["reminder", "config", "--break", "11", "--interval", "22"],
     )
-    result = runner.invoke(cli.goal, ["reminder", "status"])
+    result = runner.invoke(cli, ["reminder", "status"])
     assert result.exit_code == 0
     assert "Enabled: True | Break: 11m | Interval: 22m" in result.output
 

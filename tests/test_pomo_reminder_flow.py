@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import pytest
 from click.testing import CliRunner
 
-from goal_glide import cli
+from goal_glide.cli import cli
 from goal_glide.services import notify, reminder, pomodoro
 from hypothesis import HealthCheck, given, settings, strategies as st
 from typing import Callable
@@ -30,6 +30,7 @@ def reminder_runner(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, runner: CliRunner
 ) -> tuple[CliRunner, list[str], dict[str, str]]:
     import importlib
+
     importlib.reload(pomodoro)
     importlib.reload(reminder)
     env = {"GOAL_GLIDE_DB_DIR": str(tmp_path), "HOME": str(tmp_path)}
@@ -49,11 +50,11 @@ def reminder_runner(
 
 def test_flow_schedules_jobs(reminder_runner) -> None:
     cli_runner, messages, env = reminder_runner
-    cli_runner.invoke(cli.goal, ["reminder", "enable"], env=env)
-    gid = cli_runner.invoke(cli.goal, ["add", "g"])
-    gid = gid.output.split()[-1].strip("()")
-    cli_runner.invoke(cli.goal, ["pomo", "start", "--duration", "1"], env=env)
-    result = cli_runner.invoke(cli.goal, ["pomo", "stop"], env=env)
+    cli_runner.invoke(cli, ["reminder", "enable"], env=env)
+    gid_result = cli_runner.invoke(cli, ["goal", "add", "g"], env=env)
+    gid = gid_result.output.split()[-1].strip("()")
+    cli_runner.invoke(cli, ["pomo", "start", "--duration", "1"], env=env)
+    result = cli_runner.invoke(cli, ["pomo", "stop"], env=env)
     assert "reminders scheduled" in result.output
     sched = reminder._sched
     assert sched is not None
@@ -65,9 +66,9 @@ def test_flow_schedules_jobs(reminder_runner) -> None:
 
 def test_flow_uses_config_and_clears_existing_jobs(reminder_runner) -> None:
     cli_runner, _, env = reminder_runner
-    cli_runner.invoke(cli.goal, ["reminder", "enable"], env=env)
+    cli_runner.invoke(cli, ["reminder", "enable"], env=env)
     cli_runner.invoke(
-        cli.goal,
+        cli,
         ["reminder", "config", "--break", "2", "--interval", "7"],
         env=env,
     )

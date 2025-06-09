@@ -3,7 +3,8 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
-from goal_glide import cli, config
+from goal_glide.cli import cli
+from goal_glide import config
 
 
 @pytest.fixture()
@@ -48,7 +49,7 @@ def test_show_command_outputs_all_settings(cfg_path: Path) -> None:
     config.save_config(cfg, cfg_path)
     runner = CliRunner()
     env = {"GOAL_GLIDE_DB_DIR": str(cfg_path.parent), "HOME": str(cfg_path.parent)}
-    result = runner.invoke(cli.goal, ["config", "show"], env=env)
+    result = runner.invoke(cli, ["config", "show"], env=env)
     assert result.exit_code == 0
     for k, v in cfg.items():
         assert k in result.output
@@ -133,6 +134,6 @@ def test_invalid_toml_raises_decode_error(cfg_path: Path) -> None:
 def test_cli_respects_env_variable(tmp_path: Path) -> None:
     runner = CliRunner()
     env = {"GOAL_GLIDE_DB_DIR": str(tmp_path), "HOME": str(tmp_path)}
-    result = runner.invoke(cli.goal, ["config", "quotes", "--disable"], env=env)
+    result = runner.invoke(cli, ["config", "quotes", "--disable"], env=env)
     assert result.exit_code == 0
     assert (tmp_path / "config.toml").exists()
