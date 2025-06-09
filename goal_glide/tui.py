@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from uuid import uuid4
+from rich.text import Text
 from pathlib import Path
 import os
 from rich.text import Text
@@ -139,7 +140,8 @@ class GoalGlideApp(App[None]):
         ]
         if goal.deadline:
             now = datetime.utcnow()
-            date_str = f"{goal.deadline:%Y-%m-%d}"
+        # Use Text to avoid markup parsing of bracketed progress bars
+        panel.update(Text("\n".join(lines)))
             if goal.deadline < now:
                 lines.append(f"Deadline: [red]{date_str}[/]")
             elif goal.deadline - now <= timedelta(days=3):
