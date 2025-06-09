@@ -1,5 +1,5 @@
 Welcome to Goal Glide's documentation!
-=====================================
+======================================
 
 This documentation is generated using Sphinx. To build the HTML pages run:
 

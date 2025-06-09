@@ -65,6 +65,7 @@ def start_session(
     session_path: Path,
     config_path: Path,
 ) -> PomodoroSession:
+    """Create a new Pomodoro session and persist it to disk."""
     dur = (
         duration_min
         if duration_min is not None
@@ -91,6 +92,7 @@ def start_session(
 
 
 def load_session(session_path: Path) -> Optional[PomodoroSession]:
+    """Load a session without runtime state such as elapsed time."""
     data = _load_data(session_path)
     if data is None:
         return None
@@ -103,6 +105,7 @@ def load_session(session_path: Path) -> Optional[PomodoroSession]:
 
 
 def load_active_session(session_path: Path) -> Optional[ActiveSession]:
+    """Load the session including elapsed time and pause state."""
     data = _load_data(session_path)
     if data is None:
         return None
@@ -119,6 +122,7 @@ def load_active_session(session_path: Path) -> Optional[ActiveSession]:
 
 
 def stop_session(session_path: Path, config_path: Path) -> PomodoroSession:
+    """Stop the current session and schedule break reminders."""
     active = load_active_session(session_path)
     if active is None:
         raise RuntimeError("No active session")
@@ -143,6 +147,7 @@ def stop_session(session_path: Path, config_path: Path) -> PomodoroSession:
 
 
 def pause_session(session_path: Path) -> ActiveSession:
+    """Pause the running session and record elapsed time."""
     active = load_active_session(session_path)
     if active is None:
         raise RuntimeError("No active session")
@@ -159,6 +164,7 @@ def pause_session(session_path: Path) -> ActiveSession:
 
 
 def resume_session(session_path: Path) -> ActiveSession:
+    """Resume a previously paused session."""
     active = load_active_session(session_path)
     if active is None:
         raise RuntimeError("No active session")

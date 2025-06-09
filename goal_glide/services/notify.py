@@ -1,3 +1,5 @@
+"""Simple cross-platform desktop notification helpers."""
+
 from __future__ import annotations
 
 import logging
@@ -7,10 +9,14 @@ from typing import Callable
 
 
 def _mac_notify(msg: str) -> None:
+    """Display a notification on macOS using ``terminal-notifier``."""
+
     subprocess.run(["terminal-notifier", "-message", msg], check=False)
 
 
 def _linux_notify(msg: str) -> None:
+    """Show a notification on Linux via ``notify2`` or ``notify-send``."""
+
     try:
         import notify2
 
@@ -21,6 +27,8 @@ def _linux_notify(msg: str) -> None:
 
 
 def _win_notify(msg: str) -> None:
+    """Send a Windows toast notification using ``win10toast``."""
+
     from win10toast import ToastNotifier
 
     ToastNotifier().show_toast("Goal Glide", msg, threaded=True)
@@ -49,6 +57,8 @@ _DEFAULT_HINT = (
 
 
 def push(msg: str) -> None:
+    """Push a notification message using the appropriate OS backend."""
+
     osname = platform.system()
     notifier = _OS_NOTIFIERS.get(osname)
     hint = _HELP_HINTS.get(osname, _DEFAULT_HINT)
