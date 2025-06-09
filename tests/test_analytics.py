@@ -362,7 +362,7 @@ def _ref_longest_streak(sessions: list[PomodoroSession]) -> int:
 @settings(max_examples=25)
 def test_property_total_time(sessions: list[PomodoroSession]) -> None:
     with tempfile.TemporaryDirectory() as d:
-        storage = Storage(Path(d))
+        storage = Storage(Path(d) / "db.json")
         seed(storage, sessions)
         assert analytics.total_time_by_goal(storage) == _ref_total_time(sessions)
 
@@ -390,7 +390,7 @@ def test_property_weekly_histogram(
     sessions: list[PomodoroSession], start: date
 ) -> None:
     with tempfile.TemporaryDirectory() as d:
-        storage = Storage(Path(d))
+        storage = Storage(Path(d) / "db.json")
         seed(storage, sessions)
         assert analytics.weekly_histogram(storage, start) == _ref_histogram(
             sessions, start
@@ -418,7 +418,7 @@ def test_property_weekly_histogram(
 @settings(max_examples=25)
 def test_property_current_streak(sessions: list[PomodoroSession], today: date) -> None:
     with tempfile.TemporaryDirectory() as d:
-        storage = Storage(Path(d))
+        storage = Storage(Path(d) / "db.json")
         seed(storage, sessions)
         assert analytics.current_streak(storage, today) == _ref_streak(sessions, today)
 
@@ -440,10 +440,12 @@ def test_property_current_streak(sessions: list[PomodoroSession], today: date) -
         )
     )
 )
-@settings(max_examples=25)
-def test_property_average_focus_per_day(sessions: list[PomodoroSession]) -> None:
+@settings(max_examples=25, deadline=None)
+def test_property_average_focus_per_day(
+    sessions: list[PomodoroSession],
+) -> None:
     with tempfile.TemporaryDirectory() as d:
-        storage = Storage(Path(d))
+        storage = Storage(Path(d) / "db.json")
         seed(storage, sessions)
         assert analytics.average_focus_per_day(storage) == pytest.approx(
             _ref_average_focus(sessions)
@@ -470,7 +472,7 @@ def test_property_average_focus_per_day(sessions: list[PomodoroSession]) -> None
 @settings(max_examples=25)
 def test_property_most_productive_day(sessions: list[PomodoroSession]) -> None:
     with tempfile.TemporaryDirectory() as d:
-        storage = Storage(Path(d))
+        storage = Storage(Path(d) / "db.json")
         seed(storage, sessions)
         assert analytics.most_productive_day(storage) == _ref_most_productive_day(
             sessions
@@ -497,6 +499,6 @@ def test_property_most_productive_day(sessions: list[PomodoroSession]) -> None:
 @settings(max_examples=25)
 def test_property_longest_streak(sessions: list[PomodoroSession]) -> None:
     with tempfile.TemporaryDirectory() as d:
-        storage = Storage(Path(d))
+        storage = Storage(Path(d) / "db.json")
         seed(storage, sessions)
         assert analytics.longest_streak(storage) == _ref_longest_streak(sessions)

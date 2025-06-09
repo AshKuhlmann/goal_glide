@@ -36,6 +36,7 @@ def load_config(config_path: Path) -> ConfigDict:
 
 
 def save_config(cfg: ConfigDict, config_path: Path) -> None:
+    config_path.parent.mkdir(parents=True, exist_ok=True)
     items = []
     for k, v in cfg.items():
         if isinstance(v, bool):

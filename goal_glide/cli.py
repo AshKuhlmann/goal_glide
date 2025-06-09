@@ -488,7 +488,7 @@ def start_pomo(duration: int | None, goal_id: str | None) -> None:
     dur = duration
     if dur is None:
         dur = cfg.pomo_duration(obj["config_path"])
-    start_session(dur, goal_id, obj["session_path"])
+    start_session(dur, goal_id, obj["session_path"], obj["config_path"])
     console.print(f"Started pomodoro for {dur}m")
 
 
@@ -552,7 +552,7 @@ def reminder_enable(ctx: click.Context) -> None:
     obj = cast(AppContext, ctx.obj)
     cfg = obj["config"]
     cfg["reminders_enabled"] = True
-    save_config(cfg)
+    save_config(cfg, obj["config_path"])
     console.print("Reminders ON")
 
 
@@ -563,7 +563,7 @@ def reminder_disable(ctx: click.Context) -> None:
     obj = cast(AppContext, ctx.obj)
     cfg = obj["config"]
     cfg["reminders_enabled"] = False
-    save_config(cfg)
+    save_config(cfg, obj["config_path"])
     console.print("Reminders OFF")
 
 
@@ -585,7 +585,7 @@ def reminder_config(
         if not 1 <= interval <= 120:
             raise ValueError("interval must be between 1 and 120")
         cfg["reminder_interval_min"] = interval
-    save_config(cfg)
+    save_config(cfg, obj["config_path"])
     console.print(
         f"Break {cfg['reminder_break_min']}m, Interval {cfg['reminder_interval_min']}m"
     )
@@ -620,7 +620,7 @@ def cfg_quotes(ctx: click.Context, enable: bool | None) -> None:
     cfg = obj["config"]
     if enable is not None:
         cfg["quotes_enabled"] = enable
-        save_config(cfg)
+        save_config(cfg, obj["config_path"])
     status = "ON" if cfg.get("quotes_enabled", True) else "OFF"
     console.print(f"Quotes are {status}")
 
@@ -646,7 +646,8 @@ goal.add_command(config)
 @click.pass_context
 def thought(ctx: click.Context) -> None:
     if ctx.obj is None:
-        base_dir = Path(os.environ.get("GOAL_GLIDE_DB_DIR") or Path.home() / ".goal_glide")
+        env_dir = os.environ.get("GOAL_GLIDE_DB_DIR")
+        base_dir = Path(env_dir or Path.home() / ".goal_glide")
         base_dir.mkdir(parents=True, exist_ok=True)
         db_path = base_dir / "db.json"
         config_path = base_dir / "config.toml"

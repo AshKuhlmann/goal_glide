@@ -105,9 +105,9 @@ def test_schedule_after_stop_randomized(
 ) -> None:
     """`schedule_after_stop` uses config values when scheduling."""
     _, _, session_path, config_path = runner
-    monkeypatch.setattr(reminder, "reminders_enabled", lambda: True)
-    monkeypatch.setattr(reminder, "reminder_break", lambda: break_min)
-    monkeypatch.setattr(reminder, "reminder_interval", lambda: interval_min)
+    monkeypatch.setattr(reminder, "reminders_enabled", lambda p: True)
+    monkeypatch.setattr(reminder, "reminder_break", lambda p: break_min)
+    monkeypatch.setattr(reminder, "reminder_interval", lambda p: interval_min)
 
     reminder.schedule_after_stop(config_path)
 

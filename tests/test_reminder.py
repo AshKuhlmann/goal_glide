@@ -52,7 +52,9 @@ def test_invalid_break_value_errors(val: int, runner: tuple[CliRunner, Path]) ->
 
 
 @pytest.mark.parametrize("val", [0, -5, 200])
-def test_invalid_interval_value_errors(val: int, runner: tuple[CliRunner, Path]) -> None:
+def test_invalid_interval_value_errors(
+    val: int, runner: tuple[CliRunner, Path]
+) -> None:
     cli_runner, _ = runner
     result = cli_runner.invoke(
         cli.goal,
@@ -84,7 +86,7 @@ def test_notification_backend_selection(monkeypatch: pytest.MonkeyPatch) -> None
 
 def test_schedule_after_stop_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(reminder, "_sched", None)
-    monkeypatch.setattr(cfg, "reminders_enabled", lambda: False)
+    monkeypatch.setattr(cfg, "reminders_enabled", lambda p: False)
     reminder.schedule_after_stop(Path("dummy"))
     assert reminder._sched is None
 
@@ -114,7 +116,7 @@ def test_schedule_after_stop_creates_scheduler(monkeypatch: pytest.MonkeyPatch) 
 
     monkeypatch.setattr(reminder, "BackgroundScheduler", FakeScheduler)
     monkeypatch.setattr(reminder, "_sched", None)
-    monkeypatch.setattr(reminder, "reminders_enabled", lambda: True)
+    monkeypatch.setattr(reminder, "reminders_enabled", lambda p: True)
 
     reminder.schedule_after_stop(Path("dummy"))
 

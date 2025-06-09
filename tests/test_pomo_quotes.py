@@ -30,7 +30,7 @@ def test_pomo_stop_prints_quote(
 def test_quotes_disabled(
     monkeypatch: pytest.MonkeyPatch, runner: CliRunner, tmp_path: Path
 ) -> None:
-    path = tmp_path / ".goal_glide" / "config.toml"
+    path = tmp_path / "config.toml"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("quotes_enabled = false", encoding="utf-8")
     monkeypatch.setattr(quotes, "get_random_quote", lambda use_online=True: ("Q", "A"))
@@ -80,7 +80,7 @@ def test_quotes_default_enabled(
 def test_quotes_disabled_no_call(
     monkeypatch: pytest.MonkeyPatch, runner: CliRunner, tmp_path: Path
 ) -> None:
-    path = tmp_path / ".goal_glide" / "config.toml"
+    path = tmp_path / "config.toml"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("quotes_enabled = false", encoding="utf-8")
     called: list[bool] = []

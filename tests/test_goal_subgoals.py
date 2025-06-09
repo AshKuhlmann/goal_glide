@@ -102,7 +102,7 @@ def _parent_child_mapping(draw: st.DrawFn) -> dict[str, list[str]]:
 @settings(max_examples=25)
 def test_list_goals_parent_property(mapping: dict[str, list[str]]) -> None:
     with tempfile.TemporaryDirectory() as d:
-        storage = Storage(Path(d))
+        storage = Storage(Path(d) / "db.json")
         for pid in mapping:
             storage.add_goal(Goal(id=pid, title=pid, created=datetime.utcnow()))
         for pid, cids in mapping.items():

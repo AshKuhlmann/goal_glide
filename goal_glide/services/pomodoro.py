@@ -15,6 +15,7 @@ console = Console()
 on_new_session: list[Callable[[], None]] = []
 on_session_end: list[Callable[[], None]] = []
 
+
 @dataclass(slots=True)
 class ActiveSession:
     goal_id: str | None

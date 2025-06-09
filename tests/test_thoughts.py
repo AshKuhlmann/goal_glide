@@ -84,7 +84,9 @@ def test_migration_keeps_other_tables(tmp_path: Path, runner: CliRunner) -> None
     db = Storage(tmp_path / "db.json").db
     db.table("goals").insert({"id": "g"})
     db.table("sessions").insert({"id": "s"})
-    Storage(tmp_path / "db.json").add_thought(Thought(id="t", text="x", timestamp=datetime.now()))
+    Storage(tmp_path / "db.json").add_thought(
+        Thought(id="t", text="x", timestamp=datetime.now())
+    )
     db2 = Storage(tmp_path / "db.json").db
     assert len(db2.table("goals").all()) == 1
     assert len(db2.table("sessions").all()) == 1

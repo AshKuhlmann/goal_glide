@@ -175,7 +175,7 @@ def test_pomo_start_after_archive(tmp_path, monkeypatch):
 def test_pomo_start_default_from_config(tmp_path, monkeypatch):
     monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
     monkeypatch.setenv("HOME", str(tmp_path))
-    monkeypatch.setattr(config, "pomo_duration", lambda: 2)
+    monkeypatch.setattr(config, "pomo_duration", lambda p: 2)
     runner = CliRunner()
     result = runner.invoke(
         cli.goal,
