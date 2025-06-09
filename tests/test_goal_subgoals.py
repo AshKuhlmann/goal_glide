@@ -81,8 +81,6 @@ def test_list_goals_parent_missing_returns_empty(tmp_path: Path) -> None:
     assert storage.list_goals(parent_id="missing") == []
 
 
-
-
 @st.composite
 def _parent_child_mapping(draw: st.DrawFn) -> dict[str, list[str]]:
     parents = draw(
