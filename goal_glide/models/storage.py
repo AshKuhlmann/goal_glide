@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, TypedDict, cast
 
 from tinydb import Query, TinyDB
+from tinydb.queries import QueryLike
 
 from ..exceptions import (
     GoalAlreadyArchivedError,
@@ -266,7 +267,8 @@ class Storage:
             row_t = cast(GoalRow, row)
             return all(p(row_t) for p in predicates)
 
-        rows = self.table.search(predicate) if predicates else self.table.all()
+        search_cond = cast(QueryLike, predicate)
+        rows = self.table.search(search_cond) if predicates else self.table.all()
         return [self._row_to_goal(cast(GoalRow, r)) for r in rows]
 
     def list_all_tags(self) -> dict[str, int]:

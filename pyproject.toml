@@ -24,6 +24,7 @@ hypothesis = "*"
 mypy = "*"
 sphinx = "*"
 beautifulsoup4 = "*"
+types-requests = "*"
 
 [tool.black]
 target-version = ['py311']
