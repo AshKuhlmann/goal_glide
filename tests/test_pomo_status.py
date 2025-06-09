@@ -3,8 +3,9 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
-from goal_glide import cli
+from goal_glide.cli import cli
 from goal_glide.services import pomodoro
+from goal_glide.commands import pomo_cmds
 
 
 def test_status_no_session(tmp_path: Path, monkeypatch):
@@ -14,7 +15,7 @@ def test_status_no_session(tmp_path: Path, monkeypatch):
     import importlib
     importlib.reload(pomodoro)
     runner = CliRunner()
-    result = runner.invoke(cli.goal, ["pomo", "status"])
+    result = runner.invoke(cli, ["pomo", "status"])
     assert result.exit_code == 0
     assert "No active session" in result.output
 
@@ -42,9 +43,9 @@ def test_status_with_session(tmp_path: Path, monkeypatch):
         def now(cls) -> datetime.datetime:  # type: ignore[override]
             return later
 
-    monkeypatch.setattr(cli, "datetime", LaterDT)
+    monkeypatch.setattr(pomo_cmds, "datetime", LaterDT)
     runner = CliRunner()
-    result = runner.invoke(cli.goal, ["pomo", "status"])
+    result = runner.invoke(cli, ["pomo", "status"])
     assert result.exit_code == 0
     assert "Elapsed 10m" in result.output
     assert "Remaining 20m" in result.output
@@ -78,9 +79,9 @@ def test_status_paused(tmp_path: Path, monkeypatch):
         def now(cls) -> datetime.datetime:  # type: ignore[override]
             return much_later
 
-    monkeypatch.setattr(cli, "datetime", LaterDT)
+    monkeypatch.setattr(pomo_cmds, "datetime", LaterDT)
     runner = CliRunner()
-    result = runner.invoke(cli.goal, ["pomo", "status"])
+    result = runner.invoke(cli, ["pomo", "status"])
     assert result.exit_code == 0
     assert "Elapsed 10m" in result.output
     assert "Remaining 20m" in result.output

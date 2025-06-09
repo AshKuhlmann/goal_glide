@@ -7,6 +7,7 @@ import pytest
 from click.testing import CliRunner
 
 from goal_glide import cli
+from goal_glide.commands import stats_cmds
 from goal_glide.models.session import PomodoroSession
 from goal_glide.models.storage import Storage
 
@@ -39,9 +40,9 @@ def test_stats_week_output_has_7_bars(
         def now(cls) -> datetime:
             return datetime(2023, 6, 11)
 
-    monkeypatch.setattr(cli, "datetime", FakeDT)
+    monkeypatch.setattr(stats_cmds, "datetime", FakeDT)
     result = runner.invoke(
-        cli.goal, ["stats"], env={"GOAL_GLIDE_DB_DIR": str(tmp_path)}
+        cli, ["stats"], env={"GOAL_GLIDE_DB_DIR": str(tmp_path)}
     )
     days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
     lines = [
@@ -67,9 +68,9 @@ def test_stats_month_output_has_4_bars(
         def now(cls) -> datetime:
             return datetime(2023, 5, 31)
 
-    monkeypatch.setattr(cli, "datetime", FakeDT)
+    monkeypatch.setattr(stats_cmds, "datetime", FakeDT)
     result = runner.invoke(
-        cli.goal, ["stats", "--month"], env={"GOAL_GLIDE_DB_DIR": str(tmp_path)}
+        cli, ["stats", "--month"], env={"GOAL_GLIDE_DB_DIR": str(tmp_path)}
     )
     weeks = ["W1", "W2", "W3", "W4"]
     lines = [
@@ -94,9 +95,9 @@ def test_stats_goals_table_shows_top5(
         def now(cls) -> datetime:
             return datetime(2023, 6, 2)
 
-    monkeypatch.setattr(cli, "datetime", FakeDT)
+    monkeypatch.setattr(stats_cmds, "datetime", FakeDT)
     result = runner.invoke(
-        cli.goal, ["stats", "--goals"], env={"GOAL_GLIDE_DB_DIR": str(tmp_path)}
+        cli, ["stats", "--goals"], env={"GOAL_GLIDE_DB_DIR": str(tmp_path)}
     )
     assert result.exit_code == 0
     assert "Top Goals" in result.output
@@ -112,9 +113,9 @@ def test_stats_empty_db_graceful(
         def now(cls) -> datetime:
             return datetime(2023, 6, 1)
 
-    monkeypatch.setattr(cli, "datetime", FakeDT)
+    monkeypatch.setattr(stats_cmds, "datetime", FakeDT)
     result = runner.invoke(
-        cli.goal, ["stats"], env={"GOAL_GLIDE_DB_DIR": str(tmp_path)}
+        cli, ["stats"], env={"GOAL_GLIDE_DB_DIR": str(tmp_path)}
     )
     assert result.exit_code == 0
     assert "No session data" in result.output
@@ -133,9 +134,9 @@ def test_stats_custom_range(
         def now(cls) -> datetime:
             return datetime(2023, 1, 5)
 
-    monkeypatch.setattr(cli, "datetime", FakeDT)
+    monkeypatch.setattr(stats_cmds, "datetime", FakeDT)
     result = runner.invoke(
-        cli.goal,
+        cli,
         ["stats", "--from", "2023-01-01", "--to", "2023-01-03"],
         env={"GOAL_GLIDE_DB_DIR": str(tmp_path)},
     )

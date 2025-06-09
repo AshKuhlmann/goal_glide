@@ -4,7 +4,8 @@ import pytest
 from pytest import MonkeyPatch
 import tomllib
 
-from goal_glide import cli, config
+from goal_glide.cli import cli
+from goal_glide import config
 from click.testing import CliRunner
 
 
@@ -51,7 +52,7 @@ def test_show_command_outputs_all_settings(cfg_path: Path) -> None:
     }
     config.save_config(cfg)
     runner = CliRunner()
-    result = runner.invoke(cli.goal, ["config", "show"])
+    result = runner.invoke(cli, ["config", "show"])
     assert result.exit_code == 0
     for k, v in cfg.items():
         assert k in result.output
