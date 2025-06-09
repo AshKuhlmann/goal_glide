@@ -137,7 +137,7 @@ class Storage:
             title=goal.title,
             created=goal.created,
             priority=goal.priority,
-            archived=True,
+        parent_id: str | None = None
             tags=goal.tags,
             parent_id=goal.parent_id,
             deadline=goal.deadline,
