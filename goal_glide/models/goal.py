@@ -40,6 +40,7 @@ class Goal:
         else:
             created_dt = created
         deadline = data.get("deadline")
+        deadline_dt: datetime | None
         if isinstance(deadline, str):
             deadline_dt = datetime.fromisoformat(deadline)
         else:
