@@ -45,7 +45,11 @@ class Goal:
         else:
             deadline_dt = deadline
         priority_val = data.get("priority", Priority.medium.value)
-        priority = priority_val if isinstance(priority_val, Priority) else Priority(priority_val)
+        priority = (
+            priority_val
+            if isinstance(priority_val, Priority)
+            else Priority(priority_val)
+        )
         return cls(
             id=data["id"],
             title=data["title"],

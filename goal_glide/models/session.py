@@ -25,7 +25,12 @@ class PomodoroSession:
             start_dt = datetime.fromisoformat(st)
         else:
             start_dt = st
-        return cls(id=data["id"], goal_id=data.get("goal_id"), start=start_dt, duration_sec=data["duration_sec"])
+        return cls(
+            id=data["id"],
+            goal_id=data.get("goal_id"),
+            start=start_dt,
+            duration_sec=data["duration_sec"],
+        )
 
     @classmethod
     def new(

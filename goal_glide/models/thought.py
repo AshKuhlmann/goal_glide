@@ -27,7 +27,12 @@ class Thought:
             ts_dt = datetime.fromisoformat(ts)
         else:
             ts_dt = ts
-        return cls(id=data["id"], text=data["text"], timestamp=ts_dt, goal_id=data.get("goal_id"))
+        return cls(
+            id=data["id"],
+            text=data["text"],
+            timestamp=ts_dt,
+            goal_id=data.get("goal_id"),
+        )
 
     @classmethod
     def new(cls, text: str, goal_id: str | None) -> "Thought":
