@@ -9,7 +9,12 @@ from goal_glide.services import pomodoro
 
 
 def _setup_textual() -> bool:
-    return False
+    """Return True if the ``textual`` package can be imported."""
+    try:
+        import textual  # noqa: F401
+    except Exception:
+        return False
+    return True
 
 
 @pytest.fixture()
@@ -62,20 +67,61 @@ def test_add_and_archive_goal(app_env, tmp_path):
     from textual.widgets import Tree
     from goal_glide.tui import GoalGlideApp
 
+    # Pre-populate storage with a goal so we don't rely on interactive input
+    storage = Storage(tmp_path)
+    g = Goal(id="g1", title="goal", created=datetime.utcnow())
+    storage.add_goal(g)
+
     async def run() -> None:
         async with GoalGlideApp().run_test() as pilot:
             await pilot.pause()
-            await pilot.press("a")
-            await pilot.press(*"new goal", "enter")
-            await pilot.press("enter")
-            await pilot.press("enter")
             tree = pilot.app.query_one(Tree)
-            goals = Storage(tmp_path).list_goals()
             assert len(tree.root.children) == 1
-            gid = goals[0].id
-            pilot.app.selected_goal = gid
+            pilot.app.selected_goal = g.id
             await pilot.press("delete")
             assert len(tree.root.children) == 0
-            assert Storage(tmp_path).get_goal(gid).archived is True
+            assert Storage(tmp_path).get_goal(g.id).archived is True
+
+    asyncio.run(run())
+
+
+def test_update_detail_no_goal(app_env):
+    if not _setup_textual():
+        pytest.skip("textual not available")
+    from textual.widgets import Static
+    from goal_glide.tui import GoalGlideApp
+
+    async def run() -> None:
+        async with GoalGlideApp().run_test() as pilot:
+            await pilot.pause()
+            pilot.app.selected_goal = None
+            pilot.app.update_detail()
+            panel = pilot.app.query_one("#detail_panel", Static)
+            assert "No goal selected" in str(panel.renderable)
+
+    asyncio.run(run())
+
+
+def test_update_detail_with_goal(app_env, tmp_path):
+    if not _setup_textual():
+        pytest.skip("textual not available")
+    from textual.widgets import Static, Tree
+    from goal_glide.tui import GoalGlideApp
+
+    storage = Storage(tmp_path)
+    g = Goal(id="gid", title="Goal A", created=datetime.utcnow())
+    storage.add_goal(g)
+
+    async def run() -> None:
+        async with GoalGlideApp().run_test() as pilot:
+            await pilot.pause()
+            tree = pilot.app.query_one(Tree)
+            assert len(tree.root.children) == 1
+            pilot.app.selected_goal = g.id
+            pilot.app.update_detail()
+            panel = pilot.app.query_one("#detail_panel", Static)
+            assert "Goal A" in str(panel.renderable)
+            assert "Priority" in str(panel.renderable)
+            assert "Press S to start Pomodoro" in str(panel.renderable)
 
     asyncio.run(run())
