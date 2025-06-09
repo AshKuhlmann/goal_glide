@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 from click.testing import CliRunner
 
-from goal_glide import cli
+from goal_glide.cli import cli
 from goal_glide.models.goal import Goal
 from goal_glide.models.session import PomodoroSession
 from goal_glide.models.storage import Storage
@@ -43,7 +43,7 @@ def test_cli_creates_html(
     seed(storage)
     out = tmp_path / "rep.html"
     result = runner.invoke(
-        cli.goal,
+        cli,
         ["report", "make", "--out", str(out)],
         env={"GOAL_GLIDE_DB_DIR": str(tmp_path)},
     )
@@ -53,7 +53,7 @@ def test_cli_creates_html(
 
 
 def test_cli_flag_collision(runner: CliRunner) -> None:
-    result = runner.invoke(cli.goal, ["report", "make", "--week", "--month"])
+    result = runner.invoke(cli, ["report", "make", "--week", "--month"])
     assert result.exit_code != 0
     assert "only one" in result.output
 
@@ -66,7 +66,7 @@ def test_cli_custom_range(
     seed(storage)
     out = tmp_path / "range.html"
     result = runner.invoke(
-        cli.goal,
+        cli,
         [
             "report",
             "make",
@@ -115,7 +115,7 @@ def test_cli_range_flags(
 
     monkeypatch.setattr(report, "build_report", fake_build_report)
     result = runner.invoke(
-        cli.goal,
+        cli,
         ["report", "make", flag],
         env={"GOAL_GLIDE_DB_DIR": str(tmp_path)},
     )
@@ -135,7 +135,7 @@ def test_cli_range_flags(
     ],
 )
 def test_report_make_usage_errors(runner: CliRunner, args: list[str], msg: str) -> None:
-    result = runner.invoke(cli.goal, ["report", "make", *args])
+    result = runner.invoke(cli, ["report", "make", *args])
     assert result.exit_code != 0
     assert msg in result.output
 
@@ -148,7 +148,7 @@ def test_cli_default_output_path(
     storage = Storage(tmp_path)
     seed(storage)
     result = runner.invoke(
-        cli.goal,
+        cli,
         ["report", "make", "--week"],
         env={"GOAL_GLIDE_DB_DIR": str(tmp_path)},
     )
@@ -167,12 +167,12 @@ def test_cli_md_and_csv(
     md_out = tmp_path / "rep.md"
     csv_out = tmp_path / "rep.csv"
     result_md = runner.invoke(
-        cli.goal,
+        cli,
         ["report", "make", "--format", "md", "--out", str(md_out)],
         env={"GOAL_GLIDE_DB_DIR": str(tmp_path)},
     )
     result_csv = runner.invoke(
-        cli.goal,
+        cli,
         ["report", "make", "--format", "csv", "--out", str(csv_out)],
         env={"GOAL_GLIDE_DB_DIR": str(tmp_path)},
     )
@@ -195,12 +195,12 @@ def test_cli_empty_storage_reports(
     md_out = tmp_path / "empty.md"
     csv_out = tmp_path / "empty.csv"
     result_md = runner.invoke(
-        cli.goal,
+        cli,
         ["report", "make", "--format", "md", "--out", str(md_out)],
         env={"GOAL_GLIDE_DB_DIR": str(tmp_path)},
     )
     result_csv = runner.invoke(
-        cli.goal,
+        cli,
         ["report", "make", "--format", "csv", "--out", str(csv_out)],
         env={"GOAL_GLIDE_DB_DIR": str(tmp_path)},
     )
