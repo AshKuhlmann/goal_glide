@@ -33,7 +33,10 @@ _OS_NOTIFIERS: dict[str, Callable[[str], None]] = {
 }
 
 _HELP_HINTS: dict[str, str] = {
-    "Darwin": "Install 'terminal-notifier' with Homebrew: brew install terminal-notifier",
+    "Darwin": (
+        "Install 'terminal-notifier' with Homebrew: "
+        "brew install terminal-notifier"
+    ),
     "Linux": "Install 'notify2' via pip or 'notify-send' via your package manager",
     "Windows": "Install 'win10toast' via pip: pip install win10toast",
 }
