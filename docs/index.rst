@@ -9,3 +9,11 @@ This documentation is generated using Sphinx. To build the HTML pages run:
    make html
 
 The built documentation will be available under ``_build/html``.
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
+
+   cli
+   tui
+   api
