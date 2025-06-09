@@ -213,7 +213,7 @@ The HTML and Markdown templates used for report generation live in `goal_glide/t
 
 Data is stored by default in `~/.goal_glide/db.json`. To use a different location set the `GOAL_GLIDE_DB_DIR` environment variable.
 
-Configuration is kept in `~/.goal_glide/config.toml` and controls:
+Configuration is kept in `~/.goal_glide/config.toml`. Set `GOAL_GLIDE_CONFIG_DIR` to override this path. The file controls:
 
 - `quotes_enabled` – show a motivational quote after each session
 - `reminders_enabled` – schedule desktop reminders

@@ -10,9 +10,10 @@ python = "^3.11"
 click = "*"
 rich = "*"
 tinydb = "*"
+requests = "*"
 apscheduler = "*"
 notify2 = "*"
-textual = ">=0.55"
+textual = ">=0.55,<1.0"
 jinja2 = ">=3.1"
 pandas = "^2.3"
 
@@ -23,6 +24,7 @@ hypothesis = "*"
 mypy = "*"
 sphinx = "*"
 beautifulsoup4 = "*"
+types-requests = "*"
 
 [tool.black]
 target-version = ['py311']

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tomllib
 from pathlib import Path
+import os
 from typing import Any, Dict, TypedDict, cast
 
 
@@ -19,7 +20,11 @@ DEFAULTS: ConfigDict = {
     "reminder_interval_min": 30,
 }
 
-_CONFIG_PATH = Path.home() / ".goal_glide" / "config.toml"
+_CONFIG_PATH = (
+    Path(os.environ["GOAL_GLIDE_CONFIG_DIR"]) / "config.toml"
+    if "GOAL_GLIDE_CONFIG_DIR" in os.environ
+    else Path.home() / ".goal_glide" / "config.toml"
+)
 
 
 def _load_file() -> Dict[str, Any]:

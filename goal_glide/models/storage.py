@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 
 from tinydb import Query, TinyDB
+from tinydb.queries import QueryLike
 
 from ..exceptions import (
     GoalAlreadyArchivedError,
@@ -60,7 +61,7 @@ class Storage:
         base = db_dir or Path.home() / ".goal_glide"
         db_path = Path(base) / "db.json"
         db_path.parent.mkdir(parents=True, exist_ok=True)
-        self.db = TinyDB(db_path)
+        self.db = TinyDB(db_path, default=str)
         self.table = self.db.table("goals")
         self.thought_table = self.db.table(THOUGHTS_TABLE)
         self.session_table = self.db.table("sessions")
@@ -96,7 +97,6 @@ class Storage:
         Args:
             goal: A :class:`Goal` object to be added to the database.
         """
-
         self.table.insert(goal.to_dict())
 
     def get_goal(self, goal_id: str) -> Goal:
@@ -199,8 +199,7 @@ class Storage:
             A list of :class:`Goal` objects matching the filter criteria.
         """
         GoalQuery = Query()
-
-        predicates = []
+        predicates: list[Callable[[dict[str, Any]], bool]] = []
 
         if only_archived:
             predicates.append(lambda r: r.get("archived") is True)
@@ -219,8 +218,10 @@ class Storage:
         def predicate(row: dict[str, Any]) -> bool:
             return all(p(row) for p in predicates)
 
-        rows = self.table.search(predicate) if predicates else self.table.all()
-        return [self._row_to_goal(r) for r in rows]
+        # For type safety, cast the predicate to QueryLike
+        search_cond = cast(QueryLike, predicate)
+        rows = self.table.search(search_cond) if predicates else self.table.all()
+        return [self._row_to_goal(cast(GoalRow, r)) for r in rows]
 
     def list_all_tags(self) -> dict[str, int]:
         """Return mapping of tag name to count of goals containing it."""
