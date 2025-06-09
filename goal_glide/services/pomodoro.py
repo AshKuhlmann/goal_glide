@@ -8,6 +8,7 @@ from typing import Callable, Optional, TypedDict, cast
 
 from rich.console import Console
 import os
+from filelock import FileLock
 
 from .. import config
 from ..models.session import PomodoroSession
@@ -23,6 +24,8 @@ POMO_PATH = Path(
         Path.home() / ".goal_glide" / "session.json",
     )
 )
+
+POMO_LOCK = FileLock(POMO_PATH.with_suffix(".lock"))
 
 
 @dataclass(slots=True)
@@ -45,10 +48,11 @@ class SessionData(TypedDict):
 
 
 def _load_data() -> SessionData | None:
-    if not POMO_PATH.exists():
-        return None
-    with POMO_PATH.open(encoding="utf-8") as fp:
-        data = cast(SessionData, json.load(fp))
+    with POMO_LOCK:
+        if not POMO_PATH.exists():
+            return None
+        with POMO_PATH.open(encoding="utf-8") as fp:
+            data = cast(SessionData, json.load(fp))
     # backward compatibility for older session files
     data.setdefault("elapsed_sec", 0)
     data.setdefault("paused", False)
@@ -58,8 +62,9 @@ def _load_data() -> SessionData | None:
 
 def _save_data(data: SessionData) -> None:
     POMO_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with POMO_PATH.open("w", encoding="utf-8") as fp:
-        json.dump(data, fp)
+    with POMO_LOCK:
+        with POMO_PATH.open("w", encoding="utf-8") as fp:
+            json.dump(data, fp)
 
 
 def start_session(
