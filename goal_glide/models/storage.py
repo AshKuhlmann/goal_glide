@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any, cast
+from tinydb.table import Document
 
 from tinydb import Query, TinyDB
 from tinydb.queries import QueryLike
@@ -59,14 +60,14 @@ class Storage:
             if updated:
                 self.table.update(new_row, Query().id == row["id"])
 
-    def _row_to_goal(self, row: dict[str, Any]) -> Goal:
-        return Goal.from_dict(row)
+    def _row_to_goal(self, row: Document | dict[str, Any]) -> Goal:
+        return Goal.from_dict(dict(row))
 
-    def _row_to_thought(self, row: dict[str, Any]) -> Thought:
-        return Thought.from_dict(row)
+    def _row_to_thought(self, row: Document | dict[str, Any]) -> Thought:
+        return Thought.from_dict(dict(row))
 
-    def _row_to_session(self, row: dict[str, Any]) -> PomodoroSession:
-        return PomodoroSession.from_dict(row)
+    def _row_to_session(self, row: Document | dict[str, Any]) -> PomodoroSession:
+        return PomodoroSession.from_dict(dict(row))
 
     def add_goal(self, goal: Goal) -> None:
         """Saves a new goal to the database.
@@ -81,7 +82,7 @@ class Storage:
         row = self.table.get(Query().id == goal_id)
         if not row:
             raise GoalNotFoundError(f"Goal {goal_id} not found")
-        return self._row_to_goal(row)
+        return self._row_to_goal(cast(Document, row))
 
     def add_tags(self, goal_id: str, tags: list[str]) -> Goal:
         goal = self.get_goal(goal_id)
@@ -256,7 +257,7 @@ class Storage:
 
     def find_by_title(self, title: str) -> Goal | None:
         row = self.table.get(Query().title == title)
-        return self._row_to_goal(row) if row else None
+        return self._row_to_goal(cast(Document, row)) if row else None
 
     def add_session(self, session: PomodoroSession) -> None:
         self.session_table.insert(session.to_dict())
