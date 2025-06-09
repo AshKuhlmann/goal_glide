@@ -264,3 +264,4 @@ class Storage:
             return False
         self.thought_table.remove(Query().id == thought_id)
         return True
+content-hash = "aef90b58110b678522a5b5b539fc776cb88bebd42f21bf46925590a4a2a5e725"
