@@ -278,7 +278,7 @@ issues are caught early.
 
 ## Documentation
 
-Sphinx configuration files live in the `docs` directory. Run `make html` inside that folder to build the HTML docs.
+Sphinx configuration files live in the `docs` directory. Run `make html` inside that folder to build the HTML docs. The full manual with command examples, TUI key bindings and API documentation is available there. See [`docs/cli.rst`](docs/cli.rst), [`docs/tui.rst`](docs/tui.rst) and [`docs/api.rst`](docs/api.rst) for the individual sections.
 
 ---
 Goal Glide is distributed under the terms of the GNU General Public License v3.
