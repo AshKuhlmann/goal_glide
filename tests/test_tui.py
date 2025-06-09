@@ -65,6 +65,8 @@ def test_add_and_archive_goal(app_env, tmp_path):
             await pilot.pause()
             await pilot.press("a")
             await pilot.press(*"new goal", "enter")
+            await pilot.press("enter")
+            await pilot.press("enter")
             tree = pilot.app.query_one(Tree)
             goals = Storage(tmp_path).list_goals()
             assert len(tree.root.children) == 1

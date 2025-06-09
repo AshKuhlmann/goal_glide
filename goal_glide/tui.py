@@ -119,9 +119,7 @@ class GoalGlideApp(App[None]):
             add_nodes(tree.root, g)
         tree.root.expand()
 
-    async def on_tree_node_highlighted(
-        self, event: Tree.NodeHighlighted[str]
-    ) -> None:
+    async def on_tree_node_highlighted(self, event: Tree.NodeHighlighted[str]) -> None:
         self.selected_goal = event.node.data
         self.update_detail()
 
@@ -172,11 +170,37 @@ class GoalGlideApp(App[None]):
         title = await self.push_screen(InputModal("Goal title:"), wait_for_dismiss=True)
         if not title or not str(title).strip():
             return
+        title = str(title).strip()
+
+        prio = await self.push_screen(
+            InputModal(
+                "Priority (low/medium/high):",
+                default=Priority.medium.value,
+            ),
+            wait_for_dismiss=True,
+        )
+        prio_str = str(prio).strip() if prio else Priority.medium.value
+        try:
+            priority = Priority(prio_str) if prio_str else Priority.medium
+        except Exception:
+            priority = Priority.medium
+
+        dl = await self.push_screen(
+            InputModal("Deadline YYYY-MM-DD (optional):"), wait_for_dismiss=True
+        )
+        deadline = None
+        if dl and str(dl).strip():
+            try:
+                deadline = datetime.strptime(str(dl).strip(), "%Y-%m-%d")
+            except Exception:
+                deadline = None
+
         g = Goal(
             id=str(uuid4()),
-            title=str(title).strip(),
+            title=title,
             created=datetime.utcnow(),
-            priority=Priority.medium,
+            priority=priority,
+            deadline=deadline,
         )
         self.storage.add_goal(g)
         await self.refresh_goals()
