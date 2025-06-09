@@ -257,7 +257,9 @@ class GoalGlideApp(App[None]):
         if not self.selected_goal:
             return
         if self.active_session and self.active_session.goal_id == self.selected_goal:
-            base = Path(os.environ.get("GOAL_GLIDE_DB_DIR") or Path.home() / ".goal_glide")
+            base = Path(
+                os.environ.get("GOAL_GLIDE_DB_DIR") or Path.home() / ".goal_glide"
+            )
             pomodoro.stop_session(base / "session.json", base / "config.toml")
             self.storage.add_session(
                 PomodoroSession.new(
@@ -268,8 +270,12 @@ class GoalGlideApp(App[None]):
             )
             self.active_session = None
         else:
-            base = Path(os.environ.get("GOAL_GLIDE_DB_DIR") or Path.home() / ".goal_glide")
-            session = pomodoro.start_session(session_path=base / "session.json", config_path=base / "config.toml")
+            base = Path(
+                os.environ.get("GOAL_GLIDE_DB_DIR") or Path.home() / ".goal_glide"
+            )
+            session = pomodoro.start_session(
+                session_path=base / "session.json", config_path=base / "config.toml"
+            )
             self.active_session = RunningSession(
                 goal_id=self.selected_goal,
                 start=session.start,

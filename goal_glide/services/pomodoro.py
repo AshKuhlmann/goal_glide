@@ -65,7 +65,11 @@ def start_session(
     session_path: Path,
     config_path: Path,
 ) -> PomodoroSession:
-    dur = duration_min if duration_min is not None else config.pomo_duration(config_path)
+    dur = (
+        duration_min
+        if duration_min is not None
+        else config.pomo_duration(config_path)
+    )
     session = PomodoroSession(
         id="",
         goal_id=goal_id,

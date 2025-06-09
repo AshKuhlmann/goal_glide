@@ -6,7 +6,6 @@ import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Callable, ParamSpec, TypeVar, cast, TypedDict
-import os
 
 import click
 
@@ -486,7 +485,12 @@ def start_pomo(ctx: click.Context, duration: int | None, goal_id: str | None) ->
     obj = cast(AppContext, ctx.obj)
     if dur is None:
         dur = cfg.pomo_duration(obj["config_path"])
-    start_session(dur, goal_id, session_path=obj["session_path"], config_path=obj["config_path"])
+    start_session(
+        dur,
+        goal_id,
+        session_path=obj["session_path"],
+        config_path=obj["config_path"],
+    )
     console.print(f"Started pomodoro for {dur}m")
 
 
@@ -646,7 +650,9 @@ goal.add_command(config)
 @click.pass_context
 def thought(ctx: click.Context) -> None:
     if ctx.obj is None:
-        base_dir = Path(os.environ.get("GOAL_GLIDE_DB_DIR") or Path.home() / ".goal_glide")
+        base_dir = Path(
+            os.environ.get("GOAL_GLIDE_DB_DIR") or Path.home() / ".goal_glide"
+        )
         base_dir.mkdir(parents=True, exist_ok=True)
         db_path = base_dir / "db.json"
         config_path = base_dir / "config.toml"

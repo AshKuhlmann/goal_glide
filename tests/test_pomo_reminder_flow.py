@@ -7,7 +7,6 @@ import pytest
 from click.testing import CliRunner
 
 from goal_glide import cli
-from goal_glide import config as cfg
 from goal_glide.services import notify, reminder, pomodoro
 from hypothesis import HealthCheck, given, settings, strategies as st
 from typing import Callable
@@ -92,7 +91,11 @@ def test_cancel_all_runs_on_new_session(reminder_runner, monkeypatch, tmp_path) 
     sched.add_job(lambda: None, "interval")  # type: ignore[attr-defined]
     assert len(sched.jobs) == 2  # type: ignore[attr-defined]
 
-    pomodoro.start_session(1, session_path=Path(env["GOAL_GLIDE_DB_DIR"]) / "session.json", config_path=Path(env["GOAL_GLIDE_DB_DIR"]) / "config.toml")
+    pomodoro.start_session(
+        1,
+        session_path=Path(env["GOAL_GLIDE_DB_DIR"]) / "session.json",
+        config_path=Path(env["GOAL_GLIDE_DB_DIR"]) / "config.toml",
+    )
 
     assert sched.jobs == []  # type: ignore[attr-defined]
 

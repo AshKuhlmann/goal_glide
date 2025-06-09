@@ -24,7 +24,11 @@ def test_status_with_session(tmp_path: Path, monkeypatch, runner: CliRunner):
             return start_time
 
     monkeypatch.setattr(pomodoro, "datetime", StartDT)
-    pomodoro.start_session(30, session_path=Path(env["GOAL_GLIDE_DB_DIR"]) / "session.json", config_path=Path(env["GOAL_GLIDE_DB_DIR"]) / "config.toml")
+    pomodoro.start_session(
+        30,
+        session_path=Path(env["GOAL_GLIDE_DB_DIR"]) / "session.json",
+        config_path=Path(env["GOAL_GLIDE_DB_DIR"]) / "config.toml",
+    )
 
     later = start_time + datetime.timedelta(minutes=10)
 
@@ -50,7 +54,11 @@ def test_status_paused(tmp_path: Path, monkeypatch, runner: CliRunner):
             return start_time
 
     monkeypatch.setattr(pomodoro, "datetime", StartDT)
-    pomodoro.start_session(30, session_path=Path(env["GOAL_GLIDE_DB_DIR"]) / "session.json", config_path=Path(env["GOAL_GLIDE_DB_DIR"]) / "config.toml")
+    pomodoro.start_session(
+        30,
+        session_path=Path(env["GOAL_GLIDE_DB_DIR"]) / "session.json",
+        config_path=Path(env["GOAL_GLIDE_DB_DIR"]) / "config.toml",
+    )
 
     later = start_time + datetime.timedelta(minutes=10)
     dt_cls = type("DT", (datetime.datetime,), {"now": classmethod(lambda cls: later)})

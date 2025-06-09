@@ -60,7 +60,9 @@ def test_list_limit(tmp_path: Path, runner: CliRunner) -> None:
 def test_list_goal_filter(tmp_path: Path, runner: CliRunner) -> None:
     runner.invoke(goal, ["add", "g"])
     goal_id = Storage(tmp_path / "db.json").list_goals()[0].id
-    Storage(tmp_path / "db.json").add_thought(Thought(id="1", text="a", timestamp=datetime.now()))
+    Storage(tmp_path / "db.json").add_thought(
+        Thought(id="1", text="a", timestamp=datetime.now())
+    )
     Storage(tmp_path / "db.json").add_thought(
         Thought(id="2", text="b", timestamp=datetime.now(), goal_id=goal_id)
     )
@@ -75,7 +77,9 @@ def test_migration_keeps_other_tables(tmp_path: Path, runner: CliRunner) -> None
     db = Storage(tmp_path / "db.json").db
     db.table("goals").insert({"id": "g"})
     db.table("sessions").insert({"id": "s"})
-    Storage(tmp_path / "db.json").add_thought(Thought(id="t", text="x", timestamp=datetime.now()))
+    Storage(tmp_path / "db.json").add_thought(
+        Thought(id="t", text="x", timestamp=datetime.now())
+    )
     db2 = Storage(tmp_path / "db.json").db
     assert len(db2.table("goals").all()) == 1
     assert len(db2.table("sessions").all()) == 1

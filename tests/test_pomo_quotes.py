@@ -6,14 +6,12 @@ import pytest
 from click.testing import CliRunner
 
 from goal_glide import cli
-from goal_glide import config as cfg
 from goal_glide.services import quotes
 
 
 def test_pomo_stop_prints_quote(
     monkeypatch: pytest.MonkeyPatch, runner: CliRunner, tmp_path: Path
 ) -> None:
-    cfg_path = tmp_path / "config.toml"
     monkeypatch.setattr(quotes, "get_random_quote", lambda use_online=True: ("Q", "A"))
     monkeypatch.setattr(cli, "get_random_quote", lambda use_online=True: ("Q", "A"))
     env = {"GOAL_GLIDE_DB_DIR": str(tmp_path), "HOME": str(tmp_path)}
@@ -26,8 +24,7 @@ def test_pomo_stop_prints_quote(
 def test_quotes_disabled(
     monkeypatch: pytest.MonkeyPatch, runner: CliRunner, tmp_path: Path
 ) -> None:
-    cfg_path = tmp_path / "config.toml"
-    cfg_path.write_text("quotes_enabled = false", encoding="utf-8")
+    (tmp_path / "config.toml").write_text("quotes_enabled = false", encoding="utf-8")
     monkeypatch.setattr(quotes, "get_random_quote", lambda use_online=True: ("Q", "A"))
     monkeypatch.setattr(cli, "get_random_quote", lambda use_online=True: ("Q", "A"))
     env = {"GOAL_GLIDE_DB_DIR": str(tmp_path), "HOME": str(tmp_path)}
@@ -40,7 +37,6 @@ def test_quotes_disabled(
 def test_quote_fallback(
     monkeypatch: pytest.MonkeyPatch, runner: CliRunner, tmp_path: Path
 ) -> None:
-    cfg_path = tmp_path / "config.toml"
     monkeypatch.setattr(
         quotes.requests,
         "get",
@@ -58,7 +54,6 @@ def test_quote_fallback(
 def test_quote_exception_handling(
     monkeypatch: pytest.MonkeyPatch, runner: CliRunner, tmp_path: Path
 ) -> None:
-    cfg_path = tmp_path / "config.toml"
 
     def boom(use_online: bool = True) -> tuple[str, str]:
         raise RuntimeError("boom")
@@ -75,7 +70,6 @@ def test_quote_exception_handling(
 def test_quotes_default_enabled(
     monkeypatch: pytest.MonkeyPatch, runner: CliRunner, tmp_path: Path
 ) -> None:
-    cfg_path = tmp_path / "config.toml"
     env = {"GOAL_GLIDE_DB_DIR": str(tmp_path), "HOME": str(tmp_path)}
     result = runner.invoke(cli.goal, ["config", "quotes"], env=env)
     assert result.exit_code == 0
@@ -85,8 +79,7 @@ def test_quotes_default_enabled(
 def test_quotes_disabled_no_call(
     monkeypatch: pytest.MonkeyPatch, runner: CliRunner, tmp_path: Path
 ) -> None:
-    cfg_path = tmp_path / "config.toml"
-    cfg_path.write_text("quotes_enabled = false", encoding="utf-8")
+    (tmp_path / "config.toml").write_text("quotes_enabled = false", encoding="utf-8")
     called: list[bool] = []
 
     def fake(use_online: bool = True) -> tuple[str, str]:

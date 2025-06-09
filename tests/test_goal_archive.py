@@ -50,9 +50,11 @@ def test_restore_unsets_flag(tmp_path: Path, runner: CliRunner) -> None:
 def test_list_filters_priority_and_archived(tmp_path: Path, runner: CliRunner) -> None:
     runner.invoke(goal, ["add", "g1", "-p", "low"])
     runner.invoke(goal, ["add", "g2", "-p", "high"])
-    gid = [g for g in Storage(tmp_path / "db.json").list_goals() if g.priority == Priority.low][
-        0
-    ].id
+    gid = [
+        g
+        for g in Storage(tmp_path / "db.json").list_goals()
+        if g.priority == Priority.low
+    ][0].id
     runner.invoke(goal, ["archive", gid])
     result = runner.invoke(goal, ["list", "--priority", "high"])
     assert "g2" in result.output
