@@ -43,12 +43,10 @@ exclude = 'tinydb/'
 [[tool.mypy.overrides]]
 module = "tinydb.*"
 ignore_errors = true
-
 [tool.mutmut]
 paths_to_mutate = "goal_glide/"
 runner = "pytest -x"
 tests_dir = "tests/"
-
 [build-system]
 requires = ["poetry-core>=1.5.0"]
 build-backend = "poetry.core.masonry.api"
