@@ -529,10 +529,6 @@ def reminder_status(ctx: click.Context) -> None:
     interval_min = cfg.get("reminder_interval_min", 30)
     console.print(
         f"Enabled: {enabled} | Break: {break_min}m | Interval: {interval_min}m"
-        "Enabled: "
-        f"{cfg.get('reminders_enabled', False)} | "
-        f"Break: {cfg.get('reminder_break_min', 5)}m | "
-        f"Interval: {cfg.get('reminder_interval_min', 30)}m"
     )
 
 
