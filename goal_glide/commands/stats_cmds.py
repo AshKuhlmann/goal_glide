@@ -8,7 +8,8 @@ from rich.bar import Bar
 from rich.table import Table
 from tinydb import Query
 
-from .common import AppContext, handle_exceptions, console
+from .common import AppContext, console
+from .. import cli as main_cli
 from ..services.analytics import (
     current_streak,
     total_time_by_goal,
@@ -46,7 +47,7 @@ def stats_cmds(
     """Visualise focus stats and streaks."""
     obj = cast(AppContext, ctx.obj)
     storage: Storage = obj["storage"]
-    today = datetime.now().date()
+    today = main_cli.cli.datetime.now().date()
 
     def _color(seconds: int) -> str:
         if seconds >= 7200:

@@ -134,8 +134,9 @@ def test_list_archived_priority_filter(tmp_path: Path, runner: CliRunner) -> Non
 
 
 def test_list_shows_completed(tmp_path: Path, runner: CliRunner) -> None:
-    runner.invoke(cli, ["goal", "add", "g"], env={"GOAL_GLIDE_DB_DIR": str(tmp_path)})
+    env = {"GOAL_GLIDE_DB_DIR": str(tmp_path)}
+    runner.invoke(cli, ["goal", "add", "g"], env=env)
     gid = Storage(tmp_path).list_goals()[0].id
-    runner.invoke(cli, ["goal", "complete", gid], env={"GOAL_GLIDE_DB_DIR": str(tmp_path)})
-    result = runner.invoke(cli, ["goal", "list"], env={"GOAL_GLIDE_DB_DIR": str(tmp_path)})
+    runner.invoke(cli, ["goal", "complete", gid], env=env)
+    result = runner.invoke(cli, ["goal", "list"], env=env)
     assert "Comple" in result.output

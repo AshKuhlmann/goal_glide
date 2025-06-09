@@ -19,17 +19,18 @@ def test_add_list_remove(tmp_path):
     )
     assert result.exit_code == 0
 
+    env = {"GOAL_GLIDE_DB_DIR": str(tmp_path)}
     # list
-    result = runner.invoke(cli, ["goal", "list"], env={"GOAL_GLIDE_DB_DIR": str(tmp_path)})
+    result = runner.invoke(cli, ["goal", "list"], env=env)
     assert "Test" in result.output
 
     # remove using id from storage (rich table may truncate id)
     goal_id = Storage(tmp_path).list_goals()[0].id
     result = runner.invoke(
         cli,
-        ["remove", goal_id],
+        ["goal", "remove", goal_id],
         input="y\n",
-        env={"GOAL_GLIDE_DB_DIR": str(tmp_path)},
+        env=env,
     )
     assert result.exit_code == 0
 
@@ -156,17 +157,18 @@ def test_pomo_start_after_archive(tmp_path, monkeypatch):
     import importlib
     importlib.reload(pomodoro)
     runner = CliRunner()
+    env = {"GOAL_GLIDE_DB_DIR": str(tmp_path)}
     add_res = runner.invoke(
         cli,
         ["goal", "add", "g"],
-        env={"GOAL_GLIDE_DB_DIR": str(tmp_path)},
+        env=env,
     )
     gid = add_res.output.split()[-1].strip("()")
-    runner.invoke(cli, ["goal", "archive", gid], env={"GOAL_GLIDE_DB_DIR": str(tmp_path)})
+    runner.invoke(cli, ["goal", "archive", gid], env=env)
     start = runner.invoke(
         cli,
         ["pomo", "start", "--duration", "1", "--goal", gid],
-        env={"GOAL_GLIDE_DB_DIR": str(tmp_path)},
+        env=env,
     )
     assert start.exit_code == 0
     assert "Started pomodoro" in start.output

@@ -35,11 +35,24 @@ def reminder_disable(ctx: click.Context) -> None:
 
 
 @reminder_cmds.command("config")
-@click.option("--break", "break_", type=int, help="Break length minutes (1-120)")
-@click.option("--interval", type=int, help="Interval minutes (1-120)")
+@click.option(
+    "--break",
+    "break_",
+    type=int,
+    help="Break length minutes (1-120)",
+)
+@click.option(
+    "--interval",
+    type=int,
+    help="Interval minutes (1-120)",
+)
 @handle_exceptions
 @click.pass_context
-def reminder_config(ctx: click.Context, break_: int | None, interval: int | None) -> None:
+def reminder_config(
+    ctx: click.Context,
+    break_: int | None,
+    interval: int | None,
+) -> None:
     obj = cast(AppContext, ctx.obj)
     cfg = obj["config"]
     if break_ is not None:
@@ -51,7 +64,9 @@ def reminder_config(ctx: click.Context, break_: int | None, interval: int | None
             raise ValueError("interval must be between 1 and 120")
         cfg["reminder_interval_min"] = interval
     save_config(cfg)
-    console.print(f"Break {cfg['reminder_break_min']}m, Interval {cfg['reminder_interval_min']}m")
+    break_len = cfg["reminder_break_min"]
+    interval_len = cfg["reminder_interval_min"]
+    console.print(f"Break {break_len}m, Interval {interval_len}m")
 
 
 @reminder_cmds.command("status")
@@ -62,4 +77,6 @@ def reminder_status(ctx: click.Context) -> None:
     enabled = cfg.get("reminders_enabled", False)
     break_min = cfg.get("reminder_break_min", 5)
     interval_min = cfg.get("reminder_interval_min", 30)
-    console.print(f"Enabled: {enabled} | Break: {break_min}m | Interval: {interval_min}m")
+    console.print(
+        f"Enabled: {enabled} | Break: {break_min}m | Interval: {interval_min}m"
+    )

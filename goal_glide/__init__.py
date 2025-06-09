@@ -20,5 +20,6 @@ except metadata.PackageNotFoundError:
         __version__ = "0.0.0"
 
 from .commands.common import handle_exceptions  # noqa: E402,F401  keep import order
+from .cli import cli
 
-__all__ = ["handle_exceptions", "__version__"]
+__all__ = ["handle_exceptions", "__version__", "cli"]

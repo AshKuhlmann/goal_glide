@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from typing import cast
-from datetime import datetime
 
 import click
 from rich.table import Table
