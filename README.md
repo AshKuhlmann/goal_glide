@@ -309,7 +309,7 @@ pip install pre-commit
 pre-commit install
 ```
 
-The configured hook runs `black`, `flake8` and `mypy` on staged files so
+The configured hook runs `black`, `flake8`, `ruff` and `mypy` on staged files so
 issues are caught early.
 
 ## Documentation
@@ -342,4 +342,4 @@ pip install pre-commit
 pre-commit install
 ```
 
-The hooks defined in `.pre-commit-config.yaml` enforce coding standards using Black, Flake8 and Mypy.
+The hooks defined in `.pre-commit-config.yaml` enforce coding standards using Black, Flake8, Ruff and Mypy.
