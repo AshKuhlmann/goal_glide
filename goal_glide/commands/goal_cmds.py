@@ -261,4 +261,3 @@ def goal_tree(ctx: click.Context) -> None:
         add_nodes(tree, g)
 
     console.print(tree)
-

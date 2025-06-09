@@ -3,7 +3,7 @@ from __future__ import annotations
 import functools
 import os
 from pathlib import Path
-from typing import Callable, ParamSpec, TypeVar, TypedDict, cast
+from typing import Callable, ParamSpec, TypeVar, TypedDict
 
 import click
 from rich.console import Console

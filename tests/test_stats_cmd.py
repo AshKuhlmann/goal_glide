@@ -9,6 +9,7 @@ from click.testing import CliRunner
 from goal_glide.cli import cli
 from goal_glide.models.session import PomodoroSession
 from goal_glide.models.storage import Storage
+from goal_glide.commands import stats_cmds
 
 
 def make_session(day: date, dur: int = 3600, goal_id: str = "g") -> PomodoroSession:
@@ -33,7 +34,6 @@ def test_stats_week_output_has_7_bars(
         def now(cls) -> datetime:
             return datetime(2023, 6, 11)
 
-    from goal_glide.commands import stats_cmds
     monkeypatch.setattr(stats_cmds, "datetime", FakeDT)
     result = runner.invoke(cli, ["stats", "show"])
     days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]

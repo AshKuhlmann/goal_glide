@@ -5,7 +5,7 @@ from rich.table import Table
 from typing import cast
 
 from .common import AppContext
-from ..config import load_config, save_config
+from ..config import save_config
 
 
 @click.group("config")

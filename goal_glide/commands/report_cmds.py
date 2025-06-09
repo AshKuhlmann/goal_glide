@@ -61,9 +61,14 @@ def report_make(
         raise click.UsageError("Specify both --from and --to")
     if (start_date or end_date) and any(flags):
         raise click.UsageError("--from/--to cannot be combined with range flags")
-    range_ = (
-        "week" if range_week else "month" if range_month else "all" if range_all else "week"
-    )
+    if range_week:
+        range_ = "week"
+    elif range_month:
+        range_ = "month"
+    elif range_all:
+        range_ = "all"
+    else:
+        range_ = "week"
     obj = cast(AppContext, ctx.obj)
     storage: Storage = obj["storage"]
     start = start_date.date() if start_date else None

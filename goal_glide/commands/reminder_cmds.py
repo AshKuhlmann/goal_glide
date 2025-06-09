@@ -39,7 +39,9 @@ def reminder_disable(ctx: click.Context) -> None:
 @click.option("--interval", type=int, help="Interval minutes (1-120)")
 @handle_exceptions
 @click.pass_context
-def reminder_config(ctx: click.Context, break_: int | None, interval: int | None) -> None:
+def reminder_config(
+    ctx: click.Context, break_: int | None, interval: int | None
+) -> None:
     obj = cast(AppContext, ctx.obj)
     cfg = obj["config"]
     if break_ is not None:
@@ -52,7 +54,8 @@ def reminder_config(ctx: click.Context, break_: int | None, interval: int | None
         cfg["reminder_interval_min"] = interval
     save_config(cfg)
     click.echo(
-        f"Break {cfg['reminder_break_min']}m, Interval {cfg['reminder_interval_min']}m"
+        f"Break {cfg['reminder_break_min']}m, "
+        f"Interval {cfg['reminder_interval_min']}m"
     )
 
 

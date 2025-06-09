@@ -16,7 +16,11 @@ def test_pomo_stop_prints_quote(
 ) -> None:
     monkeypatch.setattr(cfg, "_CONFIG_PATH", tmp_path / ".goal_glide" / "config.toml")
     monkeypatch.setattr(quotes, "get_random_quote", lambda use_online=True: ("Q", "A"))
-    monkeypatch.setattr(pomo_cmds, "get_random_quote", lambda use_online=True: ("Q", "A"))
+    monkeypatch.setattr(
+        pomo_cmds,
+        "get_random_quote",
+        lambda use_online=True: ("Q", "A"),
+    )
     runner.invoke(cli, ["pomo", "start", "--duration", "1"])
     result = runner.invoke(cli, ["pomo", "stop"])
     assert "Pomodoro complete" in result.output
@@ -31,7 +35,11 @@ def test_quotes_disabled(
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("quotes_enabled = false", encoding="utf-8")
     monkeypatch.setattr(quotes, "get_random_quote", lambda use_online=True: ("Q", "A"))
-    monkeypatch.setattr(pomo_cmds, "get_random_quote", lambda use_online=True: ("Q", "A"))
+    monkeypatch.setattr(
+        pomo_cmds,
+        "get_random_quote",
+        lambda use_online=True: ("Q", "A"),
+    )
     runner.invoke(cli, ["pomo", "start", "--duration", "1"])
     result = runner.invoke(cli, ["pomo", "stop"])
     assert "Pomodoro complete" in result.output

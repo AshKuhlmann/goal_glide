@@ -8,7 +8,7 @@ from rich.bar import Bar
 from rich.table import Table
 from tinydb import Query
 
-from .common import AppContext, handle_exceptions
+from .common import AppContext
 from ..models.storage import Storage
 from ..services.analytics import (
     current_streak,
