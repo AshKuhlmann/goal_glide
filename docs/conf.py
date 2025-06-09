@@ -19,9 +19,13 @@ autodoc_mock_imports = [
     'textual',
     'jinja2',
     'pandas',
+    'goal_glide.cli',
+    'goal_glide.tui',
+    'goal_glide.services.pomodoro',
 ]
 
 templates_path = ['_templates']
 exclude_patterns = []
 
 html_theme = 'alabaster'
+suppress_warnings = ['autodoc.mocked_object']

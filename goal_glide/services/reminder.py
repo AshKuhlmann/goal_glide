@@ -13,6 +13,8 @@ _sched: BackgroundScheduler | None = None
 
 
 def _scheduler() -> BackgroundScheduler:
+    """Return the singleton background scheduler instance."""
+
     global _sched
     if _sched is None:
         _sched = BackgroundScheduler(daemon=True)
@@ -21,6 +23,8 @@ def _scheduler() -> BackgroundScheduler:
 
 
 def schedule_after_stop(config_path: Path) -> None:
+    """Schedule break and interval reminders after a session ends."""
+
     if not reminders_enabled(config_path):
         return
     sched = _scheduler()
@@ -43,6 +47,8 @@ def schedule_after_stop(config_path: Path) -> None:
 
 
 def cancel_all() -> None:
+    """Cancel all currently scheduled reminder jobs."""
+
     if _sched:
         _sched.remove_all_jobs()
 
