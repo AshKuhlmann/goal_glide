@@ -44,7 +44,11 @@ def test_stats_week_output_has_7_bars(
         cli.goal, ["stats"], env={"GOAL_GLIDE_DB_DIR": str(tmp_path)}
     )
     days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-    lines = [line for line in result.output.splitlines() if any(line.startswith(d) for d in days)]
+    lines = [
+        line
+        for line in result.output.splitlines()
+        if any(line.startswith(d) for d in days)
+    ]
     assert len(lines) == 7
     assert "Longest streak" in result.output
     assert "Most productive day" in result.output
@@ -68,7 +72,11 @@ def test_stats_month_output_has_4_bars(
         cli.goal, ["stats", "--month"], env={"GOAL_GLIDE_DB_DIR": str(tmp_path)}
     )
     weeks = ["W1", "W2", "W3", "W4"]
-    lines = [line for line in result.output.splitlines() if any(line.startswith(w) for w in weeks)]
+    lines = [
+        line
+        for line in result.output.splitlines()
+        if any(line.startswith(w) for w in weeks)
+    ]
     assert len(lines) == 4
 
 
