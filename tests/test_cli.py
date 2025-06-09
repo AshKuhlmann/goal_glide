@@ -2,6 +2,7 @@ from click.testing import CliRunner
 import click
 import pytest
 import json
+from datetime import datetime, timedelta
 
 import goal_glide.cli as cli
 from goal_glide import config
@@ -187,3 +188,24 @@ def test_pomo_start_default_from_config(tmp_path, monkeypatch):
     assert result.exit_code == 0
     data = json.loads((tmp_path / "session.json").read_text())
     assert data["duration_sec"] == 120
+
+
+def test_list_due_filters(tmp_path):
+    env = {"GOAL_GLIDE_DB_DIR": str(tmp_path)}
+    runner = CliRunner()
+    soon = (datetime.utcnow() + timedelta(days=2)).strftime("%Y-%m-%d")
+    later = (datetime.utcnow() + timedelta(days=5)).strftime("%Y-%m-%d")
+    past = (datetime.utcnow() - timedelta(days=1)).strftime("%Y-%m-%d")
+    runner.invoke(cli.goal, ["add", "soon", "--deadline", soon], env=env)
+    runner.invoke(cli.goal, ["add", "later", "--deadline", later], env=env)
+    runner.invoke(cli.goal, ["add", "past", "--deadline", past], env=env)
+
+    res = runner.invoke(cli.goal, ["list", "--due-soon"], env=env)
+    assert "soon" in res.output
+    assert "later" not in res.output
+    assert "past" not in res.output
+
+    res = runner.invoke(cli.goal, ["list", "--overdue"], env=env)
+    assert "past" in res.output
+    assert "soon" not in res.output
+    assert "later" not in res.output
