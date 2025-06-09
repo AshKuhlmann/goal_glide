@@ -1,4 +1,10 @@
-"""Simple cross-platform desktop notification helpers."""
+"""Utility functions for sending desktop notifications.
+
+This module dispatches small toast notifications on the three major
+platforms.  Each operating system requires a different third-party helper
+binary or library.  If a helper is missing we log the failure and print a
+hint so that users can easily install the missing dependency.
+"""
 
 from __future__ import annotations
 
@@ -9,13 +15,28 @@ from typing import Callable
 
 
 def _mac_notify(msg: str) -> None:
-    """Display a notification on macOS using ``terminal-notifier``."""
+    """Send a notification on macOS using ``terminal-notifier``.
+
+    Parameters
+    ----------
+    msg:
+        The message text to display.
+    """
 
     subprocess.run(["terminal-notifier", "-message", msg], check=False)
 
 
 def _linux_notify(msg: str) -> None:
-    """Show a notification on Linux via ``notify2`` or ``notify-send``."""
+    """Show a notification on Linux.
+
+    The function first tries to use the :mod:`notify2` library.  If that
+    fails, it falls back to the ``notify-send`` command line tool.
+
+    Parameters
+    ----------
+    msg:
+        The message text to display.
+    """
 
     try:
         import notify2
@@ -27,7 +48,13 @@ def _linux_notify(msg: str) -> None:
 
 
 def _win_notify(msg: str) -> None:
-    """Send a Windows toast notification using ``win10toast``."""
+    """Display a Windows toast notification via ``win10toast``.
+
+    Parameters
+    ----------
+    msg:
+        The message text to display.
+    """
 
     from win10toast import ToastNotifier
 
@@ -42,8 +69,7 @@ _OS_NOTIFIERS: dict[str, Callable[[str], None]] = {
 
 _HELP_HINTS: dict[str, str] = {
     "Darwin": (
-        "Install 'terminal-notifier' with Homebrew: "
-        "brew install terminal-notifier"
+        "Install 'terminal-notifier' with Homebrew: " "brew install terminal-notifier"
     ),
     "Linux": "Install 'notify2' via pip or 'notify-send' via your package manager",
     "Windows": "Install 'win10toast' via pip: pip install win10toast",
@@ -57,7 +83,17 @@ _DEFAULT_HINT = (
 
 
 def push(msg: str) -> None:
-    """Push a notification message using the appropriate OS backend."""
+    """Display ``msg`` as a desktop notification.
+
+    The operating system is detected at runtime and the corresponding helper
+    is used.  When no suitable helper is available a helpful message is
+    printed so the user can install the required tool.
+
+    Parameters
+    ----------
+    msg:
+        The message text to display.
+    """
 
     osname = platform.system()
     notifier = _OS_NOTIFIERS.get(osname)
