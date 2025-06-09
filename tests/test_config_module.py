@@ -20,6 +20,7 @@ def test_default_values_when_file_missing(cfg_path: Path) -> None:
     assert config.reminders_enabled() is False
     assert config.reminder_break() == 5
     assert config.reminder_interval() == 30
+    assert config.pomo_duration() == 25
     assert config.load_config() == config.DEFAULTS
 
 
@@ -29,6 +30,7 @@ def test_save_and_load_roundtrip(cfg_path: Path) -> None:
         "reminders_enabled": True,
         "reminder_break_min": 10,
         "reminder_interval_min": 20,
+        "pomo_duration_min": 15,
     }
     config.save_config(new_cfg)
     loaded = config.load_config()
@@ -45,6 +47,7 @@ def test_show_command_outputs_all_settings(cfg_path: Path) -> None:
         "reminders_enabled": True,
         "reminder_break_min": 10,
         "reminder_interval_min": 20,
+        "pomo_duration_min": 15,
     }
     config.save_config(cfg)
     runner = CliRunner()
@@ -67,6 +70,7 @@ def test_partial_config_file_loads_defaults(cfg_path: Path) -> None:
     assert config.reminders_enabled() is config.DEFAULTS["reminders_enabled"]
     assert config.reminder_break() == config.DEFAULTS["reminder_break_min"]
     assert config.reminder_interval() == config.DEFAULTS["reminder_interval_min"]
+    assert config.pomo_duration() == config.DEFAULTS["pomo_duration_min"]
 
 
 def test_load_reflects_file_changes(cfg_path: Path) -> None:
@@ -101,6 +105,7 @@ def test_mutating_loaded_config_does_not_affect_cache(cfg_path: Path) -> None:
         "reminders_enabled": True,
         "reminder_break_min": 10,
         "reminder_interval_min": 20,
+        "pomo_duration_min": 15,
     }
     config.save_config(cfg)
 
@@ -115,3 +120,15 @@ def test_invalid_toml_raises_decode_error(cfg_path: Path) -> None:
     cfg_path.write_text("foo = bar", encoding="utf-8")
     with pytest.raises(tomllib.TOMLDecodeError):
         config.load_config()
+
+
+def test_config_path_from_env(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
+    monkeypatch.setenv("GOAL_GLIDE_CONFIG_DIR", str(tmp_path))
+    import importlib
+    import goal_glide.config as cfg
+
+    importlib.reload(cfg)
+    assert cfg._CONFIG_PATH == tmp_path / "config.toml"
+
+    monkeypatch.delenv("GOAL_GLIDE_CONFIG_DIR", raising=False)
+    importlib.reload(cfg)

@@ -22,5 +22,6 @@ def test_render_goals_row_count() -> None:
     ]
     table = render_goals(goals)
     assert len(table.rows) == len(goals)
-    assert table.columns[0] == "ID"
-    assert "Deadline" in table.columns
+    assert table.columns[0].header == "ID"
+    headers = [col.header for col in table.columns]
+    assert "Deadline" in headers

@@ -17,6 +17,7 @@ from rich.tree import Tree
 from tinydb import Query
 
 from .config import ConfigDict, load_config, save_config
+from . import config as cfg
 from .exceptions import GoalGlideError
 from .models.goal import Goal, Priority
 from .models.storage import Storage
@@ -408,12 +409,21 @@ def pomo() -> None:
 
 
 @pomo.command("start")
-@click.option("--duration", type=int, default=25, show_default=True, help="Minutes")
+@click.option(
+    "--duration",
+    type=int,
+    default=None,
+    show_default=False,
+    help="Minutes (defaults to config)",
+)
 @click.option("-g", "--goal", "goal_id", help="Associate with goal ID")
 @handle_exceptions
-def start_pomo(duration: int, goal_id: str | None) -> None:
-    start_session(duration, goal_id)
-    console.print(f"Started pomodoro for {duration}m")
+def start_pomo(duration: int | None, goal_id: str | None) -> None:
+    dur = duration
+    if dur is None:
+        dur = cfg.pomo_duration()
+    start_session(dur, goal_id)
+    console.print(f"Started pomodoro for {dur}m")
 
 
 @pomo.command("stop")
@@ -688,7 +698,7 @@ def stats_cmd(
     if (start_date is not None) ^ (end_date is not None):
         raise click.UsageError("Specify both --from and --to")
 
-    bars: list[Bar] = []
+    bars: list[tuple[str, Bar]] = []
     if start_date and end_date:
         start = start_date.date()
         end = end_date.date()
@@ -697,7 +707,7 @@ def stats_cmd(
         hist = date_histogram(storage, start, end)
         for day, total in sorted(hist.items()):
             label = day.strftime("%m-%d")
-            bars.append(Bar(total, label=label, max=7200, color=_color(total)))
+            bars.append((label, Bar(7200, 0, total, color=_color(total))))
     elif month:
         first = today.replace(day=1)
         last_month_end = first - timedelta(days=1)
@@ -707,21 +717,21 @@ def stats_cmd(
             week_start = start + timedelta(days=i * 7)
             hist = date_histogram(storage, week_start, week_start + timedelta(days=6))
             total = sum(hist.values())
-            bars.append(Bar(total, label=f"W{i+1}", max=7 * 7200, color=_color(total)))
+            bars.append((f"W{i+1}", Bar(7 * 7200, 0, total, color=_color(total))))
     else:
         start = today - timedelta(days=today.weekday())
         end = start + timedelta(days=6)
         hist = date_histogram(storage, start, end)
         for day, total in sorted(hist.items()):
             label = day.strftime("%a")
-            bars.append(Bar(total, label=label, max=7200, color=_color(total)))
+            bars.append((label, Bar(7200, 0, total, color=_color(total))))
 
-    if not any(b.value for b in bars):
+    if not any(bar.end for _, bar in bars):
         console.print("No session data yet.")
         raise SystemExit(0)
 
-    for bar in bars:
-        console.print(bar)
+    for label, bar in bars:
+        console.print(label, bar)
 
     streak = current_streak(storage, end)
     console.print(f"\N{FIRE}  Current streak: {streak} days")

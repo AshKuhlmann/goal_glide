@@ -70,7 +70,7 @@ python -m goal_glide list --tag writing
 Start and stop a session (optionally linking it to a goal):
 
 ```bash
-python -m goal_glide pomo start --duration 25 --goal <goal-id>
+python -m goal_glide pomo start --goal <goal-id>
 python -m goal_glide pomo stop
 ```
 The `--goal` flag records the session against the specified goal for
@@ -170,7 +170,7 @@ Quick examples of common commands:
   ```
 - **pomo start/stop** – run a pomodoro timer.
   ```bash
-  python -m goal_glide pomo start --duration 25
+  python -m goal_glide pomo start
   python -m goal_glide pomo stop
   ```
 - **reminder enable/disable** – toggle desktop reminders.
@@ -213,12 +213,13 @@ The HTML and Markdown templates used for report generation live in `goal_glide/t
 
 Data is stored by default in `~/.goal_glide/db.json`. To use a different location set the `GOAL_GLIDE_DB_DIR` environment variable.
 
-Configuration is kept in `~/.goal_glide/config.toml` and controls:
+Configuration is kept in `~/.goal_glide/config.toml`. Set `GOAL_GLIDE_CONFIG_DIR` to override this path. The file controls:
 
 - `quotes_enabled` – show a motivational quote after each session
 - `reminders_enabled` – schedule desktop reminders
 - `reminder_break_min` – length of the break after a pomodoro
 - `reminder_interval_min` – how often to prompt for another session
+- `pomo_duration_min` – default pomodoro duration
 
 Run `python -m goal_glide config quotes --enable/--disable` or the reminder commands shown above to modify these settings.
 Run `python -m goal_glide config show` to view the current configuration.

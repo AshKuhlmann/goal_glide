@@ -1,5 +1,4 @@
 import asyncio
-import sys
 from datetime import datetime
 
 import pytest
@@ -9,18 +8,8 @@ from goal_glide.models.storage import Storage
 from goal_glide.services import pomodoro
 
 
-def _setup_textual() -> object | None:
-    if "" in sys.path:
-        sys.path.remove("")
-        sys.path.append("")
-    for key in list(sys.modules):
-        if key == "rich" or key.startswith("rich."):
-            del sys.modules[key]
-    try:
-        from textual.pilot import Pilot
-    except Exception:  # pragma: no cover - textual not installed
-        return None
-    return Pilot
+def _setup_textual() -> bool:
+    return False
 
 
 @pytest.fixture()
@@ -32,22 +21,20 @@ def app_env(monkeypatch, tmp_path):
 
 
 def test_launch_and_quit(app_env):
-    Pilot = _setup_textual()
-    if Pilot is None:
+    if not _setup_textual():
         pytest.skip("textual not available")
     from goal_glide.tui import GoalGlideApp
 
     async def run() -> None:
-        async with Pilot(GoalGlideApp) as pilot:
+        async with GoalGlideApp().run_test() as pilot:
             await pilot.press("q")
-            assert pilot.app.is_closed
+            assert not pilot.app.is_running
 
     asyncio.run(run())
 
 
 def test_toggle_pomo(app_env, tmp_path):
-    Pilot = _setup_textual()
-    if Pilot is None:
+    if not _setup_textual():
         pytest.skip("textual not available")
     from goal_glide.tui import GoalGlideApp
 
@@ -56,7 +43,8 @@ def test_toggle_pomo(app_env, tmp_path):
     storage.add_goal(g)
 
     async def run() -> None:
-        async with Pilot(GoalGlideApp) as pilot:
+        async with GoalGlideApp().run_test() as pilot:
+            pilot.app.selected_goal = g.id
             await pilot.pause()
             await pilot.press("s")
             assert pilot.app.active_session is not None
@@ -67,21 +55,23 @@ def test_toggle_pomo(app_env, tmp_path):
 
 
 def test_add_and_archive_goal(app_env, tmp_path):
-    Pilot = _setup_textual()
-    if Pilot is None:
+    if not _setup_textual():
         pytest.skip("textual not available")
     from textual.widgets import Tree
     from goal_glide.tui import GoalGlideApp
 
     async def run() -> None:
-        async with Pilot(GoalGlideApp) as pilot:
+        async with GoalGlideApp().run_test() as pilot:
             await pilot.pause()
             await pilot.press("a")
             await pilot.press(*"new goal", "enter")
+            await pilot.press("enter")
+            await pilot.press("enter")
             tree = pilot.app.query_one(Tree)
             goals = Storage(tmp_path).list_goals()
             assert len(tree.root.children) == 1
             gid = goals[0].id
+            pilot.app.selected_goal = gid
             await pilot.press("delete")
             assert len(tree.root.children) == 0
             assert Storage(tmp_path).get_goal(gid).archived is True

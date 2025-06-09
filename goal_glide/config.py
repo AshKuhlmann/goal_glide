@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tomllib
 from pathlib import Path
+import os
 from typing import Any, Dict, TypedDict, cast
 
 
@@ -10,6 +11,7 @@ class ConfigDict(TypedDict, total=False):
     reminders_enabled: bool
     reminder_break_min: int
     reminder_interval_min: int
+    pomo_duration_min: int
 
 
 DEFAULTS: ConfigDict = {
@@ -17,9 +19,14 @@ DEFAULTS: ConfigDict = {
     "reminders_enabled": False,
     "reminder_break_min": 5,
     "reminder_interval_min": 30,
+    "pomo_duration_min": 25,
 }
 
-_CONFIG_PATH = Path.home() / ".goal_glide" / "config.toml"
+_CONFIG_PATH = (
+    Path(os.environ["GOAL_GLIDE_CONFIG_DIR"]) / "config.toml"
+    if "GOAL_GLIDE_CONFIG_DIR" in os.environ
+    else Path.home() / ".goal_glide" / "config.toml"
+)
 
 
 def _load_file() -> Dict[str, Any]:
@@ -49,6 +56,10 @@ def reminder_break() -> int:
 
 def reminder_interval() -> int:
     return int(_config().get("reminder_interval_min", 30))
+
+
+def pomo_duration() -> int:
+    return int(_config().get("pomo_duration_min", 25))
 
 
 def load_config() -> ConfigDict:

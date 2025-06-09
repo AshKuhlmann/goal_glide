@@ -49,7 +49,7 @@ def test_list_default_order(tmp_path: Path, runner: CliRunner) -> None:
     storage.add_thought(older)
     storage.add_thought(newer)
     result = runner.invoke(thought, ["list"])
-    rows = [line for line in result.output.splitlines() if "|" in line][1:]
+    rows = [line for line in result.output.splitlines() if "│" in line]
     assert "new" in rows[0]
     assert "old" in rows[1]
 
@@ -60,7 +60,7 @@ def test_list_limit(tmp_path: Path, runner: CliRunner) -> None:
         storage.add_thought(Thought(id=str(i), text=f"t{i}", timestamp=datetime.now()))
     result = runner.invoke(thought, ["list", "--limit", "3"])
     assert result.exit_code == 0
-    rows = [line for line in result.output.splitlines() if "|" in line][1:]
+    rows = [line for line in result.output.splitlines() if "│" in line]
     assert len(rows) <= 3
 
 
@@ -72,9 +72,9 @@ def test_list_goal_filter(tmp_path: Path, runner: CliRunner) -> None:
         Thought(id="2", text="b", timestamp=datetime.now(), goal_id=goal_id)
     )
     result = runner.invoke(thought, ["list", "-g", goal_id])
-    rows = [line for line in result.output.splitlines() if "|" in line][1:]
+    rows = [line for line in result.output.splitlines() if "│" in line]
     assert any("b" in r for r in rows)
-    assert all(r.split("|")[3].strip() != "a" for r in rows)
+    assert all(r.split("│")[3].strip() != "a" for r in rows)
 
 
 def test_migration_keeps_other_tables(tmp_path: Path, runner: CliRunner) -> None:

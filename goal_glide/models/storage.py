@@ -1,16 +1,17 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, cast
 
 from tinydb import Query, TinyDB
+from tinydb.queries import QueryLike
 
 from ..exceptions import (
     GoalAlreadyArchivedError,
     GoalNotArchivedError,
     GoalNotFoundError,
 )
-from .goal import Goal, Priority
+from .goal import Goal, Priority, GoalRow
 from .session import PomodoroSession
 from .thought import TABLE_NAME as THOUGHTS_TABLE
 from .thought import Thought
@@ -31,15 +32,16 @@ class Storage:
     """
 
     def __init__(self, db_dir: Path | None = None) -> None:
+        """Initializes the storage and migrates the database if needed."""
         base = db_dir or Path.home() / ".goal_glide"
         db_path = Path(base) / "db.json"
         db_path.parent.mkdir(parents=True, exist_ok=True)
-        self.db = TinyDB(db_path)
+        self.db = TinyDB(db_path, default=str)
         self.table = self.db.table("goals")
         self.thought_table = self.db.table(THOUGHTS_TABLE)
         self.session_table = self.db.table("sessions")
 
-        # migrate existing rows to include new fields
+        # Migrate existing rows to include new fields
         for row in self.table.all():
             updated = False
             new_row = dict(row)
@@ -74,12 +76,14 @@ class Storage:
         self.table.insert(goal.to_dict())
 
     def get_goal(self, goal_id: str) -> Goal:
+        """Retrieves a single goal by its ID."""
         row = self.table.get(Query().id == goal_id)
         if not row:
             raise GoalNotFoundError(f"Goal {goal_id} not found")
         return self._row_to_goal(row)
 
     def add_tags(self, goal_id: str, tags: list[str]) -> Goal:
+        """Adds one or more tags to a goal."""
         goal = self.get_goal(goal_id)
         updated_tags = list({*goal.tags, *tags})
         updated = Goal(
@@ -96,6 +100,7 @@ class Storage:
         return updated
 
     def remove_tag(self, goal_id: str, tag: str) -> Goal:
+        """Removes a tag from a goal."""
         goal = self.get_goal(goal_id)
         if tag not in goal.tags:
             return goal
@@ -114,11 +119,13 @@ class Storage:
         return updated
 
     def update_goal(self, goal: Goal) -> None:
+        """Updates an existing goal in the database."""
         if not self.table.contains(Query().id == goal.id):
             raise GoalNotFoundError(f"Goal {goal.id} not found")
         self.table.update(goal.to_dict(), Query().id == goal.id)
 
     def archive_goal(self, goal_id: str) -> Goal:
+        """Marks a goal as archived."""
         goal = self.get_goal(goal_id)
         if goal.archived:
             raise GoalAlreadyArchivedError(f"Goal {goal_id} already archived")
@@ -136,6 +143,7 @@ class Storage:
         return updated
 
     def restore_goal(self, goal_id: str) -> Goal:
+        """Restores an archived goal."""
         goal = self.get_goal(goal_id)
         if not goal.archived:
             raise GoalNotArchivedError(f"Goal {goal_id} is not archived")
@@ -174,17 +182,18 @@ class Storage:
         """
         GoalQuery = Query()
 
-        predicates: list[Callable[[dict[str, Any]], bool]] = []
+        predicates: list[QueryLike] = []
 
         if only_archived:
-            predicates.append(lambda r: r.get("archived") is True)
+            predicates.append(GoalQuery.archived == True)
         elif not include_archived:
-            predicates.append(lambda r: not r.get("archived", False))
+            predicates.append(GoalQuery.archived == False)
 
         if priority:
             predicates.append(GoalQuery.priority == priority.value)
 
         if tags:
+            # Requires a callable predicate as TinyDB doesn't natively support 'all' for lists
             predicates.append(lambda r: set(tags).issubset(r.get("tags", [])))
 
         if parent_id is not None:
@@ -193,8 +202,9 @@ class Storage:
         def predicate(row: dict[str, Any]) -> bool:
             return all(p(row) for p in predicates)
 
-        rows = self.table.search(predicate) if predicates else self.table.all()
-        return [self._row_to_goal(r) for r in rows]
+        search_cond = cast(QueryLike, predicate)
+        rows = self.table.search(search_cond) if predicates else self.table.all()
+        return [self._row_to_goal(cast(GoalRow, r)) for r in rows]
 
     def list_all_tags(self) -> dict[str, int]:
         """Return mapping of tag name to count of goals containing it."""
@@ -205,22 +215,27 @@ class Storage:
         return counts
 
     def remove_goal(self, goal_id: str) -> None:
+        """Removes a goal from the database."""
         if not self.table.contains(Query().id == goal_id):
             raise GoalNotFoundError(f"Goal {goal_id} not found")
         self.table.remove(Query().id == goal_id)
 
     def find_by_title(self, title: str) -> Goal | None:
+        """Finds a goal by its exact title."""
         row = self.table.get(Query().title == title)
         return self._row_to_goal(row) if row else None
 
     def add_session(self, session: PomodoroSession) -> None:
+        """Saves a new Pomodoro session."""
         self.session_table.insert(session.to_dict())
 
     def list_sessions(self) -> list[PomodoroSession]:
+        """Lists all Pomodoro sessions."""
         rows = self.session_table.all()
         return [self._row_to_session(r) for r in rows]
 
     def add_thought(self, thought: Thought) -> None:
+        """Saves a new thought."""
         self.thought_table.insert(thought.to_dict())
 
     def list_thoughts(
@@ -229,6 +244,7 @@ class Storage:
         limit: int | None = 10,
         newest_first: bool = True,
     ) -> list[Thought]:
+        """Lists thoughts, optionally filtered by goal."""
         ThoughtQuery = Query()
 
         if goal_id is not None:
