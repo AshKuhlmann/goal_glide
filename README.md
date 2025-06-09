@@ -225,7 +225,9 @@ The HTML and Markdown templates used for report generation live in `goal_glide/t
 Data is stored by default in `~/.goal_glide/db.json`. To use a different location set the `GOAL_GLIDE_DB_DIR` environment variable.
 The database file is protected by `db.json.lock` to prevent corruption when multiple instances write concurrently.
 
-Active pomodoro session data is written to `~/.goal_glide/session.json`. Set
+Active pomodoro session data is written to `~/.goal_glide/session.json`. The
+file is locked using `session.json.lock` while being updated.
+Running multiple instances simultaneously is not recommended. Set
 `GOAL_GLIDE_SESSION_FILE` to override this file path.
 
 Configuration is kept in `~/.goal_glide/config.toml`. Set `GOAL_GLIDE_CONFIG_DIR` to override this path. The file controls:
@@ -341,4 +343,3 @@ pre-commit install
 ```
 
 The hooks defined in `.pre-commit-config.yaml` enforce coding standards using Black, Flake8 and Mypy.
-
