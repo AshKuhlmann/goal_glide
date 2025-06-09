@@ -10,8 +10,6 @@ from goal_glide import config as cfg
 from goal_glide.services import quotes
 
 
-
-
 def test_pomo_stop_prints_quote(
     monkeypatch: pytest.MonkeyPatch, runner: CliRunner, tmp_path: Path
 ) -> None:
@@ -60,6 +58,7 @@ def test_quote_exception_handling(
     monkeypatch: pytest.MonkeyPatch, runner: CliRunner, tmp_path: Path
 ) -> None:
     monkeypatch.setattr(cfg, "_CONFIG_PATH", tmp_path / ".goal_glide" / "config.toml")
+
     def boom(use_online: bool = True) -> tuple[str, str]:
         raise RuntimeError("boom")
 

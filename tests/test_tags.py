@@ -2,13 +2,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
 from click.testing import CliRunner
 
 from goal_glide.cli import goal
 from goal_glide.models.storage import Storage
-
-
 
 
 def test_add_single_tag(tmp_path: Path, runner: CliRunner) -> None:

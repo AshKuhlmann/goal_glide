@@ -15,8 +15,6 @@ from goal_glide.models.storage import Storage
 from goal_glide.services import report
 
 
-
-
 class FakeDate(date):
     @classmethod
     def today(cls) -> date:  # type: ignore[override]

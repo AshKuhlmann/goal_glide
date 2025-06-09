@@ -19,8 +19,6 @@ def _cfg_path(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     cfg._CONFIG_PATH = tmp_path / ".goal_glide" / "config.toml"
 
 
-
-
 def test_enable_disable_updates_config(runner: CliRunner) -> None:
     runner.invoke(cli.goal, ["reminder", "enable"])
     assert cfg.reminders_enabled() is True
