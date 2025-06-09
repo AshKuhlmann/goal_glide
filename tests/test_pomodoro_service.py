@@ -13,7 +13,9 @@ from goal_glide import config
 @pytest.fixture()
 def session_path(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
     path = tmp_path / "session.json"
-    monkeypatch.setattr(pomodoro, "POMO_PATH", path)
+    monkeypatch.setenv("GOAL_GLIDE_SESSION_FILE", str(path))
+    import importlib
+    importlib.reload(pomodoro)
     return path
 
 

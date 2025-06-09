@@ -10,7 +10,9 @@ from goal_glide.services import pomodoro
 def test_status_no_session(tmp_path: Path, monkeypatch):
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
-    pomodoro.POMO_PATH = tmp_path / "session.json"
+    monkeypatch.setenv("GOAL_GLIDE_SESSION_FILE", str(tmp_path / "session.json"))
+    import importlib
+    importlib.reload(pomodoro)
     runner = CliRunner()
     result = runner.invoke(cli.goal, ["pomo", "status"])
     assert result.exit_code == 0
@@ -20,7 +22,9 @@ def test_status_no_session(tmp_path: Path, monkeypatch):
 def test_status_with_session(tmp_path: Path, monkeypatch):
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
-    pomodoro.POMO_PATH = tmp_path / "session.json"
+    monkeypatch.setenv("GOAL_GLIDE_SESSION_FILE", str(tmp_path / "session.json"))
+    import importlib
+    importlib.reload(pomodoro)
     start_time = datetime.datetime(2023, 1, 1, 12, 0, 0)
 
     class StartDT(datetime.datetime):
@@ -49,7 +53,9 @@ def test_status_with_session(tmp_path: Path, monkeypatch):
 def test_status_paused(tmp_path: Path, monkeypatch):
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
-    pomodoro.POMO_PATH = tmp_path / "session.json"
+    monkeypatch.setenv("GOAL_GLIDE_SESSION_FILE", str(tmp_path / "session.json"))
+    import importlib
+    importlib.reload(pomodoro)
     start_time = datetime.datetime(2023, 1, 1, 12, 0, 0)
 
     class StartDT(datetime.datetime):

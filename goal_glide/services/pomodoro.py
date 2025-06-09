@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Callable, Optional, TypedDict, cast
 
 from rich.console import Console
+import os
 
 from .. import config
 from ..models.session import PomodoroSession
@@ -16,7 +17,12 @@ console = Console()
 on_new_session: list[Callable[[], None]] = []
 on_session_end: list[Callable[[], None]] = []
 
-POMO_PATH = Path.home() / ".goal_glide" / "session.json"
+POMO_PATH = Path(
+    os.environ.get(
+        "GOAL_GLIDE_SESSION_FILE",
+        Path.home() / ".goal_glide" / "session.json",
+    )
+)
 
 
 @dataclass(slots=True)
