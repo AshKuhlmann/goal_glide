@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, TypedDict, cast
 
@@ -298,6 +298,9 @@ class Storage:
         priority: Priority | None = None,
         tags: list[str] | None = None,
         parent_id: str | None = None,
+        *,
+        due_soon: bool = False,
+        overdue: bool = False,
     ) -> list[Goal]:
         """Retrieves goals filtered by various criteria.
 
@@ -307,6 +310,9 @@ class Storage:
             priority: The priority to filter by.
             tags: List of tags goals must contain. All tags are required.
             parent_id: The ID of a parent goal to filter by.
+            due_soon: If ``True``, return goals with a deadline in the next
+                three days.
+            overdue: If ``True``, return goals with a deadline in the past.
 
         Returns:
             A list of :class:`Goal` objects matching the filter criteria.
@@ -336,7 +342,22 @@ class Storage:
         search_cond = cast(QueryLike, predicate)
         with self.lock:
             rows = self.table.search(search_cond) if predicates else self.table.all()
-            return [self._row_to_goal(cast(GoalRow, r)) for r in rows]
+            goals = [self._row_to_goal(cast(GoalRow, r)) for r in rows]
+
+        if due_soon or overdue:
+            now = datetime.utcnow()
+            window = timedelta(days=3)
+            filtered: list[Goal] = []
+            for g in goals:
+                if not g.deadline:
+                    continue
+                if overdue and g.deadline < now:
+                    filtered.append(g)
+                elif due_soon and now <= g.deadline <= now + window:
+                    filtered.append(g)
+            goals = filtered
+
+        return goals
 
     def list_all_tags(self) -> dict[str, int]:
         """Return mapping of tag name to count of goals containing it."""

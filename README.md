@@ -50,6 +50,8 @@ List goals (active by default):
 
 ```bash
 python -m goal_glide list
+python -m goal_glide list --due-soon  # due within 3 days
+python -m goal_glide list --overdue   # past deadline
 ```
 
 Archive and restore:

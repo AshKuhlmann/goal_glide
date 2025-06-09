@@ -356,6 +356,8 @@ def tag_list(ctx: click.Context) -> None:
     help="Filter by priority",
 )
 @click.option("--tag", "tags", multiple=True, help="Filter goals by tag (AND logic)")
+@click.option("--due-soon", is_flag=True, help="Goals due in the next 3 days")
+@click.option("--overdue", is_flag=True, help="Goals past their deadline")
 @click.pass_context
 def list_goals(
     ctx: click.Context,
@@ -363,6 +365,8 @@ def list_goals(
     show_all: bool,
     priority: str | None,
     tags: tuple[str, ...],
+    due_soon: bool,
+    overdue: bool,
 ) -> None:
     """Lists goals with optional filtering and sorting.
 
@@ -375,6 +379,8 @@ def list_goals(
         show_all: If ``True``, shows both active and archived goals.
         priority: Filters the list to goals of a specific priority.
         tags: Filters the list to goals that have all the specified tags.
+        due_soon: Show goals with a deadline within three days.
+        overdue: Show goals with a past deadline.
     """
     obj = cast(AppContext, ctx.obj)
     storage: Storage = obj["storage"]
@@ -383,6 +389,8 @@ def list_goals(
         only_archived=archived,
         priority=Priority(priority) if priority else None,
         tags=list(tags) if tags else None,
+        due_soon=due_soon,
+        overdue=overdue,
     )
 
     prio_order = {Priority.high: 0, Priority.medium: 1, Priority.low: 2}
