@@ -7,7 +7,6 @@ from datetime import datetime, timedelta
 import goal_glide.cli as cli
 from goal_glide import config
 from goal_glide.models.storage import Storage
-from goal_glide.services import pomodoro
 
 
 def test_add_list_remove(tmp_path):
@@ -24,7 +23,7 @@ def test_add_list_remove(tmp_path):
     assert "Test" in result.output
 
     # remove using id from storage (rich table may truncate id)
-    goal_id = Storage(tmp_path).list_goals()[0].id
+    goal_id = Storage(tmp_path / "db.json").list_goals()[0].id
     result = runner.invoke(
         cli.goal,
         ["remove", goal_id],
@@ -49,9 +48,6 @@ def test_add_duplicate_goal_warning(tmp_path) -> None:
 def test_pomo_session_persisted(tmp_path, monkeypatch):
     monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
     monkeypatch.setenv("HOME", str(tmp_path))
-    monkeypatch.setenv("GOAL_GLIDE_SESSION_FILE", str(tmp_path / "session.json"))
-    import importlib
-    importlib.reload(pomodoro)
     runner = CliRunner()
     res = runner.invoke(
         cli.goal, ["add", "G"], env={"GOAL_GLIDE_DB_DIR": str(tmp_path)}
@@ -76,7 +72,7 @@ def test_pomo_session_persisted(tmp_path, monkeypatch):
         env={"GOAL_GLIDE_DB_DIR": str(tmp_path)},
     )
     assert paused.exit_code == 1
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     sessions = storage.list_sessions()
     assert len(sessions) == 1
     assert sessions[0].goal_id == gid
@@ -85,9 +81,6 @@ def test_pomo_session_persisted(tmp_path, monkeypatch):
 def test_pomo_pause_resume(tmp_path, monkeypatch):
     monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
     monkeypatch.setenv("HOME", str(tmp_path))
-    monkeypatch.setenv("GOAL_GLIDE_SESSION_FILE", str(tmp_path / "session.json"))
-    import importlib
-    importlib.reload(pomodoro)
     runner = CliRunner()
     runner.invoke(cli.goal, ["pomo", "start", "--duration", "1"])
     res = runner.invoke(cli.goal, ["pomo", "pause"])
@@ -104,7 +97,7 @@ def test_jot_from_editor(tmp_path, monkeypatch):
     runner = CliRunner()
     result = runner.invoke(cli.thought, ["jot"])
     assert result.exit_code == 0
-    thought_text = Storage(tmp_path).list_thoughts()[0].text
+    thought_text = Storage(tmp_path / "db.json").list_thoughts()[0].text
     assert thought_text == "note from editor"
 
 
@@ -128,7 +121,7 @@ def test_jot_from_editor_unicode(tmp_path, monkeypatch):
     runner = CliRunner()
     result = runner.invoke(cli.thought, ["jot"])
     assert result.exit_code == 0
-    stored = Storage(tmp_path).list_thoughts()[0].text
+    stored = Storage(tmp_path / "db.json").list_thoughts()[0].text
     assert stored == "Привет мир"
 
 
@@ -139,34 +132,41 @@ def test_jot_from_editor_empty(tmp_path, monkeypatch):
     result = runner.invoke(cli.thought, ["jot"])
     assert result.exit_code == 1
     assert "Error:" in result.output
-    assert Storage(tmp_path).list_thoughts() == []
+    assert Storage(tmp_path / "db.json").list_thoughts() == []
 
 
 def test_config_quotes_disable(tmp_path, monkeypatch):
-    monkeypatch.setattr(config, "_CONFIG_PATH", tmp_path / "config.toml")
+    monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
     runner = CliRunner()
-    result = runner.invoke(cli.goal, ["config", "quotes", "--disable"])
+    env = {"GOAL_GLIDE_DB_DIR": str(tmp_path)}
+    result = runner.invoke(
+        cli.goal,
+        ["config", "quotes", "--disable"],
+        env=env,
+    )
     assert result.exit_code == 0
     assert "Quotes are OFF" in result.output
-    assert config.quotes_enabled() is False
+    assert config.quotes_enabled(tmp_path / "config.toml") is False
 
 
 def test_config_quotes_enable(tmp_path, monkeypatch):
-    monkeypatch.setattr(config, "_CONFIG_PATH", tmp_path / "config.toml")
+    monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
     runner = CliRunner()
-    runner.invoke(cli.goal, ["config", "quotes", "--disable"])
-    result = runner.invoke(cli.goal, ["config", "quotes", "--enable"])
+    env = {"GOAL_GLIDE_DB_DIR": str(tmp_path)}
+    runner.invoke(cli.goal, ["config", "quotes", "--disable"], env=env)
+    result = runner.invoke(
+        cli.goal,
+        ["config", "quotes", "--enable"],
+        env=env,
+    )
     assert result.exit_code == 0
     assert "Quotes are ON" in result.output
-    assert config.quotes_enabled() is True
+    assert config.quotes_enabled(tmp_path / "config.toml") is True
 
 
 def test_pomo_start_after_archive(tmp_path, monkeypatch):
     monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
     monkeypatch.setenv("HOME", str(tmp_path))
-    monkeypatch.setenv("GOAL_GLIDE_SESSION_FILE", str(tmp_path / "session.json"))
-    import importlib
-    importlib.reload(pomodoro)
     runner = CliRunner()
     add_res = runner.invoke(
         cli.goal,
@@ -187,10 +187,7 @@ def test_pomo_start_after_archive(tmp_path, monkeypatch):
 def test_pomo_start_default_from_config(tmp_path, monkeypatch):
     monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
     monkeypatch.setenv("HOME", str(tmp_path))
-    monkeypatch.setenv("GOAL_GLIDE_SESSION_FILE", str(tmp_path / "session.json"))
-    import importlib
-    importlib.reload(pomodoro)
-    monkeypatch.setattr(config, "pomo_duration", lambda: 2)
+    monkeypatch.setattr(config, "pomo_duration", lambda p: 2)
     runner = CliRunner()
     result = runner.invoke(
         cli.goal,

@@ -26,6 +26,7 @@ mypy = "*"
 sphinx = "*"
 beautifulsoup4 = "*"
 types-requests = "*"
+flake8 = "*"
 
 [tool.poetry.group.dev.dependencies]
 mutmut = "^3.3.0"

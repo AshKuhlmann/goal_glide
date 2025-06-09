@@ -59,10 +59,7 @@ class Storage:
         session_table: Table used for storing pomodoro sessions.
     """
 
-    def __init__(self, db_dir: Path | None = None) -> None:
-        base = db_dir or Path.home() / ".goal_glide"
-        db_path = Path(base) / "db.json"
-        db_path.parent.mkdir(parents=True, exist_ok=True)
+    def __init__(self, db_path: Path) -> None:
         self.lock = FileLock(db_path.with_suffix(".lock"))
         with self.lock:
             self.db = TinyDB(db_path, default=str)

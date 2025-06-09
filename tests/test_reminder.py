@@ -15,36 +15,51 @@ from goal_glide.services import notify, reminder
 
 
 @pytest.fixture()
-def runner(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> CliRunner:
+def runner(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> tuple[CliRunner, Path]:
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
-    cfg._CONFIG_PATH = tmp_path / ".goal_glide" / "config.toml"
-    return CliRunner()
+    cfg_path = tmp_path / "config.toml"
+    return CliRunner(), cfg_path
 
 
-def test_enable_disable_updates_config(runner: CliRunner) -> None:
-    runner.invoke(cli.goal, ["reminder", "enable"])
-    assert cfg.reminders_enabled() is True
-    runner.invoke(cli.goal, ["reminder", "disable"])
-    assert cfg.reminders_enabled() is False
+def test_enable_disable_updates_config(runner: tuple[CliRunner, Path]) -> None:
+    cli_runner, cfg_path = runner
+    cli_runner.invoke(cli.goal, ["reminder", "enable"])
+    assert cfg.reminders_enabled(cfg_path) is True
+    cli_runner.invoke(cli.goal, ["reminder", "disable"])
+    assert cfg.reminders_enabled(cfg_path) is False
 
 
-def test_config_command_updates_values(runner: CliRunner) -> None:
-    runner.invoke(cli.goal, ["reminder", "config", "--break", "10", "--interval", "15"])
-    assert cfg.reminder_break() == 10
-    assert cfg.reminder_interval() == 15
+def test_config_command_updates_values(runner: tuple[CliRunner, Path]) -> None:
+    cli_runner, cfg_path = runner
+    cli_runner.invoke(
+        cli.goal,
+        ["reminder", "config", "--break", "10", "--interval", "15"],
+    )
+    assert cfg.reminder_break(cfg_path) == 10
+    assert cfg.reminder_interval(cfg_path) == 15
 
 
 @pytest.mark.parametrize("val", [0, -5, 200])
-def test_invalid_break_value_errors(val: int, runner: CliRunner) -> None:
-    result = runner.invoke(cli.goal, ["reminder", "config", "--break", str(val)])
+def test_invalid_break_value_errors(val: int, runner: tuple[CliRunner, Path]) -> None:
+    cli_runner, _ = runner
+    result = cli_runner.invoke(
+        cli.goal,
+        ["reminder", "config", "--break", str(val)],
+    )
     assert result.exit_code != 0
     assert "break must be between 1 and 120" in result.output
 
 
 @pytest.mark.parametrize("val", [0, -5, 200])
-def test_invalid_interval_value_errors(val: int, runner: CliRunner) -> None:
-    result = runner.invoke(cli.goal, ["reminder", "config", "--interval", str(val)])
+def test_invalid_interval_value_errors(
+    val: int, runner: tuple[CliRunner, Path]
+) -> None:
+    cli_runner, _ = runner
+    result = cli_runner.invoke(
+        cli.goal,
+        ["reminder", "config", "--interval", str(val)],
+    )
     assert result.exit_code != 0
     assert "interval must be between 1 and 120" in result.output
 
@@ -71,8 +86,8 @@ def test_notification_backend_selection(monkeypatch: pytest.MonkeyPatch) -> None
 
 def test_schedule_after_stop_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(reminder, "_sched", None)
-    monkeypatch.setattr(cfg, "reminders_enabled", lambda: False)
-    reminder.schedule_after_stop()
+    monkeypatch.setattr(cfg, "reminders_enabled", lambda p: False)
+    reminder.schedule_after_stop(Path("dummy"))
     assert reminder._sched is None
 
 
@@ -101,9 +116,9 @@ def test_schedule_after_stop_creates_scheduler(monkeypatch: pytest.MonkeyPatch) 
 
     monkeypatch.setattr(reminder, "BackgroundScheduler", FakeScheduler)
     monkeypatch.setattr(reminder, "_sched", None)
-    monkeypatch.setattr(reminder, "reminders_enabled", lambda: True)
+    monkeypatch.setattr(reminder, "reminders_enabled", lambda p: True)
 
-    reminder.schedule_after_stop()
+    reminder.schedule_after_stop(Path("dummy"))
 
     assert len(created) == 1
     assert started == [True]
@@ -112,17 +127,18 @@ def test_schedule_after_stop_creates_scheduler(monkeypatch: pytest.MonkeyPatch) 
     assert [job["id"] for job in sched.jobs] == ["break_end", "next_pomo"]
 
 
-def test_reminder_status_output(runner: CliRunner) -> None:
-    result = runner.invoke(cli.goal, ["reminder", "status"])
+def test_reminder_status_output(runner: tuple[CliRunner, Path]) -> None:
+    cli_runner, cfg_path = runner
+    result = cli_runner.invoke(cli.goal, ["reminder", "status"])
     assert result.exit_code == 0
     assert "Enabled: False | Break: 5m | Interval: 30m" in result.output
 
-    runner.invoke(cli.goal, ["reminder", "enable"])
-    runner.invoke(
+    cli_runner.invoke(cli.goal, ["reminder", "enable"])
+    cli_runner.invoke(
         cli.goal,
         ["reminder", "config", "--break", "11", "--interval", "22"],
     )
-    result = runner.invoke(cli.goal, ["reminder", "status"])
+    result = cli_runner.invoke(cli.goal, ["reminder", "status"])
     assert result.exit_code == 0
     assert "Enabled: True | Break: 11m | Interval: 22m" in result.output
 

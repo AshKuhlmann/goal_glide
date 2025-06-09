@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+import os
+from pathlib import Path
 from uuid import uuid4
 
 
@@ -74,6 +76,9 @@ class GoalGlideApp(App[None]):
 
     active_session: reactive[RunningSession | None] = reactive(None)
     selected_goal: reactive[str | None] = reactive(None)
+    db_path: Path
+    config_path: Path
+    session_path: Path
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -82,7 +87,14 @@ class GoalGlideApp(App[None]):
         yield Footer()
 
     async def on_mount(self) -> None:
-        self.storage = get_storage()
+        env_dir = os.environ.get("GOAL_GLIDE_DB_DIR")
+        base_dir = Path(env_dir) if env_dir else Path.home() / ".goal_glide"
+        base_dir.mkdir(parents=True, exist_ok=True)
+        self.db_path = base_dir / "db.json"
+        self.config_path = base_dir / "config.toml"
+        self.session_path = base_dir / "session.json"
+
+        self.storage = get_storage(self.db_path)
         await self.refresh_goals()
         self.set_interval(1.0, self._tick)
         tree = self.query_one(Tree)
@@ -254,7 +266,7 @@ class GoalGlideApp(App[None]):
         if not self.selected_goal:
             return
         if self.active_session and self.active_session.goal_id == self.selected_goal:
-            pomodoro.stop_session()
+            pomodoro.stop_session(self.session_path, self.config_path)
             self.storage.add_session(
                 PomodoroSession.new(
                     self.selected_goal,
@@ -264,7 +276,12 @@ class GoalGlideApp(App[None]):
             )
             self.active_session = None
         else:
-            session = pomodoro.start_session()
+            session = pomodoro.start_session(
+                None,
+                self.selected_goal,
+                self.session_path,
+                self.config_path,
+            )
             self.active_session = RunningSession(
                 goal_id=self.selected_goal,
                 start=session.start,

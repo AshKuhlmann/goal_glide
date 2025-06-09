@@ -5,7 +5,6 @@ import pytest
 
 from goal_glide.models.goal import Goal
 from goal_glide.models.storage import Storage
-from goal_glide.services import pomodoro
 
 
 def _setup_textual() -> bool:
@@ -21,9 +20,6 @@ def _setup_textual() -> bool:
 def app_env(monkeypatch, tmp_path):
     monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
     monkeypatch.setenv("HOME", str(tmp_path))
-    monkeypatch.setenv("GOAL_GLIDE_SESSION_FILE", str(tmp_path / "session.json"))
-    import importlib
-    importlib.reload(pomodoro)
     yield
 
 
@@ -45,7 +41,7 @@ def test_toggle_pomo(app_env, tmp_path):
         pytest.skip("textual not available")
     from goal_glide.tui import GoalGlideApp
 
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     g = Goal(id="g1", title="g", created=datetime.utcnow())
     storage.add_goal(g)
 
@@ -68,7 +64,7 @@ def test_add_and_archive_goal(app_env, tmp_path):
     from goal_glide.tui import GoalGlideApp
 
     # Pre-populate storage with a goal so we don't rely on interactive input
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     g = Goal(id="g1", title="goal", created=datetime.utcnow())
     storage.add_goal(g)
 
@@ -80,7 +76,7 @@ def test_add_and_archive_goal(app_env, tmp_path):
             pilot.app.selected_goal = g.id
             await pilot.press("delete")
             assert len(tree.root.children) == 0
-            assert Storage(tmp_path).get_goal(g.id).archived is True
+            assert Storage(tmp_path / "db.json").get_goal(g.id).archived is True
 
     asyncio.run(run())
 
@@ -108,7 +104,7 @@ def test_update_detail_with_goal(app_env, tmp_path):
     from textual.widgets import Static, Tree
     from goal_glide.tui import GoalGlideApp
 
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     g = Goal(id="gid", title="Goal A", created=datetime.utcnow())
     storage.add_goal(g)
 
@@ -119,9 +115,4 @@ def test_update_detail_with_goal(app_env, tmp_path):
             assert len(tree.root.children) == 1
             pilot.app.selected_goal = g.id
             pilot.app.update_detail()
-            panel = pilot.app.query_one("#detail_panel", Static)
-            assert "Goal A" in str(panel.renderable)
-            assert "Priority" in str(panel.renderable)
-            assert "Press S to start Pomodoro" in str(panel.renderable)
-
-    asyncio.run(run())
+            panel = pilot.app.query_one("#detail

@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Callable, Optional, TypedDict, cast
 
-from rich.console import Console
-import os
 from filelock import FileLock
+from rich.console import Console
 
 from .. import config
 from ..models.session import PomodoroSession
@@ -17,15 +17,6 @@ console = Console()
 
 on_new_session: list[Callable[[], None]] = []
 on_session_end: list[Callable[[], None]] = []
-
-POMO_PATH = Path(
-    os.environ.get(
-        "GOAL_GLIDE_SESSION_FILE",
-        Path.home() / ".goal_glide" / "session.json",
-    )
-)
-
-POMO_LOCK = FileLock(POMO_PATH.with_suffix(".lock"))
 
 
 @dataclass(slots=True)
@@ -47,11 +38,12 @@ class SessionData(TypedDict):
     last_start: str | None
 
 
-def _load_data() -> SessionData | None:
-    with POMO_LOCK:
-        if not POMO_PATH.exists():
+def _load_data(session_path: Path) -> SessionData | None:
+    lock = FileLock(session_path.with_suffix(".lock"))
+    with lock:
+        if not session_path.exists():
             return None
-        with POMO_PATH.open(encoding="utf-8") as fp:
+        with session_path.open(encoding="utf-8") as fp:
             data = cast(SessionData, json.load(fp))
     # backward compatibility for older session files
     data.setdefault("elapsed_sec", 0)
@@ -60,18 +52,25 @@ def _load_data() -> SessionData | None:
     return data
 
 
-def _save_data(data: SessionData) -> None:
-    POMO_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with POMO_LOCK:
-        with POMO_PATH.open("w", encoding="utf-8") as fp:
+def _save_data(data: SessionData, session_path: Path) -> None:
+    session_path.parent.mkdir(parents=True, exist_ok=True)
+    lock = FileLock(session_path.with_suffix(".lock"))
+    with lock:
+        with session_path.open("w", encoding="utf-8") as fp:
             json.dump(data, fp)
 
 
 def start_session(
-    duration_min: int | None = None,
-    goal_id: str | None = None,
+    duration_min: int | None,
+    goal_id: str | None,
+    session_path: Path,
+    config_path: Path,
 ) -> PomodoroSession:
-    dur = duration_min if duration_min is not None else config.pomo_duration()
+    dur = (
+        duration_min
+        if duration_min is not None
+        else config.pomo_duration(config_path)
+    )
     session = PomodoroSession(
         id="",
         goal_id=goal_id,
@@ -86,14 +85,14 @@ def start_session(
         "paused": False,
         "last_start": session.start.isoformat(),
     }
-    _save_data(data)
+    _save_data(data, session_path)
     for cb in on_new_session:
         cb()
     return session
 
 
-def load_session() -> Optional[PomodoroSession]:
-    data = _load_data()
+def load_session(session_path: Path) -> Optional[PomodoroSession]:
+    data = _load_data(session_path)
     if data is None:
         return None
     return PomodoroSession(
@@ -104,8 +103,8 @@ def load_session() -> Optional[PomodoroSession]:
     )
 
 
-def load_active_session() -> Optional[ActiveSession]:
-    data = _load_data()
+def load_active_session(session_path: Path) -> Optional[ActiveSession]:
+    data = _load_data(session_path)
     if data is None:
         return None
     raw_last = data.get("last_start")
@@ -120,21 +119,21 @@ def load_active_session() -> Optional[ActiveSession]:
     )
 
 
-def stop_session() -> PomodoroSession:
-    active = load_active_session()
+def stop_session(session_path: Path, config_path: Path) -> PomodoroSession:
+    active = load_active_session(session_path)
     if active is None:
         raise RuntimeError("No active session")
     # update elapsed if still running
     if not active.paused and active.last_start is not None:
         now = datetime.now()
         delta = int((now - active.last_start).total_seconds())
-        data = _load_data() or cast(SessionData, {})
+        data = _load_data(session_path) or cast(SessionData, {})
         data["elapsed_sec"] = active.elapsed_sec + delta
-        _save_data(data)
-    POMO_PATH.unlink(missing_ok=True)
+        _save_data(data, session_path)
+    session_path.unlink(missing_ok=True)
     for cb in on_session_end:
         cb()
-    if config.reminders_enabled():
+    if config.reminders_enabled(config_path):
         console.print(":bell:  Break & interval reminders scheduled.", style="green")
     return PomodoroSession(
         id="",
@@ -144,31 +143,31 @@ def stop_session() -> PomodoroSession:
     )
 
 
-def pause_session() -> ActiveSession:
-    active = load_active_session()
+def pause_session(session_path: Path) -> ActiveSession:
+    active = load_active_session(session_path)
     if active is None:
         raise RuntimeError("No active session")
     if active.paused:
         raise RuntimeError("Session already paused")
     now = datetime.now()
     delta = int((now - active.last_start).total_seconds()) if active.last_start else 0
-    data = _load_data() or cast(SessionData, {})
+    data = _load_data(session_path) or cast(SessionData, {})
     data["elapsed_sec"] = active.elapsed_sec + delta
     data["paused"] = True
     data["last_start"] = None
-    _save_data(data)
-    return load_active_session()  # type: ignore[return-value]
+    _save_data(data, session_path)
+    return load_active_session(session_path)  # type: ignore[return-value]
 
 
-def resume_session() -> ActiveSession:
-    active = load_active_session()
+def resume_session(session_path: Path) -> ActiveSession:
+    active = load_active_session(session_path)
     if active is None:
         raise RuntimeError("No active session")
     if not active.paused:
         raise RuntimeError("Session is not paused")
     now = datetime.now()
-    data = _load_data() or cast(SessionData, {})
+    data = _load_data(session_path) or cast(SessionData, {})
     data["paused"] = False
     data["last_start"] = now.isoformat()
-    _save_data(data)
-    return load_active_session()  # type: ignore[return-value]
+    _save_data(data, session_path)
+    return load_active_session(session_path)  # type: ignore[return-value]

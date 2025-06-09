@@ -10,9 +10,6 @@ from goal_glide.services import pomodoro
 def test_status_no_session(tmp_path: Path, monkeypatch):
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
-    monkeypatch.setenv("GOAL_GLIDE_SESSION_FILE", str(tmp_path / "session.json"))
-    import importlib
-    importlib.reload(pomodoro)
     runner = CliRunner()
     result = runner.invoke(cli.goal, ["pomo", "status"])
     assert result.exit_code == 0
@@ -22,9 +19,6 @@ def test_status_no_session(tmp_path: Path, monkeypatch):
 def test_status_with_session(tmp_path: Path, monkeypatch):
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
-    monkeypatch.setenv("GOAL_GLIDE_SESSION_FILE", str(tmp_path / "session.json"))
-    import importlib
-    importlib.reload(pomodoro)
     start_time = datetime.datetime(2023, 1, 1, 12, 0, 0)
 
     class StartDT(datetime.datetime):
@@ -33,7 +27,9 @@ def test_status_with_session(tmp_path: Path, monkeypatch):
             return start_time
 
     monkeypatch.setattr(pomodoro, "datetime", StartDT)
-    pomodoro.start_session(30)
+    session_path = tmp_path / "session.json"
+    config_path = tmp_path / "config.toml"
+    pomodoro.start_session(30, None, session_path, config_path)
 
     later = start_time + datetime.timedelta(minutes=10)
 
@@ -53,9 +49,6 @@ def test_status_with_session(tmp_path: Path, monkeypatch):
 def test_status_paused(tmp_path: Path, monkeypatch):
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
-    monkeypatch.setenv("GOAL_GLIDE_SESSION_FILE", str(tmp_path / "session.json"))
-    import importlib
-    importlib.reload(pomodoro)
     start_time = datetime.datetime(2023, 1, 1, 12, 0, 0)
 
     class StartDT(datetime.datetime):
@@ -64,12 +57,14 @@ def test_status_paused(tmp_path: Path, monkeypatch):
             return start_time
 
     monkeypatch.setattr(pomodoro, "datetime", StartDT)
-    pomodoro.start_session(30)
+    session_path = tmp_path / "session.json"
+    config_path = tmp_path / "config.toml"
+    pomodoro.start_session(30, None, session_path, config_path)
 
     later = start_time + datetime.timedelta(minutes=10)
     dt_cls = type("DT", (datetime.datetime,), {"now": classmethod(lambda cls: later)})
     monkeypatch.setattr(pomodoro, "datetime", dt_cls)
-    pomodoro.pause_session()
+    pomodoro.pause_session(session_path)
 
     much_later = start_time + datetime.timedelta(minutes=20)
 

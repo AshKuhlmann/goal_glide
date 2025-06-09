@@ -29,7 +29,7 @@ def make_session(day: date, dur: int = 3600, goal_id: str = "g") -> PomodoroSess
 def test_stats_week_output_has_7_bars(
     runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     start = date(2023, 6, 5)  # Monday
     for i in range(7):
         storage.add_session(make_session(start + timedelta(days=i)))
@@ -57,7 +57,7 @@ def test_stats_week_output_has_7_bars(
 def test_stats_month_output_has_4_bars(
     runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     start = date(2023, 4, 3)  # first Monday of April
     for i in range(28):
         storage.add_session(make_session(start + timedelta(days=i)))
@@ -83,7 +83,7 @@ def test_stats_month_output_has_4_bars(
 def test_stats_goals_table_shows_top5(
     runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     for i in range(6):
         storage.add_session(
             make_session(date(2023, 6, 1), dur=3600 * (i + 1), goal_id=f"g{i}")
@@ -123,7 +123,7 @@ def test_stats_empty_db_graceful(
 def test_stats_custom_range(
     runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     start_day = date(2023, 1, 1)
     for i in range(3):
         storage.add_session(make_session(start_day + timedelta(days=i)))

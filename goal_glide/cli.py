@@ -23,6 +23,7 @@ from .models.goal import Goal, Priority
 from .models.storage import Storage
 from .models.thought import Thought
 from .services import report
+from .services import reminder
 from .services.analytics import (
     current_streak,
     total_time_by_goal,
@@ -53,6 +54,9 @@ R = TypeVar("R")
 class AppContext(TypedDict):
     storage: Storage
     config: ConfigDict
+    db_path: Path
+    config_path: Path
+    session_path: Path
 
 
 # ── Centralised exception handler ────────────────────────────────────────────
@@ -79,9 +83,8 @@ def handle_exceptions(func: Callable[P, R]) -> Callable[P, R]:
     return wrapper
 
 
-def get_storage() -> Storage:
-    db_dir = os.environ.get("GOAL_GLIDE_DB_DIR")
-    return Storage(Path(db_dir) if db_dir else None)
+def get_storage(db_path: Path) -> Storage:
+    return Storage(db_path)
 
 
 def _fmt(seconds: int) -> str:
@@ -102,9 +105,30 @@ def _print_completion(session: PomodoroSession, config: ConfigDict) -> None:
 @click.pass_context
 def goal(ctx: click.Context) -> None:
     """Goal management CLI."""
-    storage = get_storage()
-    config = load_config()
-    ctx.obj = cast(AppContext, {"storage": storage, "config": config})
+    base_dir = Path(os.environ.get("GOAL_GLIDE_DB_DIR") or Path.home() / ".goal_glide")
+    base_dir.mkdir(parents=True, exist_ok=True)
+
+    db_path = base_dir / "db.json"
+    config_path = base_dir / "config.toml"
+    session_path = base_dir / "session.json"
+
+    storage = get_storage(db_path)
+    config = load_config(config_path)
+    ctx.obj = cast(
+        AppContext,
+        {
+            "storage": storage,
+            "config": config,
+            "db_path": db_path,
+            "config_path": config_path,
+            "session_path": session_path,
+        },
+    )
+    # register reminder callback with the resolved config path
+    reminder.pomodoro.on_session_end.clear()
+    reminder.pomodoro.on_session_end.append(
+        lambda: reminder.schedule_after_stop(config_path)
+    )
 
 
 @goal.command("add")
@@ -460,10 +484,11 @@ def pomo() -> None:
 @click.option("-g", "--goal", "goal_id", help="Associate with goal ID")
 @handle_exceptions
 def start_pomo(duration: int | None, goal_id: str | None) -> None:
+    obj = cast(AppContext, click.get_current_context().obj)
     dur = duration
     if dur is None:
-        dur = cfg.pomo_duration()
-    start_session(dur, goal_id)
+        dur = cfg.pomo_duration(obj["config_path"])
+    start_session(dur, goal_id, obj["session_path"], obj["config_path"])
     console.print(f"Started pomodoro for {dur}m")
 
 
@@ -471,8 +496,8 @@ def start_pomo(duration: int | None, goal_id: str | None) -> None:
 @handle_exceptions
 @click.pass_context
 def stop_pomo(ctx: click.Context) -> None:
-    session = stop_session()
     obj = cast(AppContext, ctx.obj)
+    session = stop_session(obj["session_path"], obj["config_path"])
     storage: Storage = obj["storage"]
     storage.add_session(
         PomodoroSession.new(session.goal_id, session.start, session.duration_sec)
@@ -483,14 +508,16 @@ def stop_pomo(ctx: click.Context) -> None:
 @pomo.command("pause")
 @handle_exceptions
 def pause_pomo() -> None:
-    pause_session()
+    obj = cast(AppContext, click.get_current_context().obj)
+    pause_session(obj["session_path"])
     console.print("Session paused")
 
 
 @pomo.command("resume")
 @handle_exceptions
 def resume_pomo() -> None:
-    resume_session()
+    obj = cast(AppContext, click.get_current_context().obj)
+    resume_session(obj["session_path"])
     console.print("Session resumed")
 
 
@@ -498,7 +525,8 @@ def resume_pomo() -> None:
 @handle_exceptions
 def status_pomo() -> None:
     """Show the remaining time for the current session."""
-    session = load_active_session()
+    obj = cast(AppContext, click.get_current_context().obj)
+    session = load_active_session(obj["session_path"])
     if session is None:
         console.print("No active session")
         return
@@ -524,7 +552,7 @@ def reminder_enable(ctx: click.Context) -> None:
     obj = cast(AppContext, ctx.obj)
     cfg = obj["config"]
     cfg["reminders_enabled"] = True
-    save_config(cfg)
+    save_config(cfg, obj["config_path"])
     console.print("Reminders ON")
 
 
@@ -535,7 +563,7 @@ def reminder_disable(ctx: click.Context) -> None:
     obj = cast(AppContext, ctx.obj)
     cfg = obj["config"]
     cfg["reminders_enabled"] = False
-    save_config(cfg)
+    save_config(cfg, obj["config_path"])
     console.print("Reminders OFF")
 
 
@@ -557,7 +585,7 @@ def reminder_config(
         if not 1 <= interval <= 120:
             raise ValueError("interval must be between 1 and 120")
         cfg["reminder_interval_min"] = interval
-    save_config(cfg)
+    save_config(cfg, obj["config_path"])
     console.print(
         f"Break {cfg['reminder_break_min']}m, Interval {cfg['reminder_interval_min']}m"
     )
@@ -592,8 +620,9 @@ def cfg_quotes(ctx: click.Context, enable: bool | None) -> None:
     cfg = obj["config"]
     if enable is not None:
         cfg["quotes_enabled"] = enable
-        save_config(cfg)
-    console.print(f"Quotes are {'ON' if cfg.get('quotes_enabled', True) else 'OFF'}")
+        save_config(cfg, obj["config_path"])
+    status = "ON" if cfg.get("quotes_enabled", True) else "OFF"
+    console.print(f"Quotes are {status}")
 
 
 @config.command("show")
@@ -617,9 +646,21 @@ goal.add_command(config)
 @click.pass_context
 def thought(ctx: click.Context) -> None:
     if ctx.obj is None:
+        env_dir = os.environ.get("GOAL_GLIDE_DB_DIR")
+        base_dir = Path(env_dir or Path.home() / ".goal_glide")
+        base_dir.mkdir(parents=True, exist_ok=True)
+        db_path = base_dir / "db.json"
+        config_path = base_dir / "config.toml"
+        session_path = base_dir / "session.json"
         ctx.obj = cast(
             AppContext,
-            {"storage": get_storage(), "config": load_config()},
+            {
+                "storage": get_storage(db_path),
+                "config": load_config(config_path),
+                "db_path": db_path,
+                "config_path": config_path,
+                "session_path": session_path,
+            },
         )
 
 
