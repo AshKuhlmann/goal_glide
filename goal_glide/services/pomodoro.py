@@ -57,14 +57,15 @@ def _save_data(data: SessionData) -> None:
 
 
 def start_session(
-    duration_min: int = 25,
+    duration_min: int | None = None,
     goal_id: str | None = None,
 ) -> PomodoroSession:
+    dur = duration_min if duration_min is not None else config.pomo_duration()
     session = PomodoroSession(
         id="",
         goal_id=goal_id,
         start=datetime.now(),
-        duration_sec=duration_min * 60,
+        duration_sec=dur * 60,
     )
     data: SessionData = {
         "start": session.start.isoformat(),

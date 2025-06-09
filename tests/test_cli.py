@@ -1,6 +1,7 @@
 from click.testing import CliRunner
 import click
 import pytest
+import json
 
 import goal_glide.cli as cli
 from goal_glide import config
@@ -162,3 +163,15 @@ def test_pomo_start_after_archive(tmp_path, monkeypatch):
     )
     assert start.exit_code == 0
     assert "Started pomodoro" in start.output
+
+
+def test_pomo_start_default_from_config(tmp_path, monkeypatch):
+    monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
+    monkeypatch.setenv("HOME", str(tmp_path))
+    pomodoro.POMO_PATH = tmp_path / "session.json"
+    monkeypatch.setattr(config, "pomo_duration", lambda: 2)
+    runner = CliRunner()
+    result = runner.invoke(cli.goal, ["pomo", "start"], env={"GOAL_GLIDE_DB_DIR": str(tmp_path)})
+    assert result.exit_code == 0
+    data = json.loads((tmp_path / "session.json").read_text())
+    assert data["duration_sec"] == 120

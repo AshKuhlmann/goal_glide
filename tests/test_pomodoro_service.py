@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from goal_glide.services import pomodoro
+from goal_glide import config
 
 
 @pytest.fixture()
@@ -87,3 +88,11 @@ def test_pause_resume_flow(monkeypatch: pytest.MonkeyPatch, session_path: Path) 
     twelve = start + timedelta(minutes=12)
     _patch_now(monkeypatch, twelve)
     pomodoro.stop_session()
+
+
+def test_start_session_uses_config_default(
+    monkeypatch: pytest.MonkeyPatch, session_path: Path
+) -> None:
+    monkeypatch.setattr(config, "pomo_duration", lambda: 3)
+    session = pomodoro.start_session()
+    assert session.duration_sec == 180
