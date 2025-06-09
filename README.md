@@ -15,9 +15,7 @@ Features include:
 
 ## Installation
 
-1. Install Python 3.11 or newer. The Rust compiler is also required to build
-   some dependencies (install via [rustup](https://rustup.rs/), especially on
-   Apple M-series Macs).
+1. Install Python 3.11 or newer. The Rust compiler is also required to build some dependencies. Install it via [rustup](https://rustup.rs/). On Apple M-series Macs, run `rustup target add x86_64-apple-darwin` so native extensions compile correctly.
 2. Clone this repository and create a virtual environment:
 
 ```bash
