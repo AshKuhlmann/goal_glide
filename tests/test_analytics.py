@@ -5,6 +5,9 @@ from pathlib import Path
 import tempfile
 
 from hypothesis import given, settings, strategies as st
+
+# Disable Hypothesis deadlines for slower CI environments
+settings.load_profile("ci")
 import pytest
 
 from goal_glide.models.session import PomodoroSession
