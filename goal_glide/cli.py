@@ -19,6 +19,7 @@ from tinydb import Query
 from .config import ConfigDict, load_config, save_config
 from .exceptions import (
     GoalAlreadyArchivedError,
+    GoalGlideError,
     GoalNotArchivedError,
     GoalNotFoundError,
     InvalidTagError,
@@ -61,22 +62,20 @@ class AppContext(TypedDict):
 
 # ── Centralised exception handler ────────────────────────────────────────────
 def handle_exceptions(func: Callable[P, R]) -> Callable[P, R]:
-    """Catch domain errors uniformly and exit status 1."""
+    """Catch and handle exceptions uniformly."""
 
     @functools.wraps(func)
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
         try:
             return func(*args, **kwargs)
-        except (
-            GoalNotFoundError,
-            GoalAlreadyArchivedError,
-            GoalNotArchivedError,
-            InvalidTagError,
-            click.ClickException,
-            RuntimeError,  # e.g. stop_pomo with no session
-            ValueError,  # e.g. reminder_config validation
-        ) as exc:
+        except KeyboardInterrupt:
+            console.print("\n[yellow]Operation aborted by user.[/yellow]")
+            raise SystemExit(130)
+        except GoalGlideError as exc:
             console.print(f"[bold red]Error:[/bold red] {exc}")
+            raise SystemExit(1)
+        except click.ClickException as exc:
+            exc.show()
             raise SystemExit(1)
         except Exception as exc:
             console.print(f"[bold red]An unexpected error occurred:[/bold red] {exc}")

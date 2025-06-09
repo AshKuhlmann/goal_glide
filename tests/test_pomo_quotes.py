@@ -68,7 +68,7 @@ def test_quote_exception_handling(
     runner.invoke(cli.goal, ["pomo", "start", "--duration", "1"])
     result = runner.invoke(cli.goal, ["pomo", "stop"])
     assert result.exit_code == 1
-    assert "Error:" in result.output
+    assert "unexpected" in result.output.lower()
 
 
 def test_quotes_default_enabled(

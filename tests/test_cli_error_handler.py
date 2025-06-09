@@ -32,7 +32,7 @@ def test_expected_error():
 def test_unexpected_error():
     r = CliRunner().invoke(_fake_cmd(RuntimeError("boom")))
     assert r.exit_code == 1
-    assert "Error:" in r.output
+    assert "unexpected" in r.output.lower()
 
 
 @pytest.mark.parametrize(
@@ -52,8 +52,6 @@ def test_really_unexpected_error(exc):
         GoalNotArchivedError("b"),
         InvalidTagError("c"),
         click.ClickException("bad"),
-        RuntimeError("boom"),
-        ValueError("val"),
     ],
 )
 def test_all_expected_errors(exc):
@@ -99,8 +97,6 @@ def test_random_expected_error():
             GoalNotArchivedError,
             InvalidTagError,
             click.ClickException,
-            RuntimeError,
-            ValueError,
         ]
     )
     r = CliRunner().invoke(_fake_cmd(exc_cls("x")))
@@ -117,5 +113,5 @@ def test_click_bad_parameter_error():
 @pytest.mark.parametrize("exc", [KeyboardInterrupt()])
 def test_keyboard_interrupt_unexpected(exc):
     r = CliRunner().invoke(_fake_cmd(exc))
-    assert r.exit_code == 1
+    assert r.exit_code == 130
     assert "aborted" in r.output.lower()
