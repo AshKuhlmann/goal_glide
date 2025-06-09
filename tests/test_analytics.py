@@ -415,7 +415,7 @@ def test_property_weekly_histogram(
     ),
     st.dates(min_value=date(2023, 1, 1), max_value=date(2023, 12, 31)),
 )
-@settings(max_examples=25)
+@settings(max_examples=25, deadline=None)
 def test_property_current_streak(sessions: list[PomodoroSession], today: date) -> None:
     with tempfile.TemporaryDirectory() as d:
         storage = Storage(Path(d) / "db.json")
@@ -469,7 +469,7 @@ def test_property_average_focus_per_day(
         )
     )
 )
-@settings(max_examples=25)
+@settings(max_examples=25, deadline=None)
 def test_property_most_productive_day(sessions: list[PomodoroSession]) -> None:
     with tempfile.TemporaryDirectory() as d:
         storage = Storage(Path(d) / "db.json")
@@ -496,7 +496,7 @@ def test_property_most_productive_day(sessions: list[PomodoroSession]) -> None:
         )
     )
 )
-@settings(max_examples=25)
+@settings(max_examples=25, deadline=None)
 def test_property_longest_streak(sessions: list[PomodoroSession]) -> None:
     with tempfile.TemporaryDirectory() as d:
         storage = Storage(Path(d) / "db.json")

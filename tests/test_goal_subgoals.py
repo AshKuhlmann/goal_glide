@@ -74,7 +74,7 @@ def test_list_goals_parent_with_archived_flags(tmp_path: Path) -> None:
 def test_list_goals_parent_missing_returns_empty(tmp_path: Path) -> None:
     storage = Storage(tmp_path / "db.json")
     storage.add_goal(Goal(id="p", title="parent", created=datetime.utcnow()))
-    storage.add_goal(
+@settings(max_examples=25, deadline=None)
         Goal(id="c", title="child", created=datetime.utcnow(), parent_id="p")
     )
 
