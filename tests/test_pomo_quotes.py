@@ -14,7 +14,6 @@ from goal_glide.services import quotes
 def runner(monkeypatch, tmp_path: Path) -> CliRunner:
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
-    cfg._CONFIG_PATH = tmp_path / ".goal_glide" / "config.toml"
     return CliRunner()
 
 

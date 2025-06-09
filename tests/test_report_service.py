@@ -137,7 +137,7 @@ def test_csv_output_rows_and_headers(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(report, "date", FakeDate)
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     seed(storage)
     out = report.build_report(storage, "week", "csv", tmp_path / "r.csv")
     df = pd.read_csv(out)
@@ -149,7 +149,7 @@ def test_html_contains_sections(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(report, "date", FakeDate)
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     seed(storage)
     out = report.build_report(storage, "week", "html", tmp_path / "r.html")
     text = out.read_text()
@@ -161,7 +161,7 @@ def test_html_contains_sections(
 
 def test_markdown_formatting(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(report, "date", FakeDate)
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     seed(storage)
     out = report.build_report(storage, "week", "md", tmp_path / "r.md")
     text = out.read_text()
@@ -171,7 +171,7 @@ def test_markdown_formatting(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) ->
 
 def test_empty_storage_outputs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(report, "date", FakeDate)
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     html = report.build_report(storage, "week", "html", tmp_path / "e.html")
     csv = report.build_report(storage, "week", "csv", tmp_path / "e.csv")
     md = report.build_report(storage, "week", "md", tmp_path / "e.md")
@@ -192,7 +192,7 @@ def test_empty_html_contains_sections(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(report, "date", FakeDate)
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     out = report.build_report(storage, "week", "html", tmp_path / "empty.html")
     text = out.read_text()
     assert "Streak" in text
@@ -204,7 +204,7 @@ def test_custom_range_skips_date_window(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(report, "date", FakeDate)
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     seed(storage)
 
     def boom(*args: object, **kwargs: object) -> None:
@@ -225,7 +225,7 @@ def test_html_top_goals_limit_and_order(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(report, "date", FakeDate)
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     seed_many(storage)
     out = report.build_report(storage, "week", "html", tmp_path / "top.html")
     soup = BeautifulSoup(out.read_text(), "html.parser")
@@ -240,7 +240,7 @@ def test_tag_totals_with_overlapping_tags(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(report, "date", FakeDate)
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
 
     week_start = FakeDate.today() - timedelta(days=FakeDate.today().weekday())
 

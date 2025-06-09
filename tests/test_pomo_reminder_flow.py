@@ -29,16 +29,12 @@ class FakeScheduler:
 @pytest.fixture()
 def runner(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> tuple[CliRunner, list[str]]:
+) -> tuple[CliRunner, list[str], Path, Path]:
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
-    monkeypatch.setenv("GOAL_GLIDE_SESSION_FILE", str(tmp_path / "session.json"))
-    import importlib
-    importlib.reload(pomodoro)
-    importlib.reload(reminder)
-    cfg._CONFIG_PATH = tmp_path / ".goal_glide" / "config.toml"
+    session_path = tmp_path / "session.json"
+    config_path = tmp_path / "config.toml"
     monkeypatch.setattr(reminder, "_sched", FakeScheduler())
-
     class FakeDT(datetime):
         @classmethod
         def now(cls) -> datetime:  # type: ignore[override]
@@ -48,11 +44,11 @@ def runner(
     messages: list[str] = []
     monkeypatch.setattr(notify, "push", lambda m: messages.append(m))
     monkeypatch.setattr(reminder, "push", lambda m: messages.append(m))
-    return CliRunner(), messages
+    return CliRunner(), messages, session_path, config_path
 
 
 def test_flow_schedules_jobs(runner) -> None:
-    cli_runner, messages = runner
+    cli_runner, messages, session_path, config_path = runner
     cli_runner.invoke(cli.goal, ["reminder", "enable"])
     gid = cli_runner.invoke(cli.goal, ["add", "g"])
     gid = gid.output.split()[-1].strip("()")
@@ -68,14 +64,14 @@ def test_flow_schedules_jobs(runner) -> None:
 
 
 def test_flow_uses_config_and_clears_existing_jobs(runner) -> None:
-    cli_runner, _ = runner
+    cli_runner, _, session_path, config_path = runner
     cli_runner.invoke(cli.goal, ["reminder", "enable"])
     cli_runner.invoke(
         cli.goal,
         ["reminder", "config", "--break", "2", "--interval", "7"],
     )
-    reminder.schedule_after_stop()
-    reminder.schedule_after_stop()
+    reminder.schedule_after_stop(config_path)
+    reminder.schedule_after_stop(config_path)
     sched = reminder._sched
     assert sched is not None
     assert len(sched.jobs) == 2  # type: ignore[attr-defined]
@@ -86,7 +82,7 @@ def test_flow_uses_config_and_clears_existing_jobs(runner) -> None:
 
 
 def test_cancel_all_runs_on_new_session(runner, monkeypatch, tmp_path) -> None:
-    cli_runner, _ = runner
+    cli_runner, _, session_path, config_path = runner
     sched = reminder._sched
     assert sched is not None
     # pre-populate fake scheduler with dummy jobs
@@ -94,7 +90,7 @@ def test_cancel_all_runs_on_new_session(runner, monkeypatch, tmp_path) -> None:
     sched.add_job(lambda: None, "interval")  # type: ignore[attr-defined]
     assert len(sched.jobs) == 2  # type: ignore[attr-defined]
 
-    pomodoro.start_session(1)
+    pomodoro.start_session(1, None, session_path, config_path)
 
     assert sched.jobs == []  # type: ignore[attr-defined]
 
@@ -108,12 +104,12 @@ def test_schedule_after_stop_randomized(
     runner, monkeypatch, break_min: int, interval_min: int
 ) -> None:
     """`schedule_after_stop` uses config values when scheduling."""
-    _, _ = runner
+    _, _, session_path, config_path = runner
     monkeypatch.setattr(reminder, "reminders_enabled", lambda: True)
     monkeypatch.setattr(reminder, "reminder_break", lambda: break_min)
     monkeypatch.setattr(reminder, "reminder_interval", lambda: interval_min)
 
-    reminder.schedule_after_stop()
+    reminder.schedule_after_stop(config_path)
 
     sched = reminder._sched
     assert sched is not None

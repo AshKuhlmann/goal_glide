@@ -19,8 +19,8 @@ def _scheduler() -> BackgroundScheduler:
     return _sched
 
 
-def schedule_after_stop() -> None:
-    if not reminders_enabled():
+def schedule_after_stop(config_path: Path) -> None:
+    if not reminders_enabled(config_path):
         return
     sched = _scheduler()
     sched.remove_all_jobs(jobstore="default")
@@ -28,14 +28,14 @@ def schedule_after_stop() -> None:
     sched.add_job(
         push,
         "date",
-        run_date=now + timedelta(minutes=reminder_break()),
+        run_date=now + timedelta(minutes=reminder_break(config_path)),
         args=["Break over, ready for next session?"],
         id="break_end",
     )
     sched.add_job(
         push,
         "interval",
-        minutes=reminder_interval(),
+        minutes=reminder_interval(config_path),
         args=["Time for another Pomodoro!"],
         id="next_pomo",
     )
@@ -46,7 +46,6 @@ def cancel_all() -> None:
         _sched.remove_all_jobs()
 
 
-pomodoro.on_session_end.append(schedule_after_stop)
 pomodoro.on_new_session.append(cancel_all)
 
 

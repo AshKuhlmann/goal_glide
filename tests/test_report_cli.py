@@ -39,7 +39,7 @@ def test_cli_creates_html(
     tmp_path: Path, runner: CliRunner, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(report, "date", FakeDate)
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     seed(storage)
     out = tmp_path / "rep.html"
     result = runner.invoke(
@@ -62,7 +62,7 @@ def test_cli_custom_range(
     tmp_path: Path, runner: CliRunner, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(report, "date", FakeDate)
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     seed(storage)
     out = tmp_path / "range.html"
     result = runner.invoke(
@@ -145,7 +145,7 @@ def test_cli_default_output_path(
 ) -> None:
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
     monkeypatch.setattr(report, "date", FakeDate)
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     seed(storage)
     result = runner.invoke(
         cli.goal,
@@ -162,7 +162,7 @@ def test_cli_md_and_csv(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(report, "date", FakeDate)
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     seed(storage)
     md_out = tmp_path / "rep.md"
     csv_out = tmp_path / "rep.csv"
@@ -191,7 +191,7 @@ def test_cli_empty_storage_reports(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(report, "date", FakeDate)
-    Storage(tmp_path)  # initialize empty storage
+    Storage(tmp_path / "db.json")  # initialize empty storage
     md_out = tmp_path / "empty.md"
     csv_out = tmp_path / "empty.csv"
     result_md = runner.invoke(

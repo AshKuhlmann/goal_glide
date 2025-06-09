@@ -16,9 +16,6 @@ def _setup_textual() -> bool:
 def app_env(monkeypatch, tmp_path):
     monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
     monkeypatch.setenv("HOME", str(tmp_path))
-    monkeypatch.setenv("GOAL_GLIDE_SESSION_FILE", str(tmp_path / "session.json"))
-    import importlib
-    importlib.reload(pomodoro)
     yield
 
 
@@ -40,7 +37,7 @@ def test_toggle_pomo(app_env, tmp_path):
         pytest.skip("textual not available")
     from goal_glide.tui import GoalGlideApp
 
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     g = Goal(id="g1", title="g", created=datetime.utcnow())
     storage.add_goal(g)
 
@@ -70,12 +67,12 @@ def test_add_and_archive_goal(app_env, tmp_path):
             await pilot.press("enter")
             await pilot.press("enter")
             tree = pilot.app.query_one(Tree)
-            goals = Storage(tmp_path).list_goals()
+            goals = Storage(tmp_path / "db.json").list_goals()
             assert len(tree.root.children) == 1
             gid = goals[0].id
             pilot.app.selected_goal = gid
             await pilot.press("delete")
             assert len(tree.root.children) == 0
-            assert Storage(tmp_path).get_goal(gid).archived is True
+            assert Storage(tmp_path / "db.json").get_goal(gid).archived is True
 
     asyncio.run(run())
