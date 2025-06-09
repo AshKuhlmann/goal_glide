@@ -21,7 +21,7 @@ def test_add_list_remove(tmp_path, runner: CliRunner):
     assert "Test" in result.output
 
     # remove using id from storage (rich table may truncate id)
-    goal_id = Storage(tmp_path).list_goals()[0].id
+    goal_id = Storage(tmp_path / "db.json").list_goals()[0].id
     result = runner.invoke(
         cli.goal,
         ["remove", goal_id],
@@ -54,7 +54,7 @@ def test_pomo_session_persisted(tmp_path, monkeypatch, runner: CliRunner):
     assert "No active session" in status.output
     paused = runner.invoke(cli.goal, ["pomo", "pause"])
     assert paused.exit_code == 1
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     sessions = storage.list_sessions()
     assert len(sessions) == 1
     assert sessions[0].goal_id == gid
@@ -76,7 +76,7 @@ def test_jot_from_editor(tmp_path, monkeypatch, runner: CliRunner):
     monkeypatch.setattr(click, "edit", lambda *a, **k: "note from editor\n")
     result = runner.invoke(cli.thought, ["jot"])
     assert result.exit_code == 0
-    thought_text = Storage(tmp_path).list_thoughts()[0].text
+    thought_text = Storage(tmp_path / "db.json").list_thoughts()[0].text
     assert thought_text == "note from editor"
 
 
@@ -96,7 +96,7 @@ def test_jot_from_editor_unicode(tmp_path, monkeypatch, runner: CliRunner):
     monkeypatch.setattr(click, "edit", lambda *a, **k: "Привет мир\n")
     result = runner.invoke(cli.thought, ["jot"])
     assert result.exit_code == 0
-    stored = Storage(tmp_path).list_thoughts()[0].text
+    stored = Storage(tmp_path / "db.json").list_thoughts()[0].text
     assert stored == "Привет мир"
 
 
@@ -105,24 +105,24 @@ def test_jot_from_editor_empty(tmp_path, monkeypatch, runner: CliRunner):
     result = runner.invoke(cli.thought, ["jot"])
     assert result.exit_code == 1
     assert "Error:" in result.output
-    assert Storage(tmp_path).list_thoughts() == []
+    assert Storage(tmp_path / "db.json").list_thoughts() == []
 
 
 def test_config_quotes_disable(tmp_path, monkeypatch, runner: CliRunner):
-    monkeypatch.setattr(config, "_CONFIG_PATH", tmp_path / "config.toml")
+    cfg_path = tmp_path / "config.toml"
     result = runner.invoke(cli.goal, ["config", "quotes", "--disable"])
     assert result.exit_code == 0
     assert "Quotes are OFF" in result.output
-    assert config.quotes_enabled() is False
+    assert config.quotes_enabled(cfg_path) is False
 
 
 def test_config_quotes_enable(tmp_path, monkeypatch, runner: CliRunner):
-    monkeypatch.setattr(config, "_CONFIG_PATH", tmp_path / "config.toml")
+    cfg_path = tmp_path / "config.toml"
     runner.invoke(cli.goal, ["config", "quotes", "--disable"])
     result = runner.invoke(cli.goal, ["config", "quotes", "--enable"])
     assert result.exit_code == 0
     assert "Quotes are ON" in result.output
-    assert config.quotes_enabled() is True
+    assert config.quotes_enabled(cfg_path) is True
 
 
 def test_pomo_start_after_archive(tmp_path, monkeypatch, runner: CliRunner):
@@ -145,7 +145,7 @@ def test_pomo_start_after_archive(tmp_path, monkeypatch, runner: CliRunner):
 def test_pomo_start_default_from_config(tmp_path, monkeypatch, runner: CliRunner):
     import importlib
     importlib.reload(pomodoro)
-    monkeypatch.setattr(config, "pomo_duration", lambda: 2)
+    monkeypatch.setattr(config, "pomo_duration", lambda path: 2)
     result = runner.invoke(
         cli.goal,
         ["pomo", "start"],

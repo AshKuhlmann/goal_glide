@@ -3,6 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from uuid import uuid4
+from pathlib import Path
+import os
+from rich.text import Text
 
 
 from textual.app import App, ComposeResult
@@ -164,7 +167,7 @@ class GoalGlideApp(App[None]):
             lines.append(f"[{bar}] {mins:02}:{sec:02}")
         else:
             lines.append("Press S to start Pomodoro")
-        panel.update("\n".join(lines))
+        panel.update(Text("\n".join(lines)))
 
     async def action_add_goal(self) -> None:  # pragma: no cover - interactive
         title = await self.push_screen(InputModal("Goal title:"), wait_for_dismiss=True)
@@ -254,7 +257,8 @@ class GoalGlideApp(App[None]):
         if not self.selected_goal:
             return
         if self.active_session and self.active_session.goal_id == self.selected_goal:
-            pomodoro.stop_session()
+            base = Path(os.environ.get("GOAL_GLIDE_DB_DIR") or Path.home() / ".goal_glide")
+            pomodoro.stop_session(base / "session.json", base / "config.toml")
             self.storage.add_session(
                 PomodoroSession.new(
                     self.selected_goal,
@@ -264,7 +268,8 @@ class GoalGlideApp(App[None]):
             )
             self.active_session = None
         else:
-            session = pomodoro.start_session()
+            base = Path(os.environ.get("GOAL_GLIDE_DB_DIR") or Path.home() / ".goal_glide")
+            session = pomodoro.start_session(session_path=base / "session.json", config_path=base / "config.toml")
             self.active_session = RunningSession(
                 goal_id=self.selected_goal,
                 start=session.start,

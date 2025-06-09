@@ -21,7 +21,7 @@ def test_tags_migration(tmp_path: Path) -> None:
         }
     )
 
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     goal1 = storage.get_goal("g1")
     goal2 = storage.get_goal("g2")
 
@@ -41,7 +41,7 @@ def test_tags_migration_updates_db(tmp_path: Path) -> None:
         }
     )
 
-    Storage(tmp_path)
+    Storage(tmp_path / "db.json")
 
     db2 = TinyDB(db_path)
     row = db2.table("goals").get(Query().id == "g1")

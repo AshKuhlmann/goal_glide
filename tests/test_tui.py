@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime
+from pathlib import Path
 
 import pytest
 
@@ -45,7 +46,7 @@ def test_toggle_pomo(app_env, tmp_path):
         pytest.skip("textual not available")
     from goal_glide.tui import GoalGlideApp
 
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     g = Goal(id="g1", title="g", created=datetime.utcnow())
     storage.add_goal(g)
 
@@ -68,7 +69,7 @@ def test_add_and_archive_goal(app_env, tmp_path):
     from goal_glide.tui import GoalGlideApp
 
     # Pre-populate storage with a goal so we don't rely on interactive input
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     g = Goal(id="g1", title="goal", created=datetime.utcnow())
     storage.add_goal(g)
 
@@ -80,7 +81,7 @@ def test_add_and_archive_goal(app_env, tmp_path):
             pilot.app.selected_goal = g.id
             await pilot.press("delete")
             assert len(tree.root.children) == 0
-            assert Storage(tmp_path).get_goal(g.id).archived is True
+            assert Storage(tmp_path / "db.json").get_goal(g.id).archived is True
 
     asyncio.run(run())
 
@@ -108,7 +109,7 @@ def test_update_detail_with_goal(app_env, tmp_path):
     from textual.widgets import Static, Tree
     from goal_glide.tui import GoalGlideApp
 
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     g = Goal(id="gid", title="Goal A", created=datetime.utcnow())
     storage.add_goal(g)
 

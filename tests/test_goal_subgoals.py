@@ -11,7 +11,7 @@ from hypothesis import given, settings, strategies as st
 
 
 def test_store_and_retrieve_parent(tmp_path: Path) -> None:
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     parent = Goal(id="p", title="parent", created=datetime.utcnow())
     child = Goal(id="c", title="child", created=datetime.utcnow(), parent_id="p")
     storage.add_goal(parent)
@@ -22,7 +22,7 @@ def test_store_and_retrieve_parent(tmp_path: Path) -> None:
 
 
 def test_list_goals_parent_filter(tmp_path: Path) -> None:
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     p = Goal(id="p", title="parent", created=datetime.utcnow())
     child1 = Goal(id="c1", title="child1", created=datetime.utcnow(), parent_id="p")
     child2 = Goal(id="c2", title="child2", created=datetime.utcnow(), parent_id="p")
@@ -35,7 +35,7 @@ def test_list_goals_parent_filter(tmp_path: Path) -> None:
 
 
 def test_remove_parent_keeps_children(tmp_path: Path) -> None:
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     parent = Goal(id="p", title="p", created=datetime.utcnow())
     c1 = Goal(id="c1", title="c1", created=datetime.utcnow(), parent_id="p")
     c2 = Goal(id="c2", title="c2", created=datetime.utcnow(), parent_id="p")
@@ -52,7 +52,7 @@ def test_remove_parent_keeps_children(tmp_path: Path) -> None:
 
 
 def test_list_goals_parent_with_archived_flags(tmp_path: Path) -> None:
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     p = Goal(id="p", title="parent", created=datetime.utcnow())
     active = Goal(id="a", title="active", created=datetime.utcnow(), parent_id="p")
     archived = Goal(id="b", title="archived", created=datetime.utcnow(), parent_id="p")
@@ -72,7 +72,7 @@ def test_list_goals_parent_with_archived_flags(tmp_path: Path) -> None:
 
 
 def test_list_goals_parent_missing_returns_empty(tmp_path: Path) -> None:
-    storage = Storage(tmp_path)
+    storage = Storage(tmp_path / "db.json")
     storage.add_goal(Goal(id="p", title="parent", created=datetime.utcnow()))
     storage.add_goal(
         Goal(id="c", title="child", created=datetime.utcnow(), parent_id="p")
@@ -100,7 +100,7 @@ def _parent_child_mapping(draw: st.DrawFn) -> dict[str, list[str]]:
 @settings(max_examples=25)
 def test_list_goals_parent_property(mapping: dict[str, list[str]]) -> None:
     with tempfile.TemporaryDirectory() as d:
-        storage = Storage(Path(d))
+        storage = Storage(Path(d) / "db.json")
         for pid in mapping:
             storage.add_goal(Goal(id=pid, title=pid, created=datetime.utcnow()))
         for pid, cids in mapping.items():
@@ -122,9 +122,9 @@ def test_cli_add_with_parent(tmp_path: Path) -> None:
     runner = CliRunner()
     env = {"GOAL_GLIDE_DB_DIR": str(tmp_path)}
     runner.invoke(goal, ["add", "parent"], env=env)
-    pid = Storage(tmp_path).list_goals()[0].id
+    pid = Storage(tmp_path / "db.json").list_goals()[0].id
     runner.invoke(goal, ["add", "child", "--parent", pid], env=env)
-    children = Storage(tmp_path).list_goals(parent_id=pid)
+    children = Storage(tmp_path / "db.json").list_goals(parent_id=pid)
     assert len(children) == 1 and children[0].title == "child"
 
 
@@ -132,7 +132,7 @@ def test_goal_tree_output(tmp_path: Path) -> None:
     runner = CliRunner()
     env = {"GOAL_GLIDE_DB_DIR": str(tmp_path)}
     runner.invoke(goal, ["add", "parent"], env=env)
-    pid = Storage(tmp_path).list_goals()[0].id
+    pid = Storage(tmp_path / "db.json").list_goals()[0].id
     runner.invoke(goal, ["add", "child", "--parent", pid], env=env)
     result = runner.invoke(goal, ["tree"], env=env)
     assert "child" in result.output
