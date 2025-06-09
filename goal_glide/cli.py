@@ -203,6 +203,30 @@ def restore_goal_cmd(ctx: click.Context, goal_id: str) -> None:
     console.print(f":package: Goal {goal_id} restored")
 
 
+@goal.command("complete")
+@click.argument("goal_id")
+@handle_exceptions
+@click.pass_context
+def complete_goal_cmd(ctx: click.Context, goal_id: str) -> None:
+    """Mark a goal as completed."""
+    obj = cast(AppContext, ctx.obj)
+    storage: Storage = obj["storage"]
+    storage.complete_goal(goal_id)
+    console.print(f"[green]Goal {goal_id} completed[/green]")
+
+
+@goal.command("reopen")
+@click.argument("goal_id")
+@handle_exceptions
+@click.pass_context
+def reopen_goal_cmd(ctx: click.Context, goal_id: str) -> None:
+    """Mark a completed goal as not done."""
+    obj = cast(AppContext, ctx.obj)
+    storage: Storage = obj["storage"]
+    storage.reopen_goal(goal_id)
+    console.print(f"Goal {goal_id} reopened")
+
+
 @goal.command("update")
 @click.argument("goal_id")
 @click.option("--title", help="New goal title")
@@ -390,7 +414,8 @@ def goal_tree(ctx: click.Context) -> None:
     tree = Tree("Goals")
 
     def add_nodes(node: Tree, goal: Goal) -> None:
-        branch = node.add(f"{goal.title} ({goal.id})")
+        title = f"[green]{goal.title}[/]" if goal.completed else goal.title
+        branch = node.add(f"{title} ({goal.id})")
         for child in children.get(goal.id, []):
             add_nodes(branch, child)
 
@@ -830,11 +855,7 @@ def report_make(
     range_ = (
         "week"
         if range_week
-        else "month"
-        if range_month
-        else "all"
-        if range_all
-        else "week"
+        else "month" if range_month else "all" if range_all else "week"
     )
     obj = cast(AppContext, ctx.obj)
     storage: Storage = obj["storage"]

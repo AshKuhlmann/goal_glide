@@ -27,6 +27,7 @@ class GoalRow(TypedDict):
     tags: list[str]
     parent_id: str | None
     deadline: datetime | str | None
+    completed: bool
 
 
 class ThoughtRow(TypedDict):
@@ -79,6 +80,9 @@ class Storage:
             if "deadline" not in row:
                 new_row["deadline"] = None
                 updated = True
+            if "completed" not in row:
+                new_row["completed"] = False
+                updated = True
             if updated:
                 self.table.update(new_row, Query().id == row["id"])
 
@@ -105,6 +109,7 @@ class Storage:
             tags=row.get("tags", []),
             parent_id=row.get("parent_id"),
             deadline=dl_dt,
+            completed=row.get("completed", False),
         )
 
     def _row_to_thought(self, row: ThoughtRow) -> Thought:
@@ -162,6 +167,7 @@ class Storage:
             tags=sorted(updated_tags),
             parent_id=goal.parent_id,
             deadline=goal.deadline,
+            completed=goal.completed,
         )
         self.update_goal(updated)
         return updated
@@ -180,6 +186,7 @@ class Storage:
             tags=new_tags,
             parent_id=goal.parent_id,
             deadline=goal.deadline,
+            completed=goal.completed,
         )
         self.update_goal(updated)
         return updated
@@ -204,6 +211,7 @@ class Storage:
             tags=goal.tags,
             parent_id=goal.parent_id,
             deadline=goal.deadline,
+            completed=goal.completed,
         )
         self.update_goal(updated)
         return updated
@@ -221,6 +229,43 @@ class Storage:
             tags=goal.tags,
             parent_id=goal.parent_id,
             deadline=goal.deadline,
+            completed=goal.completed,
+        )
+        self.update_goal(updated)
+        return updated
+
+    def complete_goal(self, goal_id: str) -> Goal:
+        goal = self.get_goal(goal_id)
+        if goal.completed:
+            return goal
+        updated = Goal(
+            id=goal.id,
+            title=goal.title,
+            created=goal.created,
+            priority=goal.priority,
+            archived=goal.archived,
+            tags=goal.tags,
+            parent_id=goal.parent_id,
+            deadline=goal.deadline,
+            completed=True,
+        )
+        self.update_goal(updated)
+        return updated
+
+    def reopen_goal(self, goal_id: str) -> Goal:
+        goal = self.get_goal(goal_id)
+        if not goal.completed:
+            return goal
+        updated = Goal(
+            id=goal.id,
+            title=goal.title,
+            created=goal.created,
+            priority=goal.priority,
+            archived=goal.archived,
+            tags=goal.tags,
+            parent_id=goal.parent_id,
+            deadline=goal.deadline,
+            completed=False,
         )
         self.update_goal(updated)
         return updated

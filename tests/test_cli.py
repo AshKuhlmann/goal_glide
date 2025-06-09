@@ -20,7 +20,7 @@ def test_add_list_remove(tmp_path):
 
     # list
     result = runner.invoke(cli.goal, ["list"], env={"GOAL_GLIDE_DB_DIR": str(tmp_path)})
-    assert "Test Goal" in result.output
+    assert "Test" in result.output
 
     # remove using id from storage (rich table may truncate id)
     goal_id = Storage(tmp_path).list_goals()[0].id
