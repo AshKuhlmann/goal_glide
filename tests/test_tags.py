@@ -9,10 +9,6 @@ from goal_glide.cli import goal
 from goal_glide.models.storage import Storage
 
 
-@pytest.fixture()
-def runner(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> CliRunner:
-    monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
-    return CliRunner()
 
 
 def test_add_single_tag(tmp_path: Path, runner: CliRunner) -> None:

@@ -7,18 +7,11 @@ sys.path.insert(0, str(_Path(__file__).resolve().parents[1]))
 
 from pathlib import Path
 
-import pytest
 from click.testing import CliRunner
 
 from goal_glide.cli import goal
 from goal_glide.models.goal import Priority
 from goal_glide.models.storage import Storage
-
-
-@pytest.fixture()
-def runner(monkeypatch, tmp_path: Path) -> CliRunner:
-    monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
-    return CliRunner()
 
 
 def test_add_with_priority(tmp_path: Path, runner: CliRunner) -> None:
@@ -134,8 +127,8 @@ def test_list_archived_priority_filter(tmp_path: Path, runner: CliRunner) -> Non
 
 
 def test_list_shows_completed(tmp_path: Path, runner: CliRunner) -> None:
-    runner.invoke(goal, ["add", "g"], env={"GOAL_GLIDE_DB_DIR": str(tmp_path)})
+    runner.invoke(goal, ["add", "g"])
     gid = Storage(tmp_path).list_goals()[0].id
-    runner.invoke(goal, ["complete", gid], env={"GOAL_GLIDE_DB_DIR": str(tmp_path)})
-    result = runner.invoke(goal, ["list"], env={"GOAL_GLIDE_DB_DIR": str(tmp_path)})
+    runner.invoke(goal, ["complete", gid])
+    result = runner.invoke(goal, ["list"])
     assert "Comple" in result.output

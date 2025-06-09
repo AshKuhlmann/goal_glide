@@ -7,21 +7,18 @@ from goal_glide import cli
 from goal_glide.services import pomodoro
 
 
-def test_status_no_session(tmp_path: Path, monkeypatch):
+def test_status_no_session(tmp_path: Path, monkeypatch, runner: CliRunner):
     monkeypatch.setenv("HOME", str(tmp_path))
-    monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
     monkeypatch.setenv("GOAL_GLIDE_SESSION_FILE", str(tmp_path / "session.json"))
     import importlib
     importlib.reload(pomodoro)
-    runner = CliRunner()
     result = runner.invoke(cli.goal, ["pomo", "status"])
     assert result.exit_code == 0
     assert "No active session" in result.output
 
 
-def test_status_with_session(tmp_path: Path, monkeypatch):
+def test_status_with_session(tmp_path: Path, monkeypatch, runner: CliRunner):
     monkeypatch.setenv("HOME", str(tmp_path))
-    monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
     monkeypatch.setenv("GOAL_GLIDE_SESSION_FILE", str(tmp_path / "session.json"))
     import importlib
     importlib.reload(pomodoro)
@@ -43,16 +40,14 @@ def test_status_with_session(tmp_path: Path, monkeypatch):
             return later
 
     monkeypatch.setattr(cli, "datetime", LaterDT)
-    runner = CliRunner()
     result = runner.invoke(cli.goal, ["pomo", "status"])
     assert result.exit_code == 0
     assert "Elapsed 10m" in result.output
     assert "Remaining 20m" in result.output
 
 
-def test_status_paused(tmp_path: Path, monkeypatch):
+def test_status_paused(tmp_path: Path, monkeypatch, runner: CliRunner):
     monkeypatch.setenv("HOME", str(tmp_path))
-    monkeypatch.setenv("GOAL_GLIDE_DB_DIR", str(tmp_path))
     monkeypatch.setenv("GOAL_GLIDE_SESSION_FILE", str(tmp_path / "session.json"))
     import importlib
     importlib.reload(pomodoro)
@@ -79,7 +74,6 @@ def test_status_paused(tmp_path: Path, monkeypatch):
             return much_later
 
     monkeypatch.setattr(cli, "datetime", LaterDT)
-    runner = CliRunner()
     result = runner.invoke(cli.goal, ["pomo", "status"])
     assert result.exit_code == 0
     assert "Elapsed 10m" in result.output
