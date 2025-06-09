@@ -5,7 +5,6 @@ from typing import cast
 import click
 
 from .common import AppContext, handle_exceptions, console
-from .. import cli as main_cli
 from .. import config as cfg
 from ..config import ConfigDict
 from ..models.session import PomodoroSession
@@ -17,6 +16,8 @@ from ..services.pomodoro import (
     start_session,
     stop_session,
 )
+from ..services import quotes
+from datetime import datetime
 
 
 def _fmt(seconds: int) -> str:
@@ -27,7 +28,7 @@ def _fmt(seconds: int) -> str:
 def _print_completion(session: PomodoroSession, config: ConfigDict) -> None:
     console.print(f"Pomodoro complete ✅ ({_fmt(session.duration_sec)})")
     if config.get("quotes_enabled", True):
-        quote, author = main_cli.cli.get_random_quote()
+        quote, author = quotes.get_random_quote()
         console.print(
             f"[cyan italic]“{quote}”[/]\n— [bold]{author}[/]", justify="center"
         )
@@ -93,7 +94,7 @@ def status_pomo() -> None:
         return
     elapsed = session.elapsed_sec
     if not session.paused and session.last_start is not None:
-        now = main_cli.cli.datetime.now()
+        now = datetime.now()
         elapsed += int((now - session.last_start).total_seconds())
     remaining = max(session.duration_sec - elapsed, 0)
     console.print(f"Elapsed {_fmt(elapsed)} | Remaining {_fmt(remaining)}")

@@ -5,6 +5,7 @@ from click.testing import CliRunner
 
 from goal_glide.cli import cli
 from goal_glide.services import pomodoro
+from goal_glide.commands import pomo_cmds
 
 
 def test_status_no_session(tmp_path: Path, monkeypatch):
@@ -42,7 +43,7 @@ def test_status_with_session(tmp_path: Path, monkeypatch):
         def now(cls) -> datetime.datetime:  # type: ignore[override]
             return later
 
-    monkeypatch.setattr(cli, "datetime", LaterDT)
+    monkeypatch.setattr(pomo_cmds, "datetime", LaterDT)
     runner = CliRunner()
     result = runner.invoke(cli, ["pomo", "status"])
     assert result.exit_code == 0
@@ -78,7 +79,7 @@ def test_status_paused(tmp_path: Path, monkeypatch):
         def now(cls) -> datetime.datetime:  # type: ignore[override]
             return much_later
 
-    monkeypatch.setattr(cli, "datetime", LaterDT)
+    monkeypatch.setattr(pomo_cmds, "datetime", LaterDT)
     runner = CliRunner()
     result = runner.invoke(cli, ["pomo", "status"])
     assert result.exit_code == 0

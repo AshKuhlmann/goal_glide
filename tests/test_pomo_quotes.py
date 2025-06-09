@@ -22,7 +22,6 @@ def test_pomo_stop_prints_quote(
     monkeypatch: pytest.MonkeyPatch, runner: CliRunner
 ) -> None:
     monkeypatch.setattr(quotes, "get_random_quote", lambda use_online=True: ("Q", "A"))
-    monkeypatch.setattr(cli, "get_random_quote", lambda use_online=True: ("Q", "A"))
     runner.invoke(cli, ["pomo", "start", "--duration", "1"])
     result = runner.invoke(cli, ["pomo", "stop"])
     assert "Pomodoro complete" in result.output
@@ -36,7 +35,6 @@ def test_quotes_disabled(
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("quotes_enabled = false", encoding="utf-8")
     monkeypatch.setattr(quotes, "get_random_quote", lambda use_online=True: ("Q", "A"))
-    monkeypatch.setattr(cli, "get_random_quote", lambda use_online=True: ("Q", "A"))
     runner.invoke(cli, ["pomo", "start", "--duration", "1"])
     result = runner.invoke(cli, ["pomo", "stop"])
     assert "Pomodoro complete" in result.output
@@ -51,7 +49,6 @@ def test_quote_fallback(monkeypatch: pytest.MonkeyPatch, runner: CliRunner) -> N
     )
     monkeypatch.setattr(quotes, "_LOCAL_CACHE", None)
     monkeypatch.setattr(quotes.random, "choice", lambda seq: seq[0])
-    monkeypatch.setattr(cli, "get_random_quote", quotes.get_random_quote)
     runner.invoke(cli, ["pomo", "start", "--duration", "1"])
     result = runner.invoke(cli, ["pomo", "stop"])
     assert "Inspirational quote 1" in result.output
@@ -64,7 +61,6 @@ def test_quote_exception_handling(
         raise RuntimeError("boom")
 
     monkeypatch.setattr(quotes, "get_random_quote", boom)
-    monkeypatch.setattr(cli, "get_random_quote", boom)
     runner.invoke(cli, ["pomo", "start", "--duration", "1"])
     result = runner.invoke(cli, ["pomo", "stop"])
     assert result.exit_code == 1
@@ -92,7 +88,6 @@ def test_quotes_disabled_no_call(
         return ("Q", "A")
 
     monkeypatch.setattr(quotes, "get_random_quote", fake)
-    monkeypatch.setattr(cli, "get_random_quote", fake)
     runner.invoke(cli, ["pomo", "start", "--duration", "1"])
     result = runner.invoke(cli, ["pomo", "stop"])
     assert called == []

@@ -14,8 +14,6 @@ from .commands.reminder_cmds import reminder_cmds
 from .commands.report_cmds import report_cmds
 from .commands.stats_cmds import stats_cmds
 from .commands.version_cmds import version_cmds
-from .services.quotes import get_random_quote
-from datetime import datetime
 
 
 @click.group()
@@ -39,8 +37,4 @@ cli.add_command(report_cmds)
 cli.add_command(stats_cmds)
 cli.add_command(version_cmds)
 
-# expose for monkeypatching in tests
-cli.get_random_quote = get_random_quote
-cli.datetime = datetime
-
-__all__ = ["cli", "get_random_quote"]
+__all__ = ["cli"]
