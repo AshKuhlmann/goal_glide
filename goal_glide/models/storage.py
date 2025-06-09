@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 from typing import Any, TYPE_CHECKING
 
@@ -60,46 +61,10 @@ class Storage:
             if updated:
                 self.table.update(new_row, Query().id == row["id"])
 
-    def _row_to_goal(self, row: dict[str, Any]) -> Goal:
-        return Goal.from_dict(row)
-
-    def _row_to_thought(self, row: dict[str, Any]) -> Thought:
-        return Thought.from_dict(row)
-
-    def _row_to_session(self, row: dict[str, Any]) -> PomodoroSession:
-        return PomodoroSession.from_dict(row)
-
-    def add_goal(self, goal: Goal) -> None:
-        """Saves a new goal to the database.
-
-        Args:
-            goal: A :class:`Goal` object to be added to the database.
-        """
-
-        self.table.insert(goal.to_dict())
-
-    def get_goal(self, goal_id: str) -> Goal:
-        """Retrieves a single goal by its ID."""
-        row = self.table.get(Query().id == goal_id)
-        if not row:
-            raise GoalNotFoundError(f"Goal {goal_id} not found")
-        return self._row_to_goal(row)
-
-    def add_tags(self, goal_id: str, tags: list[str]) -> Goal:
-        """Adds one or more tags to a goal."""
-        goal = self.get_goal(goal_id)
-        updated_tags = list({*goal.tags, *tags})
-        updated = Goal(
-            id=goal.id,
-            title=goal.title,
-            created=goal.created,
-            priority=goal.priority,
-            archived=goal.archived,
-            tags=sorted(updated_tags),
-            parent_id=goal.parent_id,
-            deadline=goal.deadline,
-        )
-        self.update_goal(updated)
+        updated = replace(goal, tags=sorted(updated_tags))
+        updated = replace(goal, tags=new_tags)
+        updated = replace(goal, archived=True)
+        updated = replace(goal, archived=False)
         return updated
 
     def remove_tag(self, goal_id: str, tag: str) -> Goal:
