@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Callable, cast
+from typing import Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 from tinydb import Query, TinyDB
 from tinydb.queries import QueryLike
@@ -152,7 +155,7 @@ class Storage:
             title=goal.title,
             created=goal.created,
             priority=goal.priority,
-            archived=False,
+            predicates.append(lambda r: bool(r.get("archived")))
             tags=goal.tags,
             parent_id=goal.parent_id,
             deadline=goal.deadline,
