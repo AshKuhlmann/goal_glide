@@ -17,6 +17,7 @@ from rich.tree import Tree
 from tinydb import Query
 
 from .config import ConfigDict, load_config, save_config
+from . import config as cfg
 from .exceptions import GoalGlideError
 from .models.goal import Goal, Priority
 from .models.storage import Storage
@@ -408,12 +409,21 @@ def pomo() -> None:
 
 
 @pomo.command("start")
-@click.option("--duration", type=int, default=25, show_default=True, help="Minutes")
+@click.option(
+    "--duration",
+    type=int,
+    default=None,
+    show_default=False,
+    help="Minutes (defaults to config)",
+)
 @click.option("-g", "--goal", "goal_id", help="Associate with goal ID")
 @handle_exceptions
-def start_pomo(duration: int, goal_id: str | None) -> None:
-    start_session(duration, goal_id)
-    console.print(f"Started pomodoro for {duration}m")
+def start_pomo(duration: int | None, goal_id: str | None) -> None:
+    dur = duration
+    if dur is None:
+        dur = cfg.pomo_duration()
+    start_session(dur, goal_id)
+    console.print(f"Started pomodoro for {dur}m")
 
 
 @pomo.command("stop")
