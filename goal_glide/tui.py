@@ -237,6 +237,8 @@ class GoalGlideApp(App[None]):
             archived=goal.archived,
             tags=goal.tags,
             parent_id=goal.parent_id,
+            deadline=goal.deadline,
+            completed=goal.completed,
         )
         self.storage.update_goal(updated)
         await self.refresh_goals()

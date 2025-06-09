@@ -22,3 +22,4 @@ class Goal:
     tags: list[str] = field(default_factory=list)
     parent_id: str | None = None
     deadline: Optional[datetime] = None
+    completed: bool = False

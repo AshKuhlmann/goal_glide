@@ -131,3 +131,11 @@ def test_list_archived_priority_filter(tmp_path: Path, runner: CliRunner) -> Non
     assert "b" in result.output
     assert "| a |" not in result.output
     assert "| c |" not in result.output
+
+
+def test_list_shows_completed(tmp_path: Path, runner: CliRunner) -> None:
+    runner.invoke(goal, ["add", "g"], env={"GOAL_GLIDE_DB_DIR": str(tmp_path)})
+    gid = Storage(tmp_path).list_goals()[0].id
+    runner.invoke(goal, ["complete", gid], env={"GOAL_GLIDE_DB_DIR": str(tmp_path)})
+    result = runner.invoke(goal, ["list"], env={"GOAL_GLIDE_DB_DIR": str(tmp_path)})
+    assert "Comple" in result.output

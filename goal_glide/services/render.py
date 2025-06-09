@@ -14,6 +14,7 @@ def render_goals(goals: list[Goal]) -> Table:
     table.add_column("Created")
     table.add_column("Deadline")
     table.add_column("Archived")
+    table.add_column("Completed")
     table.add_column("Tags")
     for g in goals:
         deadline_text = ""
@@ -26,13 +27,15 @@ def render_goals(goals: list[Goal]) -> Table:
                 deadline_text = f"[yellow]{date_str}[/]"
             else:
                 deadline_text = date_str
+        title = f"[green]{g.title}[/]" if g.completed else g.title
         table.add_row(
             g.id,
-            g.title,
+            title,
             g.priority.value,
             g.created.isoformat(timespec="seconds"),
             deadline_text,
             "yes" if g.archived else "",
+            "yes" if g.completed else "",
             ", ".join(g.tags),
         )
     return table

@@ -11,6 +11,7 @@ def test_render_goals_row_count() -> None:
             title="A",
             created=datetime.utcnow(),
             priority=Priority.low,
+            completed=True,
         ),
         Goal(
             id="2",
@@ -24,4 +25,4 @@ def test_render_goals_row_count() -> None:
     assert len(table.rows) == len(goals)
     assert table.columns[0].header == "ID"
     headers = [col.header for col in table.columns]
-    assert "Deadline" in headers
+    assert "Deadline" in headers and "Completed" in headers
