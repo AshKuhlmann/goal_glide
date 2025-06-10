@@ -125,3 +125,36 @@ def test_update_detail_with_goal(app_env, tmp_path):
             assert "Press S to start Pomodoro" in str(panel.renderable)
 
     asyncio.run(run())
+
+
+def test_update_detail_deadline_color(app_env, tmp_path):
+    if not _setup_textual():
+        pytest.skip("textual not available")
+    from datetime import timedelta
+    from textual.widgets import Static
+    from goal_glide.tui import GoalGlideApp
+
+    storage = Storage(tmp_path / "db.json")
+    now = datetime.utcnow()
+    past = Goal(id="g1", title="Past", created=now, deadline=now - timedelta(days=1))
+    soon = Goal(id="g2", title="Soon", created=now, deadline=now + timedelta(days=2))
+    storage.add_goal(past)
+    storage.add_goal(soon)
+
+    async def run() -> None:
+        async with GoalGlideApp().run_test() as pilot:
+            await pilot.pause()
+
+            pilot.app.selected_goal = past.id
+            pilot.app.update_detail()
+            panel = pilot.app.query_one("#detail_panel", Static)
+            assert f"Deadline: [red]{past.deadline:%Y-%m-%d}" in str(panel.renderable)
+
+            pilot.app.selected_goal = soon.id
+            pilot.app.update_detail()
+            panel = pilot.app.query_one("#detail_panel", Static)
+            assert (
+                f"Deadline: [yellow]{soon.deadline:%Y-%m-%d}" in str(panel.renderable)
+            )
+
+    asyncio.run(run())
