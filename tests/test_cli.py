@@ -3,6 +3,7 @@ import click
 import pytest
 import json
 from datetime import datetime, timedelta
+from rich.table import Table
 
 import goal_glide.cli as cli
 from goal_glide import config
@@ -172,3 +173,29 @@ def test_list_due_filters(tmp_path, runner: CliRunner):
     assert "past" in res.output
     assert "soon" not in res.output
     assert "later" not in res.output
+
+
+def test_list_deadline_colors(tmp_path, runner: CliRunner, monkeypatch) -> None:
+    """Deadlines should be color coded in ``goal list`` output."""
+    past = (datetime.utcnow() - timedelta(days=1)).strftime("%Y-%m-%d")
+    near = (datetime.utcnow() + timedelta(days=2)).strftime("%Y-%m-%d")
+    future = (datetime.utcnow() + timedelta(days=5)).strftime("%Y-%m-%d")
+
+    runner.invoke(cli.goal, ["add", "past", "--deadline", past])
+    runner.invoke(cli.goal, ["add", "near", "--deadline", near])
+    runner.invoke(cli.goal, ["add", "future", "--deadline", future])
+
+    printed: list[Table] = []
+    monkeypatch.setattr(
+        cli.console,
+        "print",
+        lambda obj, *a, **k: printed.append(obj),
+    )
+
+    result = runner.invoke(cli.goal, ["list"])
+    assert result.exit_code == 0
+    table = printed[0]
+    deadlines = table.columns[4]._cells
+    assert deadlines[0] == f"[red]{past}[/]"
+    assert deadlines[1] == f"[yellow]{near}[/]"
+    assert deadlines[2] == future
