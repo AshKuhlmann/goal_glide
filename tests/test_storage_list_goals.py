@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 from pathlib import Path
+import tempfile
 
-from hypothesis import HealthCheck, given, settings, strategies as st
+from hypothesis import given, settings, strategies as st
 
 from goal_glide.models.goal import Goal, Priority
 from goal_glide.models.storage import Storage
@@ -94,15 +95,17 @@ def _filters_strategy() -> st.SearchStrategy[dict[str, object]]:
     ),
     filters=_filters_strategy(),
 )
-@settings(max_examples=25, suppress_health_check=[HealthCheck.function_scoped_fixture])
-def test_property_list_goals(tmp_path: Path, goals: list[Goal], filters: dict[str, object]) -> None:
-    storage = Storage(tmp_path / "db.json")
-    for g in goals:
-        storage.add_goal(g)
+@settings(max_examples=25, deadline=None)
+def test_property_list_goals(goals: list[Goal], filters: dict[str, object]) -> None:
+    with tempfile.TemporaryDirectory() as d:
+        storage = Storage(Path(d) / "db.json")
+        for g in goals:
+            storage.add_goal(g)
 
     fixed_now = datetime.utcnow()
     import goal_glide.models.storage as storage_mod
     orig_dt = storage_mod.datetime
+
     class FixedDateTime(datetime):
         @classmethod
         def utcnow(cls) -> datetime:
