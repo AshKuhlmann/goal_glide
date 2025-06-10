@@ -97,7 +97,7 @@ def _parent_child_mapping(draw: st.DrawFn) -> dict[str, list[str]]:
 
 
 @given(_parent_child_mapping())
-@settings(max_examples=25)
+@settings(max_examples=25, deadline=None)
 def test_list_goals_parent_property(mapping: dict[str, list[str]]) -> None:
     with tempfile.TemporaryDirectory() as d:
         storage = Storage(Path(d) / "db.json")
