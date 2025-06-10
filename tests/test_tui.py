@@ -153,6 +153,8 @@ def test_update_detail_deadline_color(app_env, tmp_path):
             pilot.app.selected_goal = soon.id
             pilot.app.update_detail()
             panel = pilot.app.query_one("#detail_panel", Static)
-            assert f"Deadline: [yellow]{soon.deadline:%Y-%m-%d}" in str(panel.renderable)
+            assert (
+                f"Deadline: [yellow]{soon.deadline:%Y-%m-%d}" in str(panel.renderable)
+            )
 
     asyncio.run(run())
