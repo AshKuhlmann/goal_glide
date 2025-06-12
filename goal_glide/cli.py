@@ -365,6 +365,41 @@ def tag_list(ctx: click.Context) -> None:
     console.print(table)
 
 
+@goal.group("phase")
+def phase() -> None:
+    """Phase management."""
+    pass
+
+
+@phase.command("add")
+@click.argument("goal_id")
+@click.argument("phases", nargs=-1, required=True)
+@handle_exceptions
+@click.pass_context
+def phase_add(ctx: click.Context, goal_id: str, phases: tuple[str, ...]) -> None:
+    """Add one or more phases to a goal."""
+    obj = cast(AppContext, ctx.obj)
+    storage: Storage = obj["storage"]
+    goal = storage.add_phases(goal_id, list(phases))
+    console.print(f"Phases for {goal.id}: {', '.join(goal.phases)}")
+
+
+@phase.command("rm")
+@click.argument("goal_id")
+@click.argument("phase")
+@handle_exceptions
+@click.pass_context
+def phase_rm(ctx: click.Context, goal_id: str, phase: str) -> None:
+    """Remove a phase from a goal."""
+    obj = cast(AppContext, ctx.obj)
+    storage: Storage = obj["storage"]
+    before = storage.get_goal(goal_id)
+    updated = storage.remove_phase(goal_id, phase)
+    if phase not in before.phases:
+        console.print(f"[yellow]Phase '{phase}' not present[/yellow]")
+    console.print(f"Phases for {updated.id}: {', '.join(updated.phases)}")
+
+
 @goal.command("list")
 @click.option("--archived", is_flag=True, help="Show only archived goals")
 @click.option(

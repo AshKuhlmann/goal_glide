@@ -175,6 +175,11 @@ Quick examples of common commands:
   python -m goal_glide tag add <goal-id> writing
   python -m goal_glide tag rm <goal-id> writing
   ```
+- **phase add/rm** – manage goal phases.
+  ```bash
+  python -m goal_glide phase add <goal-id> planning execution
+  python -m goal_glide phase rm <goal-id> planning
+  ```
 - **pomo start/stop** – run a pomodoro timer.
   ```bash
   python -m goal_glide pomo start

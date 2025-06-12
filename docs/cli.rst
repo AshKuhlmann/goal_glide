@@ -18,6 +18,11 @@ Archive an old goal and later restore it::
    python -m goal_glide archive <goal-id>
    python -m goal_glide restore <goal-id>
 
+Break a goal into phases and remove one later::
+
+   python -m goal_glide phase add <goal-id> planning execution
+   python -m goal_glide phase rm <goal-id> planning
+
 Start a pomodoro linked to a specific goal::
 
    python -m goal_glide pomo start --goal <goal-id>

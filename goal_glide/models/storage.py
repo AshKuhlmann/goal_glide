@@ -26,6 +26,7 @@ class GoalRow(TypedDict):
     priority: str
     archived: bool
     tags: list[str]
+    phases: list[str]
     parent_id: str | None
     deadline: datetime | str | None
     completed: bool
@@ -74,6 +75,9 @@ class Storage:
             if "tags" not in row:
                 new_row["tags"] = []
                 updated = True
+            if "phases" not in row:
+                new_row["phases"] = []
+                updated = True
             if "parent_id" not in row:
                 new_row["parent_id"] = None
                 updated = True
@@ -107,6 +111,7 @@ class Storage:
             priority=Priority(row.get("priority", Priority.medium.value)),
             archived=row.get("archived", False),
             tags=row.get("tags", []),
+            phases=row.get("phases", []),
             parent_id=row.get("parent_id"),
             deadline=dl_dt,
             completed=row.get("completed", False),
@@ -178,6 +183,7 @@ class Storage:
                 priority=goal.priority,
                 archived=goal.archived,
                 tags=sorted(updated_tags),
+                phases=goal.phases,
                 parent_id=goal.parent_id,
                 deadline=goal.deadline,
                 completed=goal.completed,
@@ -198,6 +204,47 @@ class Storage:
                 priority=goal.priority,
                 archived=goal.archived,
                 tags=new_tags,
+                phases=goal.phases,
+                parent_id=goal.parent_id,
+                deadline=goal.deadline,
+                completed=goal.completed,
+            )
+            self._update_goal_no_lock(updated)
+            return updated
+
+    def add_phases(self, goal_id: str, phases: list[str]) -> Goal:
+        with self.lock:
+            goal = self._get_goal_no_lock(goal_id)
+            updated_phases = list({*goal.phases, *phases})
+            updated = Goal(
+                id=goal.id,
+                title=goal.title,
+                created=goal.created,
+                priority=goal.priority,
+                archived=goal.archived,
+                tags=goal.tags,
+                phases=sorted(updated_phases),
+                parent_id=goal.parent_id,
+                deadline=goal.deadline,
+                completed=goal.completed,
+            )
+            self._update_goal_no_lock(updated)
+            return updated
+
+    def remove_phase(self, goal_id: str, phase: str) -> Goal:
+        with self.lock:
+            goal = self._get_goal_no_lock(goal_id)
+            if phase not in goal.phases:
+                return goal
+            new_phases = [p for p in goal.phases if p != phase]
+            updated = Goal(
+                id=goal.id,
+                title=goal.title,
+                created=goal.created,
+                priority=goal.priority,
+                archived=goal.archived,
+                tags=goal.tags,
+                phases=new_phases,
                 parent_id=goal.parent_id,
                 deadline=goal.deadline,
                 completed=goal.completed,
@@ -207,6 +254,7 @@ class Storage:
 
     def update_goal(self, goal: Goal) -> None:
         from dataclasses import asdict
+
         with self.lock:
             if not self.table.contains(Query().id == goal.id):
                 raise GoalNotFoundError(f"Goal {goal.id} not found")
@@ -224,6 +272,7 @@ class Storage:
                 priority=goal.priority,
                 archived=True,
                 tags=goal.tags,
+                phases=goal.phases,
                 parent_id=goal.parent_id,
                 deadline=goal.deadline,
                 completed=goal.completed,
@@ -243,6 +292,7 @@ class Storage:
                 priority=goal.priority,
                 archived=False,
                 tags=goal.tags,
+                phases=goal.phases,
                 parent_id=goal.parent_id,
                 deadline=goal.deadline,
                 completed=goal.completed,
@@ -262,6 +312,7 @@ class Storage:
                 priority=goal.priority,
                 archived=goal.archived,
                 tags=goal.tags,
+                phases=goal.phases,
                 parent_id=goal.parent_id,
                 deadline=goal.deadline,
                 completed=True,
@@ -281,6 +332,7 @@ class Storage:
                 priority=goal.priority,
                 archived=goal.archived,
                 tags=goal.tags,
+                phases=goal.phases,
                 parent_id=goal.parent_id,
                 deadline=goal.deadline,
                 completed=False,
@@ -379,6 +431,7 @@ class Storage:
 
     def add_session(self, session: PomodoroSession) -> None:
         from dataclasses import asdict
+
         with self.lock:
             self.session_table.insert(cast(dict[str, Any], asdict(session)))
 
@@ -389,6 +442,7 @@ class Storage:
 
     def add_thought(self, thought: Thought) -> None:
         from dataclasses import asdict
+
         with self.lock:
             self.thought_table.insert(cast(dict[str, Any], asdict(thought)))
 
